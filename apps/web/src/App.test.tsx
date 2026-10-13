@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import App from './App';
+
+// TODO: Add i18n provider (react-i18next) once frontend-foundations PR lands
 
 const renderApp = () => {
   return render(
@@ -13,7 +15,12 @@ const renderApp = () => {
 
 describe('App', () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it('renders the main title', () => {
@@ -24,8 +31,8 @@ describe('App', () => {
 
     renderApp();
 
-    expect(screen.getByText('Giving Day')).toBeInTheDocument();
-    expect(screen.getByText('Welcome to Giving Day')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
   });
 
   it('displays loading state initially', () => {
@@ -38,10 +45,10 @@ describe('App', () => {
 
     renderApp();
 
-    expect(screen.getByText('Checking API health...')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('displays health status when API responds', async () => {
+  it('displays healthy status when API responds', async () => {
     const mockHealthResponse = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -59,10 +66,46 @@ describe('App', () => {
     renderApp();
 
     await waitFor(() => {
-      expect(screen.getByText('healthy')).toBeInTheDocument();
+      expect(screen.getByTestId('status-badge')).toHaveAttribute(
+        'data-status',
+        'healthy'
+      );
     });
 
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByTestId('database-badge')).toHaveAttribute(
+      'data-connected',
+      'true'
+    );
+  });
+
+  it('displays unhealthy status when database is disconnected', async () => {
+    const mockHealthResponse = {
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      database: {
+        connected: false,
+      },
+    };
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockHealthResponse,
+    } as Response);
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status-badge')).toHaveAttribute(
+        'data-status',
+        'unhealthy'
+      );
+    });
+
+    expect(screen.getByTestId('database-badge')).toHaveAttribute(
+      'data-connected',
+      'false'
+    );
   });
 
   it('displays error when API fails', async () => {
@@ -74,7 +117,37 @@ describe('App', () => {
     renderApp();
 
     await waitFor(() => {
-      expect(screen.getByText(/HTTP 500/)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/HTTP 500/);
     });
+  });
+
+  it('polls health endpoint every 30 seconds', async () => {
+    vi.useFakeTimers();
+
+    const mockHealthResponse = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: {
+        connected: true,
+      },
+    };
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockHealthResponse,
+    } as Response);
+
+    renderApp();
+
+    await vi.runOnlyPendingTimersAsync();
+    const initialCalls = vi.mocked(fetch).mock.calls.length;
+    expect(initialCalls).toBeGreaterThanOrEqual(1);
+
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(fetch).toHaveBeenCalledTimes(initialCalls + 1);
+
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(fetch).toHaveBeenCalledTimes(initialCalls + 2);
   });
 });

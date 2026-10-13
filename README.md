@@ -173,12 +173,14 @@ Three GitHub Actions workflows run on pull requests to `master`:
      - Runs ESLint on all packages
      - Type-checks and builds all packages
      - Checks code formatting with Prettier
-     - Runs unit and integration tests
+     - Pushes the Prisma schema to CI Postgres (`prisma db push`)
+     - Runs unit and integration tests (including Supertest against `/api/health`)
    - E2E Tests Job:
-     - Sets up PostgreSQL database
-     - Installs Playwright browsers
-     - Runs end-to-end tests
-     - Uploads test reports as artifacts
+     - Sets up PostgreSQL and pushes the Prisma schema
+     - Installs Playwright browsers (`pnpm exec playwright install`) and caches them
+     - Builds the apps, then runs Playwright against `api start` + `web preview`
+     - Waits for `GET :3001/api/health` before UI assertions
+     - Uploads Playwright reports as artifacts **only on failure**
 
 2. **Commit Lint** (`.github/workflows/commitlint.yml`):
    - Validates all commits in the PR follow Conventional Commits format

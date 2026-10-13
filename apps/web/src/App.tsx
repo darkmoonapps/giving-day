@@ -65,7 +65,7 @@ function App() {
               </Title>
 
               {loading && (
-                <Group>
+                <Group data-testid="loading-indicator">
                   <Loader size="sm" />
                   <Text>Checking API health...</Text>
                 </Group>
@@ -86,6 +86,8 @@ function App() {
                   <Group>
                     <Text fw={500}>API Status:</Text>
                     <Badge
+                      data-testid="status-badge"
+                      data-status={health.status}
                       color={health.status === 'healthy' ? 'green' : 'red'}
                       leftSection={<IconCircleCheck size={12} />}
                     >
@@ -96,6 +98,8 @@ function App() {
                   <Group>
                     <Text fw={500}>Database:</Text>
                     <Badge
+                      data-testid="database-badge"
+                      data-connected={String(health.database.connected)}
                       color={health.database.connected ? 'green' : 'red'}
                       variant="light"
                     >

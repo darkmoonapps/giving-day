@@ -208,10 +208,11 @@ All tests must pass before merging PRs:
 
 The CI workflow includes:
 
-- Unit and integration tests for both web and API
-- E2E tests with Playwright
-- PostgreSQL service for E2E tests
-- Playwright report artifacts uploaded on failure
+- Unit and integration tests for both web and API (Postgres service + `prisma db push`)
+- E2E tests with Playwright against a production build (`api start` + `web preview`)
+- Playwright waits for `GET http://localhost:3001/api/health` before running UI tests
+- Playwright browsers installed with `pnpm exec playwright install` and cached by lockfile hash
+- Playwright HTML report and `test-results/` uploaded **only when the e2e-tests job fails** (`if: failure()`)
 
 ## Implementation
 
@@ -219,16 +220,25 @@ The CI workflow includes:
 
 - **Configuration**: `vitest.config.ts` with jsdom environment
 - **Setup**: Test setup file loads `@testing-library/jest-dom`
-- **Tests**: `App.test.tsx` - smoke tests for main component
+- **Tests**:
+  - `App.test.tsx` - Component tests using role and test-id queries
+  - Includes fake-timer test for polling behavior
+  - Tests both healthy and unhealthy states
+- **Test Patterns**: Uses `vi.stubGlobal` and `vi.unstubAllGlobals` for fetch mocking
 - **Commands**:
   - `pnpm test` - Run tests in watch mode
   - `pnpm test:ci` - Run tests once with coverage
 
 ### API (apps/api)
 
-- **Configuration**: `vitest.config.ts` with node environment
-- **Setup**: Test setup loads `reflect-metadata` for NestJS
-- **Tests**: `health.controller.spec.ts` - API health endpoint test with Supertest
+- **Configuration**: `vitest.config.ts` with node environment and unplugin-swc
+- **Setup**: Test setup loads `reflect-metadata` for NestJS, unplugin-swc for decorator metadata
+- **Tests**:
+  - `src/health/health.controller.spec.ts` - Unit tests for health controller
+  - `test/health.int.spec.ts` - Integration tests with Supertest
+    - Tests connected database case with real Prisma
+    - Tests disconnected case with overridden Prisma provider
+    - Boots full NestJS app with global `/api` prefix
 - **Commands**:
   - `pnpm test` - Run tests in watch mode
   - `pnpm test:ci` - Run tests once with coverage
@@ -236,44 +246,67 @@ The CI workflow includes:
 ### E2E (root)
 
 - **Configuration**: `playwright.config.ts` with chromium browser
-- **Tests**: `e2e/smoke.spec.ts` - Basic smoke test for homepage
+  - Uses build + preview/start in CI (not dev mode)
+  - Retries failed tests 2x in CI
+  - Caches Playwright browsers by lockfile hash
+- **Tests**: `e2e/smoke.spec.ts` - Uses role and test-id queries (no hardcoded text)
+  - Verifies homepage loads
+  - Asserts healthy API status badge
+  - Asserts connected database badge
+- **CI Setup**:
+  - Runs `prisma db push` against CI Postgres (no migration files exist yet)
+  - Builds apps, then Playwright starts `api start` and `web preview`
+  - Waits for `GET :3001/api/health` before running UI tests
+  - Uploads `playwright-report/` and `test-results/` only on e2e job failure
 - **Commands**:
   - `pnpm test:e2e` - Run E2E tests
   - `pnpm test:e2e:ui` - Run E2E tests with UI
 
 ### Root Scripts
 
-- `pnpm test` - Run all unit/integration tests
-- `pnpm test:ci` - Run all tests with coverage
+- `pnpm test` - Run all unit/integration tests with `--if-present`
+- `pnpm test:ci` - Run all tests with coverage using `--if-present`
 - `pnpm test:e2e` - Run E2E tests
 
-## Open Questions (To Be Decided)
+## Resolved Decisions
 
 ### Test Framework Choice
 
 - **Decision**: Vitest chosen for its speed, Vite-native integration, and modern API
+- **Status**: Implemented in both web and api packages
+
+### E2E Test Frequency
+
+- **Decision**: Run E2E on every PR (using PostgreSQL service)
+- **Status**: Implemented in CI workflow
+
+### Mocking Strategy
+
+- **Decision**:
+  - Use `vi.stubGlobal` and `vi.unstubAllGlobals` for global mocks (like fetch)
+  - Integration tests use real Prisma with CI Postgres
+  - Override providers in NestJS testing module for disconnected case
+- **Status**: Implemented in web and API tests
+
+### Query Strategy
+
+- **Decision**: Use role and test-id queries (not hardcoded English text)
+- **Rationale**: Supports i18n (Hebrew/English) without breaking tests
+- **Status**: Implemented in web and E2E tests with data-testid attributes
+
+## Open Questions
 
 ### Coverage Enforcement
 
 - Should CI fail if coverage drops below threshold?
 - What threshold? 70%? 80%?
-
-### E2E Test Frequency
-
-- Run E2E on every commit, or only on PR merge?
-- E2E are slow - consider running subset on push, full suite on merge
-
-### Mocking Strategy
-
-- Mock external services (Prisma, notification service) in tests?
-- Use test database vs in-memory database?
-- Recommendation: Test database in Docker for API tests
+- **Current**: Coverage collected but not enforced
 
 ### Snapshot Testing
 
 - Use snapshot tests for components?
 - Can be brittle but useful for catching unintended changes
-- Recommendation: Use sparingly for complex UI states
+- **Recommendation**: Use sparingly for complex UI states
 
 ## Alternatives Considered
 
