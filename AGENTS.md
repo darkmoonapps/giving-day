@@ -94,7 +94,7 @@ pnpm --filter @giving-day/api prisma studio         # Open Prisma Studio GUI
 # Testing
 pnpm test                   # Unit and component tests (Vitest)
 pnpm test:e2e               # Playwright smoke tests
-pnpm test:ci                # Unit tests plus Playwright
+pnpm test:ci                # Unit and integration tests with coverage
 
 # Code generation
 pnpm codegen                # OpenAPI spec + Orval clients

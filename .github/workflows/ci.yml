@@ -77,6 +77,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Build Storybook
+        run: pnpm --filter @giving-day/ui build-storybook
+
       - name: Run unit and integration tests
         run: pnpm test:ci
 
