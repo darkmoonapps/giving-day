@@ -18,8 +18,7 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 - Manages the entire distribution day process
 - Creates a distribution day by entering a date, then adds notes for that day and sets that day's hours
-- Sets the distribution center address on the Settings page (used as the start of the volunteer route)
-- Configures notification offsets (unpicked-package warning before the window ends; wait after Picked before a status reminder)
+- Configures the organization from a simple, beautiful Settings area (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo, and other app knobs)
 - Manages volunteer and elder profiles
 - Approves volunteer requests to change an elder's details
 - Handles volunteer assignments and reassignments (no automatic reassignment)
@@ -47,6 +46,18 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 7. **Provide visibility**: Give admins real-time dashboards showing confirmation status, coverage gaps, and statistics
 8. **Build relationships**: Maintain volunteer-elder matching (one volunteer may be matched with more than one elder)
 9. **Guide the route**: Show an optimized map route that starts at the admin-configured distribution center, with a Navigate menu (Google Maps, Apple Maps, Waze) on each address
+10. **Admin-configurable product**: An admin can configure everything from the app through a simple, beautiful Settings area
+
+## Principles
+
+**An admin can configure everything from the app through a simple, beautiful Settings area.** Settings is the single place for organization knobs. No code change or deploy is required for day-to-day configuration. Configurable items include:
+
+- Distribution center address (start of the volunteer map route)
+- Notification offsets and timings (confirmation reminders; unpicked-package warning before the window ends; wait after Picked before a missing-final-status reminder; default 3 days for that wait)
+- Distribution day hours (defaults and per-day hours)
+- Notification texts and languages
+- Default theme
+- Organization name and logo
 
 ## Non-Goals
 
@@ -74,7 +85,7 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 1. Volunteer receives push notification: "Can you deliver on [date]?"
 2. Opens app (or clicks notification)
-3. Sees distribution day details and the elders assigned to them (notes and details only for those elders)
+3. Sees only the distribution day details (date, hours, and day notes). The volunteer does not see assigned elders on this screen
 4. Taps "Confirm" or "Can't make it"
 5. If they confirm, a fireworks thank-you screen appears
 6. Confirmation immediately updates in admin dashboard
@@ -147,8 +158,16 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 - [ ] Volunteer visibility limited to notes and details of assigned elders
 - [ ] Volunteer requests to change elder details; admin approval
 - [ ] Create distribution day (date required; optional notes and hours for that day)
-- [ ] Settings: distribution center address
-- [ ] Settings: notification offsets (unpicked warning; Picked-without-status wait, default 3 days)
+- [ ] Simple, beautiful Settings area where an admin configures the organization
+  - Distribution center address
+  - Notification offsets and timings
+  - Day hours
+  - Notification texts and languages
+  - Default theme
+  - Organization name and logo
+- [ ] Light theme by default: pastel "Wisteria & mint" (wisteria `#A99BE0` primary, mint `#A8E6CF` accent; mint for Delivered states)
+- [ ] Dark theme: deep plum `#1E1A2E` background with brightened accents
+- [ ] Theme toggle; follows the system preference
 - [ ] View upcoming distribution days
 
 ### Phase 2: Confirmations & Notifications
@@ -204,7 +223,8 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 - Volunteers see notes and details only for assigned elders
 - Volunteers can request elder detail changes; admin approves
 - Admin can create a distribution day by entering a date, add notes per day, and set that day's hours
-- Admin can set the distribution center address and notification offsets on Settings
+- Admin can configure the organization from Settings (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo)
+- Light "Wisteria & mint" theme by default and a deep-plum dark theme; users can toggle the theme and it follows the system preference
 - Database schema and API endpoints for core entities (schema still to be designed with the product owner)
 
 **Success Criteria**: Admin can log in, manage volunteer/elder profiles, create a distribution day from a date, and configure settings
@@ -216,7 +236,7 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 **Deliverables**:
 
 - Push notification infrastructure
-- Volunteer confirmation UI and fireworks thank-you after confirm
+- Volunteer confirmation UI shows only distribution day details (not assigned elders); fireworks thank-you after confirm
 - Package flow: Picked, then Delivered or Not delivered
 - Not delivered notes popup; note sent to admin and saved
 - Fireworks thank-you when all deliveries are finished
@@ -340,7 +360,9 @@ These items were previously open or unspecified. They are now product decisions 
 - **Matching**: A volunteer can be matched with more than one elder (for example volunteer "Maya Cohen" with elders "Rivkah Levi" and "Yosef Abraham").
 - **Elder address**: The elder address is the full address, including building entrance and building code (for example "12 Example St, Entrance B, code 1234, Tel Aviv").
 - **Elder notes**: Each elder has a notes textarea. Volunteers may submit requests to change an elder's details; an admin approves them before they apply.
-- **Volunteer visibility**: A volunteer sees notes and details only for the elders assigned to them.
+- **Volunteer visibility**: A volunteer sees notes and details only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
+- **Admin Settings**: An admin can configure everything from the app through a simple, beautiful Settings area, including distribution center address, notification offsets and timings, day hours, notification texts and languages, default theme, and org name/logo.
+- **Theming**: Light theme by default with a pastel "Wisteria & mint" palette (wisteria `#A99BE0` primary, mint `#A8E6CF` accent; mint for Delivered states). Dark theme uses deep plum `#1E1A2E` as the background with brightened accents. Users can toggle the theme and it follows the system preference.
 - **Distribution day creation**: An admin creates a distribution day by entering just a date. The admin can add notes per day and sets that day's hours.
 - **Distribution center**: An admin sets the distribution center address on the Settings page. Example: "10 Warehouse Rd, Holon".
 - **Map**: The map shows an optimized route that starts at the distribution center address.
