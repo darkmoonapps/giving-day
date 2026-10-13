@@ -7,41 +7,31 @@
     ".": {
       "release-type": "node",
       "package-name": "giving-day",
-      "component": "giving-day",
-      "changelog-path": "CHANGELOG.md"
-    },
-    "apps/web": {
-      "release-type": "node",
-      "package-name": "@giving-day/web",
-      "component": "web"
-    },
-    "apps/api": {
-      "release-type": "node",
-      "package-name": "@giving-day/api",
-      "component": "api"
-    },
-    "packages/shared": {
-      "release-type": "node",
-      "package-name": "@giving-day/shared",
-      "component": "shared"
-    },
-    "packages/ui": {
-      "release-type": "node",
-      "package-name": "@giving-day/ui",
-      "component": "ui"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "apps/web/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/api/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/shared/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/ui/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   },
-  "plugins": [
-    {
-      "type": "node-workspace",
-      "updatePeerDependencies": true
-    },
-    {
-      "type": "linked-versions",
-      "groupName": "giving-day",
-      "components": ["giving-day", "web", "api", "shared", "ui"]
-    }
-  ],
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },

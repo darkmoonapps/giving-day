@@ -23,10 +23,12 @@ Use **Release Please** (`googleapis/release-please-action`) on pushes to
 
 - Manifest config: `release-please-config.json` and
   `.release-please-manifest.json`
-- `node-workspace` keeps workspace dependency versions aligned
-- `linked-versions` keeps root, web, api, shared, and ui on the same
-  version and one release PR
-- Tags use a leading `v` (`v0.2.0`) and do not include the component name
+- A **single root package** (`.`) owns the release. Workspace
+  `package.json` versions (`apps/web`, `apps/api`, `packages/shared`,
+  `packages/ui`) are bumped via `extra-files` so they stay on the same
+  product version without registering extra Release Please packages
+- Tags use a leading `v` (`v0.2.0`). There is only one releasable unit,
+  so we do not create per-component tags
 - `bump-minor-pre-major: true` so `feat` commits bump minor while we are
   still `0.x`
 
@@ -39,7 +41,7 @@ Release. If branch protection later blocks that token from updating
 ### Positive
 
 - Changelog and versions follow the commit history we already enforce
-- One reviewable release PR instead of hand-editing four package files
+- One reviewable release PR instead of hand-editing five package files
 - Fits squash-merge + Conventional PR titles (the squash message is what
   Release Please sees)
 

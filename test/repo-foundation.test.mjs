@@ -40,24 +40,31 @@ describe('repo foundation extras', () => {
   it('tracks workspace versions in Release Please', () => {
     const config = JSON.parse(readRepoFile('release-please-config.json'));
     const manifest = JSON.parse(readRepoFile('.release-please-manifest.json'));
-    const packages = [
-      '.',
-      'apps/web',
-      'apps/api',
-      'packages/shared',
-      'packages/ui',
+    const extraVersionFiles = [
+      'apps/web/package.json',
+      'apps/api/package.json',
+      'packages/shared/package.json',
+      'packages/ui/package.json',
     ];
 
-    for (const pkg of packages) {
-      assert.ok(config.packages[pkg], `missing release-please package ${pkg}`);
-      assert.equal(manifest[pkg], '0.1.0');
-    }
+    assert.deepEqual(Object.keys(config.packages), ['.']);
+    assert.deepEqual(manifest, { '.': '0.1.0' });
+    assert.equal(config['include-component-in-tag'], false);
 
-    const pluginTypes = config.plugins.map(
-      (/** @type {{ type: string }} */ plugin) => plugin.type
+    const extraFiles = config.packages['.']['extra-files'];
+    const extraPaths = extraFiles.map(
+      (/** @type {{ path: string }} */ file) => file.path
     );
-    assert.ok(pluginTypes.includes('node-workspace'));
-    assert.ok(pluginTypes.includes('linked-versions'));
+    for (const file of extraVersionFiles) {
+      assert.ok(extraPaths.includes(file), `missing extra-file ${file}`);
+    }
+    assert.ok(
+      extraFiles.every(
+        (/** @type {{ type: string, jsonpath: string }} */ file) =>
+          file.type === 'json' && file.jsonpath === '$.version'
+      )
+    );
+    assert.equal(config.plugins, undefined);
   });
 
   it('ships CodeQL, templates, and branch-protection docs', () => {
@@ -81,6 +88,8 @@ describe('repo foundation extras', () => {
     const codeql = readRepoFile('.github/workflows/codeql.yml');
     assert.match(codeql, /javascript-typescript/);
     assert.match(codeql, /github\/codeql-action\/analyze@v4/);
+    assert.match(codeql, /paths-ignore:/);
+    assert.match(codeql, /apps\/web\/src\/api\/generated/);
 
     const ci = readRepoFile('.github/workflows/ci.yml');
     const commitlint = readRepoFile('.github/workflows/commitlint.yml');
