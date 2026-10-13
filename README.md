@@ -39,12 +39,21 @@ cd giving-day
 pnpm install
 ```
 
-This automatically generates the Prisma Client via the postinstall hook in `apps/api`.
+This automatically:
+
+- Generates the Prisma Client via the postinstall hook in `apps/api`
+- Sets up Husky git hooks for commit message validation and pre-commit checks
 
 Alternatively, you can manually run:
 
 ```bash
 pnpm db:generate
+```
+
+If git hooks aren't working after installation, run:
+
+```bash
+pnpm prepare
 ```
 
 ### 3. Set up environment variables
@@ -146,12 +155,20 @@ giving-day/
 
 ## CI/CD
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request to `master`:
+Three GitHub Actions workflows run on pull requests to `master`:
 
-1. Installs dependencies with pnpm 10
-2. Runs ESLint on all packages
-3. Type-checks and builds all packages
-4. Checks code formatting with Prettier
+1. **CI** (`.github/workflows/ci.yml`):
+   - Installs dependencies with pnpm 10
+   - Runs ESLint on all packages
+   - Type-checks and builds all packages
+   - Checks code formatting with Prettier
+
+2. **Commit Lint** (`.github/workflows/commitlint.yml`):
+   - Validates all commits in the PR follow Conventional Commits format
+
+3. **PR Title Check** (`.github/workflows/pr-title.yml`):
+   - Validates the PR title follows Conventional Commits format
+   - Important for squash merges (PR title becomes the commit message)
 
 ## PWA Features
 
@@ -175,6 +192,34 @@ To view/edit the database:
 cd apps/api
 pnpm prisma:studio
 ```
+
+## Commit Standards
+
+This project uses **Conventional Commits** to maintain a clean git history. All commits and PR titles must follow this format:
+
+```
+<type>(<scope>): <description>
+```
+
+**Examples**:
+
+- `feat(web): add volunteer list component`
+- `fix(api): correct elder assignment logic`
+- `docs: update installation instructions`
+- `ci: add commitlint workflow`
+
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+**Scopes**: `web`, `api`, `shared`, `ui`, `ci`, `docs`, `deps`
+
+**Git Hooks**:
+
+- **commit-msg**: Validates commit messages (runs commitlint)
+- **pre-commit**: Formats and lints staged files (runs lint-staged with Prettier + ESLint)
+
+These hooks are automatically installed when you run `pnpm install` via the `prepare` script.
+
+See [AGENTS.md](AGENTS.md) and [docs/adr/0008-conventional-commits.md](docs/adr/0008-conventional-commits.md) for complete details.
 
 ## Security & Data Policy
 

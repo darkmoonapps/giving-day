@@ -239,6 +239,27 @@ const { t } = useTranslation('volunteer');
 - No merge conflicts
 - Follows all quality standards above
 
+**Git Hooks**:
+
+This project uses **Husky** for automated local enforcement:
+
+- **commit-msg** hook: Validates commit messages with commitlint
+- **pre-commit** hook: Runs lint-staged (Prettier + ESLint on staged files)
+
+The hooks are automatically installed when you run `pnpm install` via the `prepare` script. If hooks aren't working, run:
+
+```bash
+pnpm prepare
+```
+
+**CI Enforcement**:
+
+Three GitHub Actions workflows enforce standards on all PRs:
+
+1. **CI** (`.github/workflows/ci.yml`): Runs lint, typecheck, format checks, and build
+2. **Commit Lint** (`.github/workflows/commitlint.yml`): Validates all commits in a PR against Conventional Commits
+3. **PR Title Check** (`.github/workflows/pr-title.yml`): Validates PR title against Conventional Commits (important for squash merges)
+
 ### 10. Database and Schema Changes
 
 - **Use Prisma migrations** - Never manually modify database
