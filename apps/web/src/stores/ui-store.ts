@@ -1,4 +1,7 @@
-import type { ColorSchemePreference } from '@giving-day/shared';
+import {
+  COLOR_SCHEME_STORAGE_KEY,
+  type ColorSchemePreference,
+} from '@giving-day/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -26,7 +29,7 @@ export const useUiStore = create<UiState>()(
       },
     }),
     {
-      name: 'giving-day-ui',
+      name: COLOR_SCHEME_STORAGE_KEY,
     }
   )
 );

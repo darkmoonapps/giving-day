@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { COLOR_SCHEME_STORAGE_KEY } from '@giving-day/shared';
 import { useUiStore } from './ui-store';
 
 describe('useUiStore', () => {
@@ -25,5 +26,8 @@ describe('useUiStore', () => {
 
     useUiStore.getState().setColorScheme('dark');
     expect(useUiStore.getState().colorScheme).toBe('dark');
+    expect(window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)).toContain(
+      '"colorScheme":"dark"'
+    );
   });
 });

@@ -52,7 +52,7 @@ export const themeTokens = {
     primaryFilled: wisteria[6],
     primaryFilledText: '#FFFFFF',
     successBackground: mint[1],
-    successText: mint[8],
+    successText: mint[7],
     accent: WISTERIA_BRAND,
     successAccent: MINT_BRAND,
   },
@@ -67,5 +67,19 @@ export const themeTokens = {
     successText: '#C8F5E4',
     accent: '#C4B6E8',
     successAccent: '#C5EDDC',
+  },
+} as const;
+
+export const MANTINE_RED_1 = '#ffe3e3';
+export const MANTINE_RED_9 = '#c92a2a';
+
+export const renderedLightBadges = {
+  mint: {
+    color: mint[7],
+    background: mint[1],
+  },
+  red: {
+    color: MANTINE_RED_9,
+    background: MANTINE_RED_1,
   },
 } as const;

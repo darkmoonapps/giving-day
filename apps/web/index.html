@@ -12,7 +12,9 @@
       (function () {
         try {
           var preference = 'auto';
-          var stored = window.localStorage.getItem('giving-day-ui');
+          var stored = window.localStorage.getItem(
+            '__COLOR_SCHEME_STORAGE_KEY__'
+          );
           if (stored) {
             var parsed = JSON.parse(stored);
             if (parsed && parsed.state && parsed.state.colorScheme) {

@@ -3,9 +3,17 @@ import {
   type CSSVariablesResolver,
   type MantineTheme,
 } from '@mantine/core';
-import { mint, plum, themeTokens, wisteria } from './colors';
+import { COLOR_SCHEME_STORAGE_KEY } from '@giving-day/shared';
+import {
+  mint,
+  plum,
+  renderedLightBadges,
+  themeTokens,
+  wisteria,
+} from './colors';
+import { variantColorResolver } from './variant-colors';
 
-export const COLOR_SCHEME_STORAGE_KEY = 'giving-day-ui';
+export { COLOR_SCHEME_STORAGE_KEY };
 
 export const appTheme = createTheme({
   primaryColor: 'wisteria',
@@ -14,6 +22,7 @@ export const appTheme = createTheme({
     mint,
     dark: plum,
   },
+  variantColorResolver,
   primaryShade: { light: 6, dark: 6 },
   defaultRadius: 'md',
   cursorType: 'pointer',
@@ -52,6 +61,10 @@ export const cssVariablesResolver: CSSVariablesResolver = (
     '--mantine-color-dimmed': themeTokens.light.dimmed,
     '--mantine-color-default': themeTokens.light.paper,
     '--mantine-color-anchor': theme.colors.wisteria[7],
+    '--mantine-color-mint-light': renderedLightBadges.mint.background,
+    '--mantine-color-mint-light-color': renderedLightBadges.mint.color,
+    '--mantine-color-red-light': renderedLightBadges.red.background,
+    '--mantine-color-red-light-color': renderedLightBadges.red.color,
   },
   dark: {
     '--mantine-color-body': themeTokens.dark.body,

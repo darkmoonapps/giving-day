@@ -31,6 +31,7 @@ Implement a **multi-layer testing strategy**:
 - **Vitest** - Fast, Vite-native unit and integration test runner
 - **React Testing Library** - Component testing
 - **Playwright** - End-to-end browser testing, including the language-switch smoke test
+- **Supertest** - HTTP assertions for NestJS integration tests
 - **NestJS unit tests** - Controller tests with mocked Prisma (Vitest)
 
 ## Consequences

@@ -1,6 +1,26 @@
+import { DEFAULT_THEME, mergeMantineTheme } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
-import { themeTokens, wisteria } from './colors';
+import { appTheme } from './app-theme';
+import { mint, renderedLightBadges, themeTokens, wisteria } from './colors';
 import { contrastRatio, meetsWcagAaText, meetsWcagAaUi } from './contrast';
+
+const theme = mergeMantineTheme(DEFAULT_THEME, appTheme);
+
+function resolvedLightBadge(color: 'mint' | 'red'): {
+  color: string;
+  background: string;
+} {
+  const resolved = theme.variantColorResolver({
+    color,
+    theme,
+    variant: 'light',
+  });
+
+  return {
+    color: resolved.color,
+    background: resolved.background,
+  };
+}
 
 describe('Wisteria & mint contrast', () => {
   it('meets WCAG AA for light-theme body and dimmed text', () => {
@@ -12,17 +32,27 @@ describe('Wisteria & mint contrast', () => {
     ).toBe(true);
   });
 
-  it('meets WCAG AA for light-theme primary buttons and mint success', () => {
+  it('meets WCAG AA for the light badges Mantine actually renders', () => {
+    const mintBadge = resolvedLightBadge('mint');
+    const redBadge = resolvedLightBadge('red');
+
+    expect(mintBadge).toEqual(renderedLightBadges.mint);
+    expect(redBadge).toEqual(renderedLightBadges.red);
+    expect(mintBadge.color).toBe(mint[7]);
+    expect(mintBadge.color).not.toBe(mint[6]);
+
+    expect(meetsWcagAaText(mintBadge.color, mintBadge.background)).toBe(true);
+    expect(meetsWcagAaText(redBadge.color, redBadge.background)).toBe(true);
+    expect(
+      contrastRatio(mintBadge.color, mintBadge.background)
+    ).toBeGreaterThan(contrastRatio(mint[6], mint[1]));
+  });
+
+  it('meets WCAG AA for light-theme primary buttons', () => {
     expect(
       meetsWcagAaText(
         themeTokens.light.primaryFilledText,
         themeTokens.light.primaryFilled
-      )
-    ).toBe(true);
-    expect(
-      meetsWcagAaText(
-        themeTokens.light.successText,
-        themeTokens.light.successBackground
       )
     ).toBe(true);
     expect(

@@ -13,9 +13,11 @@ export {
   WISTERIA_BRAND,
   mint,
   plum,
+  renderedLightBadges,
   themeTokens,
   wisteria,
 } from './colors';
+export { variantColorResolver } from './variant-colors';
 export {
   contrastRatio,
   hexToRgb,

@@ -1,18 +1,50 @@
-import { defineConfig } from 'vite';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+function readColorSchemeStorageKey(): string {
+  const source = readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../packages/shared/src/schemas/color-scheme.ts'
+    ),
+    'utf8'
+  );
+  const match = /export const COLOR_SCHEME_STORAGE_KEY = '([^']+)'/.exec(
+    source
+  );
+  if (match === null) {
+    throw new Error(
+      'COLOR_SCHEME_STORAGE_KEY is missing from packages/shared/src/schemas/color-scheme.ts'
+    );
+  }
+  return match[1];
+}
+
+function colorSchemeStorageKeyPlugin(): Plugin {
+  const storageKey = readColorSchemeStorageKey();
+  return {
+    name: 'color-scheme-storage-key',
+    transformIndexHtml(html: string): string {
+      return html.replaceAll('__COLOR_SCHEME_STORAGE_KEY__', storageKey);
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
+    colorSchemeStorageKeyPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
       manifest: {
-        name: 'Giving Day',
-        short_name: 'GivingDay',
-        description:
-          'Volunteer management app for monthly food-package distribution days',
+        name: 'יום הנתינה',
+        short_name: 'יום הנתינה',
+        description: 'ניהול מתנדבים לחלוקת חבילות מזון חודשית',
         theme_color: '#A99BE0',
         background_color: '#ffffff',
         display: 'standalone',
@@ -44,7 +76,7 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    exclude: ['@giving-day/shared'],
+    exclude: ['@giving-day/shared', '@giving-day/ui'],
   },
   server: {
     port: 3000,
