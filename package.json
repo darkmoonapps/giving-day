@@ -4,20 +4,21 @@
   "private": true,
   "type": "module",
   "description": "Volunteer management app for monthly food-package distribution days",
+  "packageManager": "pnpm@10.33.4",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel -r --filter @giving-day/web --filter @giving-day/api dev",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm --filter @giving-day/shared --filter @giving-day/ui build && pnpm -r typecheck",
+    "dev": "turbo run dev --filter @giving-day/web --filter @giving-day/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "pnpm --filter @giving-day/api prisma:generate",
-    "test": "pnpm -r --if-present test",
-    "test:ci": "pnpm -r --if-present test:ci",
+    "test": "turbo run test -- --run && node --test test/repo-foundation.test.mjs",
+    "test:ci": "turbo run test:ci && node --test test/repo-foundation.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "codegen": "pnpm --filter @giving-day/shared build && pnpm --filter @giving-day/api openapi:generate && pnpm --filter @giving-day/web codegen",
@@ -34,6 +35,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.4.2",
+    "turbo": "^2.5.8",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1"
   }

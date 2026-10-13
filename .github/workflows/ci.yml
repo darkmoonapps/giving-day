@@ -27,6 +27,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/giving_day
+      TURBO_TELEMETRY_DISABLED: '1'
 
     steps:
       - name: Checkout code
@@ -55,6 +56,14 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Turbo
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -104,6 +113,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/giving_day
+      TURBO_TELEMETRY_DISABLED: '1'
 
     steps:
       - name: Checkout code
@@ -132,6 +142,14 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Turbo
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -73,7 +73,9 @@ We will use **pnpm workspaces** to manage the project as a monorepo.
 
 ### Monorepo Tools (Turborepo, Nx, Lerna)
 
-**Deferred**: These tools add caching, orchestration, and task pipelines on top of package managers. Our project is small enough that pnpm's built-in features suffice. Can add Turborepo/Nx later if build times become a bottleneck.
+**Superseded**: Turborepo was adopted in [ADR 0015](0015-turborepo-task-caching.md)
+for `lint`, `typecheck`, `test`, and `build` pipelines with local/CI caching.
+Nx and Lerna remain rejected.
 
 ### Separate Repositories (Polyrepo)
 
