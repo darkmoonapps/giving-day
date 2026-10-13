@@ -95,6 +95,75 @@ pnpm test                   # Run all tests
 pnpm test:ci                # Run tests in CI mode
 ```
 
+## Testing
+
+The project has comprehensive testing at multiple layers:
+
+### Unit and Integration Tests
+
+**Web App** (Vitest + React Testing Library):
+
+- Component tests with role and test-id queries (no hardcoded text for i18n)
+- Uses `vi.stubGlobal` and `vi.unstubAllGlobals` for fetch mocking
+- Includes fake-timer tests for polling behavior
+- Tests both healthy and unhealthy states
+
+```bash
+cd apps/web
+pnpm test           # Run tests in watch mode
+pnpm test:ui        # Run tests with UI
+pnpm test:ci        # Run tests with coverage
+```
+
+**API** (Vitest + Supertest):
+
+- Unit tests for controllers with mocked dependencies
+- Integration tests (`test/*.int.spec.ts`) with Supertest and @nestjs/testing
+- Uses unplugin-swc for decorator metadata and DI support
+- Tests connected case with CI Postgres and disconnected case with overridden providers
+- Boots full NestJS app with global `/api` prefix for integration tests
+
+```bash
+cd apps/api
+pnpm test           # Run tests in watch mode
+pnpm test:ui        # Run tests with UI
+pnpm test:ci        # Run tests with coverage
+```
+
+### End-to-End Tests
+
+**Playwright** tests run full user flows in a real browser:
+
+- Uses role and test-id queries (no hardcoded English text)
+- CI runs `prisma db push` against CI Postgres (no migration files exist yet)
+- CI builds the apps, then Playwright starts `api start` and `web preview`
+- Playwright waits for `GET :3001/api/health` before running UI tests
+- Playwright browsers installed with `pnpm exec playwright install` and cached by lockfile hash
+- Playwright HTML report and `test-results/` uploaded only when the e2e-tests job fails
+
+```bash
+pnpm test:e2e       # Run E2E tests
+pnpm test:e2e:ui    # Run E2E tests with UI
+```
+
+### Run All Tests
+
+From the root directory:
+
+```bash
+pnpm test           # Run all unit/integration tests
+pnpm test:ci        # Run all tests with coverage
+```
+
+**Test Requirements**:
+
+- Use role and test-id queries (`getByRole`, `data-testid`), not hardcoded text
+- Use `vi.stubGlobal` and `vi.unstubAllGlobals` for global mocks
+- Integration tests must test both connected and disconnected states
+- E2E tests must verify the healthy UI state
+
+See [ADR 0009](docs/adr/0009-testing-strategy.md) for the complete testing strategy.
+
 ## Quality Standards - MUST FOLLOW
 
 Every AI agent working on this project must adhere to these **strict quality standards**:
