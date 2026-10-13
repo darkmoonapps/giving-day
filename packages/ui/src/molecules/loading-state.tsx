@@ -7,7 +7,7 @@ export interface LoadingStateProps {
 
 export function LoadingState({ label }: LoadingStateProps): JSX.Element {
   return (
-    <Group>
+    <Group data-testid="loading-indicator">
       <AppLoader size="sm" />
       <AppText>{label}</AppText>
     </Group>

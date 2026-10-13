@@ -20,6 +20,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage/
 *.lcov
 
 # nyc test coverage
@@ -158,3 +159,7 @@ apps/web/playwright-report/
 
 # Turbo Repo
 .turbo
+
+# Playwright
+playwright-report/
+test-results/

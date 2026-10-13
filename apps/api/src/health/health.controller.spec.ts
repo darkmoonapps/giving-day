@@ -1,31 +1,47 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { healthResponseSchema } from '@giving-day/shared';
 import { HealthController } from './health.controller';
-import type { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('HealthController', () => {
-  it('returns a healthy payload when the database is connected', async () => {
-    const prisma = {
-      isConnected: async (): Promise<boolean> => true,
-    };
-    const controller = new HealthController(prisma as PrismaService);
+  it('should return healthy status when database is connected', async () => {
+    const mockPrismaService = {
+      isConnected: vi.fn().mockResolvedValue(true),
+    } as unknown as PrismaService;
 
+    const controller = new HealthController(mockPrismaService);
     const result = await controller.getHealth();
 
     expect(result.status).toBe('healthy');
     expect(result.database.connected).toBe(true);
+    expect(result.timestamp).toBeDefined();
     expect(healthResponseSchema.parse(result)).toEqual(result);
+    expect(mockPrismaService.isConnected).toHaveBeenCalledOnce();
   });
 
-  it('returns an unhealthy payload when the database is down', async () => {
-    const prisma = {
-      isConnected: async (): Promise<boolean> => false,
-    };
-    const controller = new HealthController(prisma as PrismaService);
+  it('should return unhealthy status when database is disconnected', async () => {
+    const mockPrismaService = {
+      isConnected: vi.fn().mockResolvedValue(false),
+    } as unknown as PrismaService;
 
+    const controller = new HealthController(mockPrismaService);
     const result = await controller.getHealth();
 
     expect(result.status).toBe('unhealthy');
     expect(result.database.connected).toBe(false);
+    expect(result.timestamp).toBeDefined();
+    expect(mockPrismaService.isConnected).toHaveBeenCalledOnce();
+  });
+
+  it('should return ISO timestamp', async () => {
+    const mockPrismaService = {
+      isConnected: vi.fn().mockResolvedValue(true),
+    } as unknown as PrismaService;
+
+    const controller = new HealthController(mockPrismaService);
+    const result = await controller.getHealth();
+
+    const timestamp = new Date(result.timestamp);
+    expect(timestamp.toISOString()).toBe(result.timestamp);
   });
 });

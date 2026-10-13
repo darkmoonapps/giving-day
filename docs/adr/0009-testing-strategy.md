@@ -4,6 +4,8 @@
 
 **Date**: 2026-10-13
 
+**Updated**: 2026-10-13 (implemented)
+
 ## Context
 
 The application needs a comprehensive testing strategy covering:
@@ -24,9 +26,9 @@ Implement a **multi-layer testing strategy**:
 - **API integration tests** for backend endpoints
 - **End-to-end tests** for critical flows
 
-**Tools**:
+**Chosen Tools**:
 
-- **Vitest** - Unit and component test runner (aligned with Vite)
+- **Vitest** - Fast, Vite-native unit and integration test runner
 - **React Testing Library** - Component testing
 - **Playwright** - End-to-end browser testing, including the language-switch smoke test
 - **NestJS unit tests** - Controller tests with mocked Prisma (Vitest)
@@ -197,39 +199,117 @@ test('volunteer confirms participation', async ({ page }) => {
 All tests must pass before merging PRs:
 
 ```yaml
-- name: Run tests
+- name: Run unit and integration tests
   run: pnpm test:ci
 
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
+- name: Run E2E tests
+  run: pnpm test:e2e
 ```
 
-## Decisions Locked In
+The CI workflow includes:
+
+- Unit and integration tests for both web and API (Postgres service + `prisma db push`)
+- E2E tests with Playwright against a production build (`api start` + `web preview`)
+- Playwright waits for `GET http://localhost:3001/api/health` before running UI tests
+- Playwright browsers installed with `pnpm exec playwright install` and cached by lockfile hash
+- Playwright HTML report and `test-results/` uploaded **only when the e2e-tests job fails** (`if: failure()`)
+
+## Implementation
+
+### Web App (apps/web)
+
+- **Configuration**: `vitest.config.ts` with jsdom environment
+- **Setup**: Test setup file loads `@testing-library/jest-dom`
+- **Tests**:
+  - `App.test.tsx` - Component tests using role and test-id queries
+  - Includes fake-timer test for polling behavior
+  - Tests both healthy and unhealthy states
+- **Test Patterns**: Uses `vi.stubGlobal` and `vi.unstubAllGlobals` for fetch mocking
+- **Commands**:
+  - `pnpm test` - Run tests in watch mode
+  - `pnpm test:ci` - Run tests once with coverage
+
+### API (apps/api)
+
+- **Configuration**: `vitest.config.ts` with node environment and unplugin-swc
+- **Setup**: Test setup loads `reflect-metadata` for NestJS, unplugin-swc for decorator metadata
+- **Tests**:
+  - `src/health/health.controller.spec.ts` - Unit tests for health controller
+  - `test/health.int.spec.ts` - Integration tests with Supertest
+    - Tests connected database case with real Prisma
+    - Tests disconnected case with overridden Prisma provider
+    - Boots full NestJS app with global `/api` prefix
+- **Commands**:
+  - `pnpm test` - Run tests in watch mode
+  - `pnpm test:ci` - Run tests once with coverage
+
+### E2E (root)
+
+- **Configuration**: `playwright.config.ts` with chromium browser
+  - Uses build + preview/start in CI (not dev mode)
+  - Retries failed tests 2x in CI
+  - Caches Playwright browsers by lockfile hash
+- **Tests**: `e2e/smoke.spec.ts` - Uses role and test-id queries (no hardcoded text)
+  - Verifies homepage loads
+  - Asserts healthy API status badge
+  - Asserts connected database badge
+- **CI Setup**:
+  - Runs `prisma db push` against CI Postgres (no migration files exist yet)
+  - Builds apps, then Playwright starts `api start` and `web preview`
+  - Waits for `GET :3001/api/health` before running UI tests
+  - Uploads `playwright-report/` and `test-results/` only on e2e job failure
+- **Commands**:
+  - `pnpm test:e2e` - Run E2E tests
+  - `pnpm test:e2e:ui` - Run E2E tests with UI
+
+### Root Scripts
+
+- `pnpm test` - Run all unit/integration tests with `--if-present`
+- `pnpm test:ci` - Run all tests with coverage using `--if-present`
+- `pnpm test:e2e` - Run E2E tests
+
+## Resolved Decisions
 
 ### Test Framework Choice
 
-**Vitest** is the unit/component runner. It is Vite-native, fast, and works
-across `apps/web`, `apps/api`, `packages/ui`, and `packages/shared`.
-
-### Coverage Enforcement
-
-Coverage is not a CI gate yet. Focus on behavior tests for new foundations
-and keep adding coverage with each feature.
+- **Decision**: Vitest chosen for its speed, Vite-native integration, and modern API
+- **Status**: Implemented in both web and api packages
 
 ### E2E Test Frequency
 
-Playwright runs on every PR. The first smoke test covers Hebrew RTL to
-English LTR language switching.
+- **Decision**: Run E2E on every PR (using PostgreSQL service)
+- **Status**: Implemented in CI workflow
 
 ### Mocking Strategy
 
-- Frontend: mock `fetch` / Query Client for component tests
-- API: mock Prisma in controller unit tests
-- E2E: run against the built web preview (API is optional for the language switch)
+- **Decision**:
+  - Use `vi.stubGlobal` and `vi.unstubAllGlobals` for global mocks (like fetch)
+  - Integration tests use real Prisma with CI Postgres
+  - Override providers in NestJS testing module for disconnected case
+- **Status**: Implemented in web and API tests
+
+### Query Strategy
+
+- **Decision**: Use role and test-id queries (not hardcoded English text)
+- **Rationale**: Supports i18n (Hebrew/English) without breaking tests
+- **Status**: Implemented in web and E2E tests with data-testid attributes
+
+## Open Questions
+
+### Coverage Enforcement
+
+- Should CI fail if coverage drops below threshold?
+- What threshold? 70%? 80%?
+- **Current**: Coverage collected but not enforced
 
 ### Snapshot Testing
 
-Use sparingly. Prefer accessible queries and user-visible assertions.
+- Use snapshot tests for components?
+- Can be brittle but useful for catching unintended changes
+- **Recommendation**: Use sparingly for complex UI states
+
+E2E also covers Hebrew RTL to English LTR language switching and the
+saved color-scheme toggle.
 
 ## Alternatives Considered
 

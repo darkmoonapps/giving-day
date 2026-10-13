@@ -113,8 +113,9 @@ From the root directory:
 - `pnpm format` - Format all files with Prettier
 - `pnpm format:check` - Check formatting without modifying files
 - `pnpm db:generate` - Generate Prisma Client
-- `pnpm test` - Run unit and component tests
-- `pnpm test:e2e` - Run Playwright smoke tests
+- `pnpm test` - Run all unit and integration tests
+- `pnpm test:ci` - Run all tests with coverage
+- `pnpm test:e2e` - Run end-to-end tests with Playwright
 - `pnpm codegen` - Generate OpenAPI spec and Orval clients
 - `pnpm codegen:check` - Fail if generated clients are stale
 - `pnpm --filter @giving-day/ui storybook` - Start the UI Storybook
@@ -126,6 +127,13 @@ From `apps/api`:
 - `pnpm prisma:generate` - Generate Prisma Client (also runs on postinstall)
 - `pnpm prisma:migrate` - Run database migrations
 - `pnpm prisma:studio` - Open Prisma Studio (database GUI)
+- `pnpm test` - Run API tests
+
+### Web-specific scripts
+
+From `apps/web`:
+
+- `pnpm test` - Run web app tests
 
 ## Project Structure
 
@@ -167,13 +175,22 @@ giving-day/
 Three GitHub Actions workflows run on pull requests to `master`:
 
 1. **CI** (`.github/workflows/ci.yml`):
-   - Installs dependencies with pnpm 10
-   - Runs ESLint on all packages
-   - Type-checks all packages
-   - Checks generated OpenAPI/Orval clients
-   - Runs Vitest and Playwright
-   - Builds all packages
-   - Checks code formatting with Prettier
+   - Lint and Build Job:
+     - Installs dependencies with pnpm 10
+     - Runs ESLint on all packages
+     - Type-checks all packages
+     - Checks generated OpenAPI/Orval clients
+     - Checks code formatting with Prettier
+     - Pushes the Prisma schema to CI Postgres (`prisma db push`)
+     - Builds all packages
+     - Runs unit and integration tests (including Supertest against `/api/health`)
+   - E2E Tests Job:
+     - Sets up PostgreSQL and pushes the Prisma schema
+     - Installs Playwright browsers (`pnpm exec playwright install`) and caches them
+     - Builds the apps, then runs Playwright against `api start` + `web preview`
+     - Waits for `GET :3001/api/health` before UI assertions
+     - Covers Hebrew RTL to English LTR and the color-scheme toggle
+     - Uploads Playwright reports as artifacts **only on failure**
 
 2. **Commit Lint** (`.github/workflows/commitlint.yml`):
    - Validates all commits in the PR follow Conventional Commits format

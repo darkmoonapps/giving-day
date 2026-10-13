@@ -3,6 +3,9 @@ dist
 build
 .next
 coverage
+coverage/
+playwright-report/
+test-results/
 pnpm-lock.yaml
 apps/web/src/api/generated
 apps/api/openapi.json

@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
 import { initI18n } from '../i18n';
 
 class ResizeObserverMock {
@@ -31,5 +33,9 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 globalThis.ResizeObserver = ResizeObserverMock;
+
+afterEach(() => {
+  cleanup();
+});
 
 await initI18n();

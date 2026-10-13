@@ -7,6 +7,9 @@ export interface LabeledStatusProps {
   value: string;
   color: string;
   icon?: ReactNode;
+  testId?: string;
+  dataStatus?: string;
+  dataConnected?: string;
 }
 
 export function LabeledStatus({
@@ -14,11 +17,21 @@ export function LabeledStatus({
   value,
   color,
   icon,
+  testId,
+  dataStatus,
+  dataConnected,
 }: LabeledStatusProps): JSX.Element {
   return (
     <Group>
       <AppText fw={500}>{label}</AppText>
-      <AppBadge color={color} variant="light" leftSection={icon}>
+      <AppBadge
+        color={color}
+        variant="light"
+        leftSection={icon}
+        data-testid={testId}
+        data-status={dataStatus}
+        data-connected={dataConnected}
+      >
         {value}
       </AppBadge>
     </Group>

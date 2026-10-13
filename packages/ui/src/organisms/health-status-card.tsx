@@ -77,11 +77,17 @@ export function HealthStatusCard({
             value={apiStatusValue ?? status}
             color={statusColor(status, null)}
             icon={<IconCircleCheck size={12} />}
+            testId="status-badge"
+            dataStatus={status}
           />
           <LabeledStatus
             label={databaseLabel}
             value={databaseValue ?? ''}
             color={statusColor(null, databaseConnected)}
+            testId="database-badge"
+            dataConnected={
+              databaseConnected === null ? undefined : String(databaseConnected)
+            }
           />
           <AppButton
             variant="subtle"
