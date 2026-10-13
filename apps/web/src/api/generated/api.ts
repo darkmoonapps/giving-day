@@ -28,7 +28,7 @@ export interface DatabaseHealthDto {
 export type HealthResponseDtoStatus = typeof HealthResponseDtoStatus[keyof typeof HealthResponseDtoStatus];
 
 
- 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const HealthResponseDtoStatus = {
   healthy: 'healthy',
   unhealthy: 'unhealthy',
