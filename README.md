@@ -111,6 +111,9 @@ From the root directory:
 - `pnpm format` - Format all files with Prettier
 - `pnpm format:check` - Check formatting without modifying files
 - `pnpm db:generate` - Generate Prisma Client
+- `pnpm test` - Run all unit and integration tests
+- `pnpm test:ci` - Run all tests with coverage
+- `pnpm test:e2e` - Run end-to-end tests with Playwright
 
 ### API-specific scripts
 
@@ -119,6 +122,13 @@ From `apps/api`:
 - `pnpm prisma:generate` - Generate Prisma Client (also runs on postinstall)
 - `pnpm prisma:migrate` - Run database migrations
 - `pnpm prisma:studio` - Open Prisma Studio (database GUI)
+- `pnpm test` - Run API tests
+
+### Web-specific scripts
+
+From `apps/web`:
+
+- `pnpm test` - Run web app tests
 
 ## Project Structure
 
@@ -158,10 +168,17 @@ giving-day/
 Three GitHub Actions workflows run on pull requests to `master`:
 
 1. **CI** (`.github/workflows/ci.yml`):
-   - Installs dependencies with pnpm 10
-   - Runs ESLint on all packages
-   - Type-checks and builds all packages
-   - Checks code formatting with Prettier
+   - Lint and Build Job:
+     - Installs dependencies with pnpm 10
+     - Runs ESLint on all packages
+     - Type-checks and builds all packages
+     - Checks code formatting with Prettier
+     - Runs unit and integration tests
+   - E2E Tests Job:
+     - Sets up PostgreSQL database
+     - Installs Playwright browsers
+     - Runs end-to-end tests
+     - Uploads test reports as artifacts
 
 2. **Commit Lint** (`.github/workflows/commitlint.yml`):
    - Validates all commits in the PR follow Conventional Commits format

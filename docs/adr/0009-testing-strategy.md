@@ -1,8 +1,10 @@
 # ADR 0009: Testing Strategy
 
-**Status**: Proposed
+**Status**: Accepted
 
 **Date**: 2026-10-13
+
+**Updated**: 2026-10-13 (implemented)
 
 ## Context
 
@@ -24,9 +26,9 @@ Implement a **multi-layer testing strategy**:
 - **API integration tests** for backend endpoints
 - **End-to-end tests** for critical flows
 
-**Proposed Tools** (details to be finalized with owner):
+**Chosen Tools**:
 
-- **Vitest** or **Jest** - Unit and integration test runner
+- **Vitest** - Fast, Vite-native unit and integration test runner
 - **React Testing Library** - Component testing
 - **Supertest** - API endpoint testing (with NestJS)
 - **Playwright** - End-to-end browser testing
@@ -197,19 +199,59 @@ test('volunteer confirms participation', async ({ page }) => {
 All tests must pass before merging PRs:
 
 ```yaml
-- name: Run tests
+- name: Run unit and integration tests
   run: pnpm test:ci
 
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
+- name: Run E2E tests
+  run: pnpm test:e2e
 ```
+
+The CI workflow includes:
+
+- Unit and integration tests for both web and API
+- E2E tests with Playwright
+- PostgreSQL service for E2E tests
+- Playwright report artifacts uploaded on failure
+
+## Implementation
+
+### Web App (apps/web)
+
+- **Configuration**: `vitest.config.ts` with jsdom environment
+- **Setup**: Test setup file loads `@testing-library/jest-dom`
+- **Tests**: `App.test.tsx` - smoke tests for main component
+- **Commands**:
+  - `pnpm test` - Run tests in watch mode
+  - `pnpm test:ci` - Run tests once with coverage
+
+### API (apps/api)
+
+- **Configuration**: `vitest.config.ts` with node environment
+- **Setup**: Test setup loads `reflect-metadata` for NestJS
+- **Tests**: `health.controller.spec.ts` - API health endpoint test with Supertest
+- **Commands**:
+  - `pnpm test` - Run tests in watch mode
+  - `pnpm test:ci` - Run tests once with coverage
+
+### E2E (root)
+
+- **Configuration**: `playwright.config.ts` with chromium browser
+- **Tests**: `e2e/smoke.spec.ts` - Basic smoke test for homepage
+- **Commands**:
+  - `pnpm test:e2e` - Run E2E tests
+  - `pnpm test:e2e:ui` - Run E2E tests with UI
+
+### Root Scripts
+
+- `pnpm test` - Run all unit/integration tests
+- `pnpm test:ci` - Run all tests with coverage
+- `pnpm test:e2e` - Run E2E tests
 
 ## Open Questions (To Be Decided)
 
 ### Test Framework Choice
 
-- **Vitest** vs **Jest**: Vitest is faster, Vite-native. Jest is more mature, larger ecosystem.
-- Recommendation: Vitest (aligns with Vite, faster, modern)
+- **Decision**: Vitest chosen for its speed, Vite-native integration, and modern API
 
 ### Coverage Enforcement
 
