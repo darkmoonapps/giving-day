@@ -26,6 +26,21 @@ test.describe('Smoke Test', () => {
     ).toBeVisible();
   });
 
+  test('should persist English LTR after reload', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    await page.reload();
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(
+      page.getByRole('heading', { name: 'Welcome to Giving Day' })
+    ).toBeVisible();
+  });
+
   test('should persist a dark color scheme choice', async ({ page }) => {
     await page.goto('/');
 

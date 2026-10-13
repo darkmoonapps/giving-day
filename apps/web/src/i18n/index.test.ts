@@ -19,4 +19,9 @@ describe('i18n document language', () => {
     expect(document.documentElement.dir).toBe('ltr');
     expect(i18n.t('welcome_title')).toBe('Welcome to Giving Day');
   });
+
+  it('persists the selected language for the next visit', async () => {
+    await i18n.changeLanguage('en');
+    expect(window.localStorage.getItem('i18nextLng')).toBe('en');
+  });
 });

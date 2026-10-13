@@ -43,6 +43,9 @@ export default defineConfig({
       },
     }),
   ],
+  optimizeDeps: {
+    exclude: ['@giving-day/shared'],
+  },
   server: {
     port: 3000,
     proxy: {

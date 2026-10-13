@@ -20,7 +20,8 @@ them. The first schemas are:
 - `colorSchemePreferenceSchema` / `ColorSchemePreference`
 
 `packages/shared` compiles to CommonJS so Nest can `require` the built
-package from `node dist/main`. Vite still consumes the same build.
+package from `node dist/main`. The package `import` condition points at
+TypeScript source so Vite can use named ESM exports during `pnpm dev`.
 
 The API parses outgoing health payloads with the same schema. The web app
 parses TanStack Query results before rendering.
