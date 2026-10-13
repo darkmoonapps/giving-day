@@ -68,7 +68,9 @@ Turborepo is a thin cache/orchestrator on an existing pnpm workspace.
 
 ## Notes
 
-- `packageManager` in the root `package.json` is required by Turbo 2
+- `packageManager` in the root `package.json` is required by Turbo 2.
+  GitHub Actions `pnpm/action-setup` must not also set `version`, or the
+  two pins conflict.
 - `dev` is `cache: false` and `persistent: true`
 - See [docs/branch-protection.md](../branch-protection.md) for required CI
   checks that run these pipelines

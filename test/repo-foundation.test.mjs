@@ -81,5 +81,12 @@ describe('repo foundation extras', () => {
     const codeql = readRepoFile('.github/workflows/codeql.yml');
     assert.match(codeql, /javascript-typescript/);
     assert.match(codeql, /github\/codeql-action\/analyze@v4/);
+
+    const ci = readRepoFile('.github/workflows/ci.yml');
+    const commitlint = readRepoFile('.github/workflows/commitlint.yml');
+    assert.doesNotMatch(ci, /version:\s*10/);
+    assert.doesNotMatch(commitlint, /version:\s*10/);
+    const pkg = JSON.parse(readRepoFile('package.json'));
+    assert.match(pkg.packageManager, /^pnpm@10\./);
   });
 });
