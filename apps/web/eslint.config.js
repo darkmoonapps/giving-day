@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'public/generate-icons.js'],
+    ignores: ['dist/**', 'node_modules/**', 'scripts/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

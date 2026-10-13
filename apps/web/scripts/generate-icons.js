@@ -6,9 +6,6 @@ import { writeFileSync } from 'fs';
 function generatePlaceholderIcon(size, filename) {
   // Simple 1-pixel PNG, scaled up by browsers (not ideal but valid)
   // In production, replace with actual branded icons
-  const pngHeader = Buffer.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  ]);
   const simpleBluePixel = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     'base64'
