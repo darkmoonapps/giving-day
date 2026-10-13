@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node --input-type=commonjs -e \"require('./dist/index.js')\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run",
