@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@giving-day/shared": "workspace:*",
-    "@mantine/core": "^7.15.5",
-    "@mantine/hooks": "^7.15.5",
+    "@mantine/core": "^7.17.8",
+    "@mantine/hooks": "^7.17.8",
     "@tabler/icons-react": "^3.24.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
