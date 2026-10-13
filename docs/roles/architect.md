@@ -202,13 +202,19 @@ Focus on:
 ### Module Structure
 
 ```
+packages/ui/src/
+├── atoms/            # Mantine wrappers
+├── molecules/        # Composed controls (language switcher, status)
+├── organisms/        # Page layout and cards
+└── theme/            # Shared Mantine theme
+
 apps/web/src/
-├── components/       # Reusable UI components
+├── api/              # Orval-generated clients and fetch mutator
+├── i18n/             # react-i18next bootstrap and locale files
+├── providers/        # Query + Mantine + direction providers
+├── stores/           # Zustand UI state
 ├── features/         # Feature-specific code
-├── hooks/           # Custom React hooks
-├── services/        # API clients, external services
-├── utils/           # Utilities and helpers
-└── types/           # TypeScript types
+└── hooks/            # Custom React hooks
 
 apps/api/src/
 ├── [feature]/       # Feature modules (volunteers, distribution-days)
@@ -233,6 +239,8 @@ apps/api/src/
 - **Repository Pattern**: Prisma service encapsulates DB access
 - **DTO Pattern**: Validate input with class-validator
 - **Hooks Pattern**: Extract reusable logic into custom hooks
+- **Zustand**: Client-only UI state, never server cache
+- **TanStack Query**: Server state via Orval-generated hooks
 - **Context Pattern**: Use React context sparingly, prefer prop drilling
 
 ## Tools and Artifacts

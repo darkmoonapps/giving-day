@@ -1,13 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Volunteer management app for monthly food-package distribution days" />
-    <meta name="theme-color" content="#228be6" />
+    <meta name="description" content="ניהול מתנדבים לימי חלוקת חבילות מזון חודשיים" />
+    <meta name="theme-color" content="#A99BE0" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <title>Giving Day</title>
+    <title>יום הנתינה</title>
+    <script>
+      (function () {
+        try {
+          var preference = 'auto';
+          var stored = window.localStorage.getItem('giving-day-ui');
+          if (stored) {
+            var parsed = JSON.parse(stored);
+            if (parsed && parsed.state && parsed.state.colorScheme) {
+              preference = parsed.state.colorScheme;
+            }
+          }
+          var scheme = preference;
+          if (preference === 'auto') {
+            scheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          }
+          document.documentElement.setAttribute(
+            'data-mantine-color-scheme',
+            scheme
+          );
+        } catch (error) {
+          document.documentElement.setAttribute(
+            'data-mantine-color-scheme',
+            'light'
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,15 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { MantineProvider, DirectionProvider } from '@mantine/core';
 import '@mantine/core/styles.css';
 import App from './App';
+import { initI18n } from './i18n';
+import { AppProviders } from './providers/app-providers';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <DirectionProvider>
-      <MantineProvider>
+const rootElement = document.getElementById('root');
+
+if (rootElement === null) {
+  throw new Error('Root element #root was not found');
+}
+
+void initI18n().then(() => {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <AppProviders>
         <App />
-      </MantineProvider>
-    </DirectionProvider>
-  </React.StrictMode>
-);
+      </AppProviders>
+    </React.StrictMode>
+  );
+});

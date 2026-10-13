@@ -1,0 +1,35 @@
+{
+  "app_name": "Giving Day",
+  "document_title": "Giving Day",
+  "welcome_title": "Welcome to Giving Day",
+  "welcome_subtitle": "Volunteer management for monthly food-package distribution",
+  "about_title": "About",
+  "about_body": "This app helps manage volunteers for monthly food-package distribution days. Admins can create distribution days, volunteers can confirm participation, and elders are matched to volunteers.",
+  "language": {
+    "label": "Language",
+    "he": "עברית",
+    "en": "English"
+  },
+  "color_scheme": {
+    "label": "Color scheme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "health": {
+    "title": "System Status",
+    "loading": "Checking API health...",
+    "error_title": "Error",
+    "fetch_error": "Failed to fetch health",
+    "http_error": "HTTP {{status}} error",
+    "api_status": "API Status:",
+    "database": "Database:",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy",
+    "last_checked": "Last checked:",
+    "show_details": "Show details",
+    "hide_details": "Hide details"
+  }
+}

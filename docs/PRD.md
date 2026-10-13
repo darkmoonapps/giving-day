@@ -242,10 +242,10 @@ The database schema for volunteers, elders, distribution days, confirmations, an
 
 ### Internationalization & Accessibility
 
-- Hebrew RTL layout requirements and testing
-- English LTR support level (full feature parity or basic)
-- Accessibility standards to meet (WCAG 2.1 AA?)
-- Screen reader compatibility
+- Hebrew is the default language and document direction (`dir="rtl"`)
+- English is full-parity LTR, switched from the language switcher
+- Accessibility target is WCAG 2.1 AA
+- Screen reader compatibility via semantic HTML, ARIA labels, and Mantine
 
 ### Scalability & Performance
 

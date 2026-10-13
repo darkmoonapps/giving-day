@@ -9,10 +9,15 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
+    "dev": "pnpm --parallel -r --filter @giving-day/web --filter @giving-day/api dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @giving-day/shared --filter @giving-day/ui build && pnpm -r typecheck",
+    "test": "pnpm -r --filter @giving-day/shared --filter @giving-day/ui --filter @giving-day/web --filter @giving-day/api test",
+    "test:e2e": "pnpm --filter @giving-day/web test:e2e",
+    "test:ci": "pnpm test && pnpm test:e2e",
+    "codegen": "pnpm --filter @giving-day/shared build && pnpm --filter @giving-day/api openapi:generate && pnpm --filter @giving-day/web codegen",
+    "codegen:check": "bash scripts/check-generated.sh",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "pnpm --filter @giving-day/api prisma:generate",

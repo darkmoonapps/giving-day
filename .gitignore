@@ -142,6 +142,17 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Storybook
+storybook-static/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+apps/web/test-results/
+apps/web/playwright-report/
+
 # Astro generated types
 .astro/
 

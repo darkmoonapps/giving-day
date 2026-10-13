@@ -1,131 +1,138 @@
-import { useEffect, useState } from 'react';
+import { Group, Stack } from '@mantine/core';
+import { healthResponseSchema } from '@giving-day/shared';
 import {
-  AppShell,
-  Container,
-  Title,
-  Text,
-  Stack,
-  Card,
-  Badge,
-  Group,
-  Loader,
-  Alert,
-} from '@mantine/core';
-import { IconAlertCircle, IconCircleCheck } from '@tabler/icons-react';
-import type { HealthResponse } from '@giving-day/shared';
+  AppHeader,
+  AppPageShell,
+  AppText,
+  AppTitle,
+  ColorSchemeToggle,
+  HealthStatusCard,
+  LanguageSwitcher,
+} from '@giving-day/ui';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
+import { ApiError } from './api/mutator';
+import { useHealthQuery } from './api/use-health-query';
+import { useLanguage } from './i18n/use-language';
+import { useUiStore } from './stores/ui-store';
 
-function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function formatCheckedAt(timestamp: string, language: string): string {
+  return new Date(timestamp).toLocaleString(
+    language === 'he' ? 'he-IL' : 'en-US'
+  );
+}
 
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const response = await fetch('/api/health');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const data = await response.json();
-        setHealth(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch health');
-      } finally {
-        setLoading(false);
-      }
-    };
+function App(): JSX.Element {
+  const { t } = useTranslation('common');
+  const { language, setLanguage } = useLanguage();
+  const statusDetailsOpen = useUiStore((state) => state.statusDetailsOpen);
+  const toggleStatusDetails = useUiStore((state) => state.toggleStatusDetails);
+  const colorScheme = useUiStore((state) => state.colorScheme);
+  const setColorScheme = useUiStore((state) => state.setColorScheme);
+  const healthQuery = useHealthQuery();
 
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const parsedHealth =
+    healthQuery.data !== undefined
+      ? healthResponseSchema.safeParse(healthQuery.data)
+      : null;
+  const health = parsedHealth?.success === true ? parsedHealth.data : undefined;
+
+  const errorMessage = getHealthErrorMessage(healthQuery.error, t);
 
   return (
-    <AppShell header={{ height: 60 }} padding="md">
-      <AppShell.Header>
-        <Container h="100%" style={{ display: 'flex', alignItems: 'center' }}>
-          <Title order={2}>Giving Day</Title>
-        </Container>
-      </AppShell.Header>
+    <AppPageShell
+      header={
+        <AppHeader
+          title={t('app_name')}
+          actions={
+            <Group gap="sm" wrap="wrap" justify="flex-end">
+              <LanguageSwitcher
+                value={language}
+                label={t('language.label')}
+                options={[
+                  { code: 'he', label: t('language.he') },
+                  { code: 'en', label: t('language.en') },
+                ]}
+                onChange={(nextLanguage) => {
+                  void setLanguage(nextLanguage);
+                }}
+              />
+              <ColorSchemeToggle
+                value={colorScheme}
+                onChange={setColorScheme}
+                label={t('color_scheme.label')}
+                lightLabel={t('color_scheme.light')}
+                darkLabel={t('color_scheme.dark')}
+                systemLabel={t('color_scheme.system')}
+              />
+            </Group>
+          }
+        />
+      }
+    >
+      <Stack gap="lg">
+        <div>
+          <AppTitle order={1}>{t('welcome_title')}</AppTitle>
+          <AppText c="dimmed" mt="xs">
+            {t('welcome_subtitle')}
+          </AppText>
+        </div>
 
-      <AppShell.Main>
-        <Container size="sm" py="xl">
-          <Stack gap="lg">
-            <div>
-              <Title order={1}>Welcome to Giving Day</Title>
-              <Text c="dimmed" mt="xs">
-                Volunteer management for monthly food-package distribution
-              </Text>
-            </div>
+        <HealthStatusCard
+          title={t('health.title')}
+          loadingLabel={t('health.loading')}
+          errorTitle={t('health.error_title')}
+          errorMessage={errorMessage}
+          apiStatusLabel={t('health.api_status')}
+          databaseLabel={t('health.database')}
+          apiStatusValue={health ? t(`health.${health.status}`) : null}
+          databaseValue={
+            health
+              ? t(
+                  health.database.connected
+                    ? 'health.connected'
+                    : 'health.disconnected'
+                )
+              : null
+          }
+          lastCheckedLabel={t('health.last_checked')}
+          lastCheckedValue={
+            health ? formatCheckedAt(health.timestamp, language) : null
+          }
+          detailsToggleLabel={t(
+            statusDetailsOpen ? 'health.hide_details' : 'health.show_details'
+          )}
+          isLoading={healthQuery.isLoading}
+          detailsOpen={statusDetailsOpen}
+          onToggleDetails={toggleStatusDetails}
+          status={health?.status ?? null}
+          databaseConnected={health?.database.connected ?? null}
+        />
 
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Title order={3} mb="md">
-                System Status
-              </Title>
-
-              {loading && (
-                <Group>
-                  <Loader size="sm" />
-                  <Text>Checking API health...</Text>
-                </Group>
-              )}
-
-              {error && (
-                <Alert
-                  icon={<IconAlertCircle size={16} />}
-                  title="Error"
-                  color="red"
-                >
-                  {error}
-                </Alert>
-              )}
-
-              {health && !error && (
-                <Stack gap="md">
-                  <Group>
-                    <Text fw={500}>API Status:</Text>
-                    <Badge
-                      color={health.status === 'healthy' ? 'green' : 'red'}
-                      leftSection={<IconCircleCheck size={12} />}
-                    >
-                      {health.status}
-                    </Badge>
-                  </Group>
-
-                  <Group>
-                    <Text fw={500}>Database:</Text>
-                    <Badge
-                      color={health.database.connected ? 'green' : 'red'}
-                      variant="light"
-                    >
-                      {health.database.connected ? 'Connected' : 'Disconnected'}
-                    </Badge>
-                  </Group>
-
-                  <Text size="xs" c="dimmed">
-                    Last checked: {new Date(health.timestamp).toLocaleString()}
-                  </Text>
-                </Stack>
-              )}
-            </Card>
-
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Title order={4} mb="sm">
-                About
-              </Title>
-              <Text size="sm">
-                This app helps manage volunteers for monthly food-package
-                distribution days. Admins can create distribution days,
-                volunteers can confirm participation, and elders are matched to
-                volunteers.
-              </Text>
-            </Card>
-          </Stack>
-        </Container>
-      </AppShell.Main>
-    </AppShell>
+        <section>
+          <AppTitle order={4} mb="sm">
+            {t('about_title')}
+          </AppTitle>
+          <AppText size="sm">{t('about_body')}</AppText>
+        </section>
+      </Stack>
+    </AppPageShell>
   );
+}
+
+function getHealthErrorMessage(
+  error: unknown,
+  t: TFunction<'common'>
+): string | null {
+  if (error === null || error === undefined) {
+    return null;
+  }
+
+  if (error instanceof ApiError) {
+    return t('health.http_error', { status: error.status });
+  }
+
+  return t('health.fetch_error');
 }
 
 export default App;

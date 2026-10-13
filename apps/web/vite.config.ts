@@ -13,7 +13,7 @@ export default defineConfig({
         short_name: 'GivingDay',
         description:
           'Volunteer management app for monthly food-package distribution days',
-        theme_color: '#228be6',
+        theme_color: '#A99BE0',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

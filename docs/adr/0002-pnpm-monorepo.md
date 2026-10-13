@@ -27,7 +27,8 @@ We will use **pnpm workspaces** to manage the project as a monorepo.
 │   ├── web/       # React PWA
 │   └── api/       # NestJS backend
 ├── packages/
-│   └── shared/    # Shared types and utilities
+│   ├── shared/    # Shared types, Zod schemas, and utilities
+│   └── ui/        # Atomic design component library (Mantine + Storybook)
 ├── pnpm-workspace.yaml
 └── package.json   # Root package
 ```

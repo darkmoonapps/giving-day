@@ -1,6 +1,6 @@
 # ADR 0009: Testing Strategy
 
-**Status**: Proposed
+**Status**: Accepted
 
 **Date**: 2026-10-13
 
@@ -24,12 +24,12 @@ Implement a **multi-layer testing strategy**:
 - **API integration tests** for backend endpoints
 - **End-to-end tests** for critical flows
 
-**Proposed Tools** (details to be finalized with owner):
+**Tools**:
 
-- **Vitest** or **Jest** - Unit and integration test runner
+- **Vitest** - Unit and component test runner (aligned with Vite)
 - **React Testing Library** - Component testing
-- **Supertest** - API endpoint testing (with NestJS)
-- **Playwright** - End-to-end browser testing
+- **Playwright** - End-to-end browser testing, including the language-switch smoke test
+- **NestJS unit tests** - Controller tests with mocked Prisma (Vitest)
 
 ## Consequences
 
@@ -69,7 +69,7 @@ Implement a **multi-layer testing strategy**:
 - Validation functions
 - State management (if using Zustand/Redux)
 
-**Tools**: Vitest or Jest
+**Tools**: Vitest
 
 **Pattern**:
 
@@ -96,7 +96,7 @@ describe('calculateProximity', () => {
 - Form validation displays errors
 - Loading states show spinners
 
-**Tools**: React Testing Library + Vitest/Jest
+**Tools**: React Testing Library + Vitest
 
 **Pattern**:
 
@@ -204,34 +204,32 @@ All tests must pass before merging PRs:
   uses: codecov/codecov-action@v3
 ```
 
-## Open Questions (To Be Decided)
+## Decisions Locked In
 
 ### Test Framework Choice
 
-- **Vitest** vs **Jest**: Vitest is faster, Vite-native. Jest is more mature, larger ecosystem.
-- Recommendation: Vitest (aligns with Vite, faster, modern)
+**Vitest** is the unit/component runner. It is Vite-native, fast, and works
+across `apps/web`, `apps/api`, `packages/ui`, and `packages/shared`.
 
 ### Coverage Enforcement
 
-- Should CI fail if coverage drops below threshold?
-- What threshold? 70%? 80%?
+Coverage is not a CI gate yet. Focus on behavior tests for new foundations
+and keep adding coverage with each feature.
 
 ### E2E Test Frequency
 
-- Run E2E on every commit, or only on PR merge?
-- E2E are slow - consider running subset on push, full suite on merge
+Playwright runs on every PR. The first smoke test covers Hebrew RTL to
+English LTR language switching.
 
 ### Mocking Strategy
 
-- Mock external services (Prisma, notification service) in tests?
-- Use test database vs in-memory database?
-- Recommendation: Test database in Docker for API tests
+- Frontend: mock `fetch` / Query Client for component tests
+- API: mock Prisma in controller unit tests
+- E2E: run against the built web preview (API is optional for the language switch)
 
 ### Snapshot Testing
 
-- Use snapshot tests for components?
-- Can be brittle but useful for catching unintended changes
-- Recommendation: Use sparingly for complex UI states
+Use sparingly. Prefer accessible queries and user-visible assertions.
 
 ## Alternatives Considered
 

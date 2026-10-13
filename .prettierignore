@@ -4,3 +4,8 @@ build
 .next
 coverage
 pnpm-lock.yaml
+apps/web/src/api/generated
+apps/api/openapi.json
+storybook-static
+playwright-report
+test-results

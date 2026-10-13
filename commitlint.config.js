@@ -18,7 +18,11 @@ export default {
         'revert',
       ],
     ],
-    'scope-enum': [2, 'always', ['web', 'api', 'shared', 'ci', 'docs', 'deps']],
+    'scope-enum': [
+      2,
+      'always',
+      ['web', 'api', 'shared', 'ui', 'ci', 'docs', 'deps'],
+    ],
     'scope-empty': [1, 'never'],
     'subject-case': [2, 'always', 'lower-case'],
     'subject-empty': [2, 'never'],
