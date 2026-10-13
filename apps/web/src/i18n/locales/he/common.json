@@ -1,0 +1,35 @@
+{
+  "app_name": "יום הנתינה",
+  "document_title": "יום הנתינה",
+  "welcome_title": "ברוכים הבאים ליום הנתינה",
+  "welcome_subtitle": "ניהול מתנדבים לחלוקת חבילות מזון חודשית",
+  "about_title": "אודות",
+  "about_body": "האפליקציה הזו עוזרת לנהל מתנדבים לימי חלוקת חבילות מזון חודשיים. מנהלים יכולים ליצור ימי חלוקה, מתנדבים יכולים לאשר השתתפות, ומבוגרים משויכים למתנדבים.",
+  "language": {
+    "label": "שפה",
+    "he": "עברית",
+    "en": "English"
+  },
+  "color_scheme": {
+    "label": "ערכת צבע",
+    "light": "בהיר",
+    "dark": "כהה",
+    "system": "מערכת"
+  },
+  "health": {
+    "title": "מצב המערכת",
+    "loading": "בודק את תקינות ה-API...",
+    "error_title": "שגיאה",
+    "fetch_error": "טעינת מצב המערכת נכשלה",
+    "http_error": "שגיאת HTTP {{status}}",
+    "api_status": "מצב API:",
+    "database": "מסד נתונים:",
+    "connected": "מחובר",
+    "disconnected": "מנותק",
+    "healthy": "תקין",
+    "unhealthy": "לא תקין",
+    "last_checked": "נבדק לאחרונה:",
+    "show_details": "הצג פרטים",
+    "hide_details": "הסתר פרטים"
+  }
+}

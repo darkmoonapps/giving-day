@@ -7,14 +7,16 @@ Volunteer management app for monthly food-package distribution days. It handles 
 This is a pnpm workspaces monorepo with:
 
 - **`apps/web`**: React + Vite + TypeScript + Mantine UI front-end, configured as a Progressive Web App (PWA) with mobile-first responsive design and RTL/Hebrew support
-- **`apps/api`**: NestJS + TypeScript + Prisma REST API
-- **`packages/shared`**: Shared TypeScript types used by both web and api
+- **`apps/api`**: NestJS + TypeScript + Prisma REST API, with OpenAPI/Swagger at `/api/docs`
+- **`packages/shared`**: Shared TypeScript types and Zod schemas used by both web and api
+- **`packages/ui`**: Atomic design component library on Mantine, documented in Storybook
 
 ### Tech Stack
 
-- **Frontend**: React 19, Vite 6, Mantine UI 7, vite-plugin-pwa
-- **Backend**: NestJS 11, Prisma 6, PostgreSQL 16
-- **Tooling**: TypeScript 5.7, ESLint 9 (flat config), Prettier
+- **Frontend**: React 19, Vite 6, Mantine UI 9, react-i18next, Zustand, TanStack Query, vite-plugin-pwa
+- **Backend**: NestJS 11, Prisma 6, PostgreSQL 16, @nestjs/swagger
+- **Shared**: Zod schemas, Orval-generated React Query clients
+- **Tooling**: TypeScript 5.7, ESLint 9 (flat config), Prettier, Vitest, Playwright, Storybook
 - **Package Management**: pnpm 10+ workspaces
 - **CI/CD**: GitHub Actions
 
@@ -114,6 +116,9 @@ From the root directory:
 - `pnpm test` - Run all unit and integration tests
 - `pnpm test:ci` - Run all tests with coverage
 - `pnpm test:e2e` - Run end-to-end tests with Playwright
+- `pnpm codegen` - Generate OpenAPI spec and Orval clients
+- `pnpm codegen:check` - Fail if generated clients are stale
+- `pnpm --filter @giving-day/ui storybook` - Start the UI Storybook
 
 ### API-specific scripts
 
@@ -146,7 +151,9 @@ giving-day/
 │       └── prisma/
 │           └── schema.prisma
 ├── packages/
-│   └── shared/       # Shared TypeScript types
+│   ├── shared/       # Shared TypeScript types and Zod schemas
+│   │   └── src/
+│   └── ui/           # Atomic design system + Storybook
 │       └── src/
 ├── .github/
 │   └── workflows/
@@ -171,15 +178,18 @@ Three GitHub Actions workflows run on pull requests to `master`:
    - Lint and Build Job:
      - Installs dependencies with pnpm 10
      - Runs ESLint on all packages
-     - Type-checks and builds all packages
+     - Type-checks all packages
+     - Checks generated OpenAPI/Orval clients
      - Checks code formatting with Prettier
      - Pushes the Prisma schema to CI Postgres (`prisma db push`)
+     - Builds all packages
      - Runs unit and integration tests (including Supertest against `/api/health`)
    - E2E Tests Job:
      - Sets up PostgreSQL and pushes the Prisma schema
      - Installs Playwright browsers (`pnpm exec playwright install`) and caches them
      - Builds the apps, then runs Playwright against `api start` + `web preview`
      - Waits for `GET :3001/api/health` before UI assertions
+     - Covers Hebrew RTL to English LTR and the color-scheme toggle
      - Uploads Playwright reports as artifacts **only on failure**
 
 2. **Commit Lint** (`.github/workflows/commitlint.yml`):
@@ -247,6 +257,8 @@ See [AGENTS.md](AGENTS.md) and [docs/adr/0008-conventional-commits.md](docs/adr/
 ## API
 
 The API uses CORS with an origin allowlist. Configure allowed origins via the `CORS_ORIGINS` environment variable (comma-separated list). Default: `http://localhost:3000`.
+
+OpenAPI/Swagger UI is available at http://localhost:3001/api/docs while the API is running. After changing controllers or DTOs, run `pnpm codegen` and commit the updated spec and generated client.
 
 The web app makes requests to relative `/api/*` URLs, which are:
 

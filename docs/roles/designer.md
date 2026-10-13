@@ -173,11 +173,12 @@ A Designer's work is complete when:
 
 ### Color Palette
 
-- Define primary brand color
-- Define secondary/accent colors
-- Ensure colors work in light/dark modes (if applicable)
-- Meet WCAG AA contrast requirements
-- Use Mantine's theming system
+- **Wisteria** `#A99BE0` is the primary brand scale
+- **Mint** `#A8E6CF` is the success / Delivered accent
+- **Deep plum** `#1E1A2E` is the dark-theme background
+- Light default is a pastel Wisteria & mint theme; dark uses brightened accents
+- Meet WCAG AA contrast requirements (verified in `packages/ui` theme tests)
+- Use Mantine's theming system in `packages/ui`
 
 ### Typography
 

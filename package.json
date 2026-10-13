@@ -9,10 +9,10 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
+    "dev": "pnpm --parallel -r --filter @giving-day/web --filter @giving-day/api dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @giving-day/shared --filter @giving-day/ui build && pnpm -r typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "pnpm --filter @giving-day/api prisma:generate",
@@ -20,6 +20,8 @@
     "test:ci": "pnpm -r --if-present test:ci",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "codegen": "pnpm --filter @giving-day/shared build && pnpm --filter @giving-day/api openapi:generate && pnpm --filter @giving-day/web codegen",
+    "codegen:check": "bash scripts/check-generated.sh",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -62,14 +62,20 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Type check and build
-        run: pnpm build
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Check generated API client
+        run: pnpm codegen:check
 
       - name: Check formatting
         run: pnpm format:check
 
       - name: Push database schema
         run: pnpm --filter @giving-day/api exec prisma db push
+
+      - name: Build
+        run: pnpm build
 
       - name: Run unit and integration tests
         run: pnpm test:ci

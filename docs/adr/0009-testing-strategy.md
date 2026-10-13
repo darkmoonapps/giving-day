@@ -30,8 +30,8 @@ Implement a **multi-layer testing strategy**:
 
 - **Vitest** - Fast, Vite-native unit and integration test runner
 - **React Testing Library** - Component testing
-- **Supertest** - API endpoint testing (with NestJS)
-- **Playwright** - End-to-end browser testing
+- **Playwright** - End-to-end browser testing, including the language-switch smoke test
+- **NestJS unit tests** - Controller tests with mocked Prisma (Vitest)
 
 ## Consequences
 
@@ -71,7 +71,7 @@ Implement a **multi-layer testing strategy**:
 - Validation functions
 - State management (if using Zustand/Redux)
 
-**Tools**: Vitest or Jest
+**Tools**: Vitest
 
 **Pattern**:
 
@@ -98,7 +98,7 @@ describe('calculateProximity', () => {
 - Form validation displays errors
 - Loading states show spinners
 
-**Tools**: React Testing Library + Vitest/Jest
+**Tools**: React Testing Library + Vitest
 
 **Pattern**:
 
@@ -307,6 +307,9 @@ The CI workflow includes:
 - Use snapshot tests for components?
 - Can be brittle but useful for catching unintended changes
 - **Recommendation**: Use sparingly for complex UI states
+
+E2E also covers Hebrew RTL to English LTR language switching and the
+saved color-scheme toggle.
 
 ## Alternatives Considered
 

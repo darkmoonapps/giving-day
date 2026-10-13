@@ -60,16 +60,23 @@ Implement **bilingual internationalization** using **react-i18next** with:
 
 ### Translation Files Structure
 
+Bundled locale files live next to the i18n bootstrap so unit tests and the
+production bundle share the same source of truth:
+
 ```
-public/locales/
+apps/web/src/i18n/locales/
 ├── he/
 │   ├── common.json
 │   ├── volunteer.json
-│   └── admin.json
+│   ├── admin.json
+│   ├── auth.json
+│   └── validation.json
 └── en/
     ├── common.json
     ├── volunteer.json
-    └── admin.json
+    ├── admin.json
+    ├── auth.json
+    └── validation.json
 ```
 
 ### Usage Pattern
@@ -86,18 +93,24 @@ function MyComponent() {
 ### Mantine Direction
 
 ```typescript
-<MantineProvider
-  theme={{ dir: i18n.dir() }}
-  defaultColorScheme="light"
->
-  {children}
-</MantineProvider>
+<DirectionProvider initialDirection="rtl" detectDirection={false}>
+  <MantineProvider theme={appTheme}>{children}</MantineProvider>
+</DirectionProvider>
+```
+
+Language changes update both Mantine direction and the document:
+
+```typescript
+document.documentElement.dir = getDirection(language);
+document.documentElement.lang = language;
 ```
 
 ### HTML Direction
 
+`apps/web/index.html` ships with Hebrew as the default so the first paint is RTL:
+
 ```html
-<html dir="{i18n.dir()}" lang="{i18n.language}"></html>
+<html lang="he" dir="rtl"></html>
 ```
 
 ## Alternatives Considered

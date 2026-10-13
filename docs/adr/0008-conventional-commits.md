@@ -38,6 +38,7 @@ Adopt **Conventional Commits** specification and enforce it in CI.
 - `web`: Frontend React app
 - `api`: Backend NestJS API
 - `shared`: Shared packages
+- `ui`: Shared UI component library
 - `ci`: CI/CD workflows
 - `docs`: Documentation
 - `deps`: Dependencies
@@ -96,7 +97,11 @@ refactor(api): extract notification service
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'scope-enum': [2, 'always', ['web', 'api', 'shared', 'ci', 'docs', 'deps']],
+    'scope-enum': [
+      2,
+      'always',
+      ['web', 'api', 'shared', 'ui', 'ci', 'docs', 'deps'],
+    ],
     'type-enum': [
       2,
       'always',
@@ -148,6 +153,7 @@ BREAKING CHANGE: The /api/confirmations/:id endpoint now returns
 - Use `web` for frontend-only changes
 - Use `api` for backend-only changes
 - Use `shared` for changes to shared packages
+- Use `ui` for the atomic design component library in `packages/ui`
 - Use `ci` for GitHub Actions, workflow changes
 - Use `docs` for documentation (PRD, ADRs, README)
 - Use `deps` for dependency updates (even if scoped to web/api, use deps if that's the main change)

@@ -1,7 +1,7 @@
-export interface HealthResponse {
-  status: 'healthy' | 'unhealthy';
-  timestamp: string;
-  database: {
-    connected: boolean;
-  };
-}
+export type {
+  ColorSchemePreference,
+  DatabaseHealth,
+  HealthResponse,
+  HealthStatus,
+  LanguageCode,
+} from './schemas';

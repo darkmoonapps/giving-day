@@ -21,7 +21,7 @@ The frontend needs a technology stack for building the PWA that:
 
 - **React 19** - UI framework
 - **Vite** - Build tool and dev server
-- **Mantine v7** - Component library
+- **Mantine v9** - Component library
 
 ## Consequences
 
@@ -56,7 +56,7 @@ The frontend needs a technology stack for building the PWA that:
 - Younger ecosystem compared to Webpack (less mature, but stable enough)
 - Some legacy plugins may not work
 
-### Mantine v7
+### Mantine v9
 
 **Positive**:
 
@@ -121,8 +121,12 @@ The frontend needs a technology stack for building the PWA that:
 
 ## Notes
 
-- Pin Mantine to v7.x to avoid breaking changes from major version bumps
-- Use Mantine's `MantineProvider` with RTL support via `direction` prop
+- Pin Mantine to v9.x to avoid breaking changes from major version bumps
+- Use Mantine's `DirectionProvider` for RTL/LTR and `MantineProvider` for theming
+- Shared presentational components live in `packages/ui` and are documented in Storybook
+- Default theme is light pastel **Wisteria & mint**; dark theme uses deep plum `#1E1A2E`
+- Color scheme follows the OS by default, can be overridden in the header, and is saved
+- Theme tokens must meet WCAG AA contrast
 - Configure Vite's `vite-plugin-pwa` for service worker and manifest generation
 - Use Mantine's theme system for brand colors and spacing
 - Leverage `@mantine/hooks` for common patterns (useMediaQuery, useLocalStorage, etc.)

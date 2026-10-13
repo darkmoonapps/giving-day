@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { healthResponseSchema } from '@giving-day/shared';
 import { HealthController } from './health.controller';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -14,6 +15,7 @@ describe('HealthController', () => {
     expect(result.status).toBe('healthy');
     expect(result.database.connected).toBe(true);
     expect(result.timestamp).toBeDefined();
+    expect(healthResponseSchema.parse(result)).toEqual(result);
     expect(mockPrismaService.isConnected).toHaveBeenCalledOnce();
   });
 

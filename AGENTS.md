@@ -26,7 +26,8 @@ giving-day/
 │       ├── prisma/
 │       └── package.json
 ├── packages/
-│   └── shared/           # Shared TypeScript types and utilities
+│   ├── shared/           # Shared TypeScript types, Zod schemas, and utilities
+│   └── ui/               # Atomic design component library (Mantine + Storybook)
 ├── docs/
 │   ├── PRD.md           # Product Requirements Document
 │   ├── adr/             # Architecture Decision Records
@@ -90,9 +91,14 @@ pnpm db:generate            # Generate Prisma client
 pnpm --filter @giving-day/api prisma migrate dev    # Create migration
 pnpm --filter @giving-day/api prisma studio         # Open Prisma Studio GUI
 
-# Testing (when implemented)
-pnpm test                   # Run all tests
-pnpm test:ci                # Run tests in CI mode
+# Testing
+pnpm test                   # Unit and component tests (Vitest)
+pnpm test:e2e               # Playwright smoke tests
+pnpm test:ci                # Unit tests plus Playwright
+
+# Code generation
+pnpm codegen                # OpenAPI spec + Orval clients
+pnpm codegen:check          # Fail if generated clients are stale
 ```
 
 ## Testing
@@ -295,6 +301,7 @@ const { t } = useTranslation('volunteer');
 - `web` - Frontend changes
 - `api` - Backend changes
 - `shared` - Shared package changes
+- `ui` - Shared UI component library
 - `ci` - CI/CD changes
 - `docs` - Documentation
 - `deps` - Dependency updates
@@ -325,7 +332,7 @@ pnpm prepare
 
 Three GitHub Actions workflows enforce standards on all PRs:
 
-1. **CI** (`.github/workflows/ci.yml`): Runs lint, typecheck, format checks, and build
+1. **CI** (`.github/workflows/ci.yml`): Runs lint, typecheck, generated-client check, tests, format checks, and build
 2. **Commit Lint** (`.github/workflows/commitlint.yml`): Validates all commits in a PR against Conventional Commits
 3. **PR Title Check** (`.github/workflows/pr-title.yml`): Validates PR title against Conventional Commits (important for squash merges)
 
