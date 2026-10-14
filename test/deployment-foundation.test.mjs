@@ -14,6 +14,42 @@ function readRepoFile(relativePath) {
   return readFileSync(join(root, relativePath), 'utf8');
 }
 
+/**
+ * @param {string} markdown
+ * @returns {URL[]}
+ */
+function markdownHttpsLinks(markdown) {
+  const links = [];
+  const pattern = /\]\((https:\/\/[^)\s]+)\)/g;
+  let match = pattern.exec(markdown);
+
+  while (match !== null) {
+    try {
+      links.push(new URL(match[1]));
+    } catch {
+      // Ignore malformed markdown hrefs in this assertion helper.
+    }
+    match = pattern.exec(markdown);
+  }
+
+  return links;
+}
+
+/**
+ * @param {readonly URL[]} links
+ * @param {string} hostname
+ * @param {string} pathname
+ * @returns {boolean}
+ */
+function hasExactHttpsLink(links, hostname, pathname) {
+  return links.some(
+    (link) =>
+      link.protocol === 'https:' &&
+      link.hostname === hostname &&
+      link.pathname === pathname
+  );
+}
+
 describe('free-tier deploy wiring', () => {
   it('declares a free Frankfurt Render web service with /health and migrate deploy', () => {
     const blueprint = readRepoFile('render.yaml');
@@ -58,8 +94,15 @@ describe('free-tier deploy wiring', () => {
     assert.match(docs, /CLOUDFLARE_API_TOKEN/);
     assert.match(docs, /KEEPAWAKE_START/);
     assert.match(docs, /750/);
-    assert.ok(docs.includes('https://render.com/docs/free'));
-    assert.ok(docs.includes('https://neon.com/docs/introduction/plans'));
+    const docsLinks = markdownHttpsLinks(docs);
+    assert.equal(
+      hasExactHttpsLink(docsLinks, 'render.com', '/docs/free'),
+      true
+    );
+    assert.equal(
+      hasExactHttpsLink(docsLinks, 'neon.com', '/docs/introduction/plans'),
+      true
+    );
     assert.match(docs, /100 CU-hours/);
     assert.match(docs, /sendDefaultPii/);
     assert.doesNotMatch(docs, /postgresql:\/\/[^:]+:[^@]+@/);
