@@ -58,8 +58,8 @@ describe('free-tier deploy wiring', () => {
     assert.match(docs, /CLOUDFLARE_API_TOKEN/);
     assert.match(docs, /KEEPAWAKE_START/);
     assert.match(docs, /750/);
-    assert.match(docs, /https:\/\/render\.com\/docs\/free/);
-    assert.match(docs, /https:\/\/neon\.com\/docs\/introduction\/plans/);
+    assert.ok(docs.includes('https://render.com/docs/free'));
+    assert.ok(docs.includes('https://neon.com/docs/introduction/plans'));
     assert.match(docs, /100 CU-hours/);
     assert.match(docs, /sendDefaultPii/);
     assert.doesNotMatch(docs, /postgresql:\/\/[^:]+:[^@]+@/);
