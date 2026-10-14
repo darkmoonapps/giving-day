@@ -79,8 +79,8 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Push database schema
-        run: pnpm --filter @giving-day/api exec prisma db push
+      - name: Apply database migrations
+        run: pnpm --filter @giving-day/api exec prisma migrate deploy
 
       - name: Build
         run: pnpm build
@@ -163,8 +163,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Push database schema
-        run: pnpm --filter @giving-day/api exec prisma db push
+      - name: Apply database migrations
+        run: pnpm --filter @giving-day/api exec prisma migrate deploy
 
       - name: Build applications
         run: pnpm build

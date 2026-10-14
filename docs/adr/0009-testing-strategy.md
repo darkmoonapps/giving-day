@@ -209,7 +209,7 @@ All tests must pass before merging PRs:
 
 The CI workflow includes:
 
-- Unit and integration tests for both web and API (Postgres service + `prisma db push`)
+- Unit and integration tests for both web and API (Postgres service + `prisma migrate deploy`)
 - E2E tests with Playwright against a production build (`api start` + `web preview`)
 - Playwright waits for `GET http://localhost:3001/api/health` before running UI tests
 - Playwright browsers installed with `pnpm exec playwright install` and cached by lockfile hash
@@ -255,7 +255,7 @@ The CI workflow includes:
   - Asserts healthy API status badge
   - Asserts connected database badge
 - **CI Setup**:
-  - Runs `prisma db push` against CI Postgres (no migration files exist yet)
+  - Runs `prisma migrate deploy` against CI Postgres
   - Builds apps, then Playwright starts `api start` and `web preview`
   - Waits for `GET :3001/api/health` before running UI tests
   - Uploads `playwright-report/` and `test-results/` only on e2e job failure

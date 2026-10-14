@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: giving-day-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeployTrigger: 'off'
+    buildCommand: corepack enable && corepack prepare pnpm@10.33.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @giving-day/shared build && pnpm --filter @giving-day/api build
+    preDeployCommand: pnpm --filter @giving-day/api exec prisma migrate deploy
+    startCommand: pnpm --filter @giving-day/api start
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production

@@ -78,6 +78,12 @@ describe('repo foundation extras', () => {
       'docs/adr/0015-turborepo-task-caching.md',
       'docs/adr/0016-dependabot-dependency-updates.md',
       'docs/adr/0017-release-please.md',
+      'docs/adr/0018-free-tier-deploy-sentry.md',
+      'docs/deployment.md',
+      'render.yaml',
+      '.github/workflows/deploy-api.yml',
+      '.github/workflows/deploy-web.yml',
+      '.github/workflows/keep-awake.yml',
       'CHANGELOG.md',
     ];
 

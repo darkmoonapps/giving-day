@@ -19,3 +19,19 @@ export {
   parseLanguageCode,
   type LanguageCode,
 } from './schemas/language';
+export {
+  createSentryInitConfig,
+  isSentryDsnConfigured,
+  SENTRY_SEND_DEFAULT_PII,
+  type SentryInitConfig,
+} from './sentry/options';
+export {
+  isSensitiveKey,
+  scrubPiiString,
+  scrubSentryPii,
+  scrubUnknown,
+  type SentryBreadcrumbLike,
+  type SentryEventLike,
+  type SentryRequestLike,
+  type SentryUserLike,
+} from './sentry/scrub-pii';

@@ -1,13 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { healthResponseSchema, type HealthResponse } from '@giving-day/shared';
-import { PrismaService } from '../prisma/prisma.service';
+import type { HealthResponse } from '@giving-day/shared';
 import { HealthResponseDto } from './dto/health-response.dto';
+import { HealthService } from './health.service';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly healthService: HealthService) {}
 
   @Get()
   @ApiOperation({
@@ -16,15 +16,6 @@ export class HealthController {
   })
   @ApiOkResponse({ type: HealthResponseDto })
   async getHealth(): Promise<HealthResponse> {
-    const dbConnected = await this.prisma.isConnected();
-    const payload: HealthResponse = {
-      status: dbConnected ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      database: {
-        connected: dbConnected,
-      },
-    };
-
-    return healthResponseSchema.parse(payload);
+    return this.healthService.getHealth();
   }
 }

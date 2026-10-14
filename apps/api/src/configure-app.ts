@@ -4,6 +4,8 @@ import {
   SwaggerModule,
   type OpenAPIObject,
 } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+import { HealthService } from './health/health.service';
 
 export function createSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
   return new DocumentBuilder()
@@ -43,5 +45,26 @@ export function configureApp(app: INestApplication): INestApplication {
   });
 
   setupSwagger(app);
+  registerRootHealthRoute(app);
   return app;
+}
+
+export function registerRootHealthRoute(app: INestApplication): void {
+  const healthService = app.get(HealthService);
+  const httpAdapter = app.getHttpAdapter();
+
+  httpAdapter.get('/health', (_req: Request, res: Response) => {
+    void healthService
+      .getHealth()
+      .then((payload) => {
+        res.status(200).json(payload);
+      })
+      .catch(() => {
+        res.status(503).json({
+          status: 'unhealthy',
+          timestamp: new Date().toISOString(),
+          database: { connected: false },
+        });
+      });
+  });
 }
