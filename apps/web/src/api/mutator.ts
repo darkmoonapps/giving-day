@@ -8,11 +8,26 @@ export class ApiError extends Error {
   }
 }
 
+export function resolveApiUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const base = import.meta.env.VITE_API_URL;
+  if (typeof base !== 'string' || base.trim().length === 0) {
+    return url;
+  }
+
+  const normalizedBase = base.replace(/\/$/, '');
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
+
 export async function apiFetch<T>(
   url: string,
   options?: RequestInit
 ): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetch(resolveApiUrl(url), {
     ...options,
     headers: {
       Accept: 'application/json',

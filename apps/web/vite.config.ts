@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -35,6 +36,9 @@ function colorSchemeStorageKeyPlugin(): Plugin {
 }
 
 export default defineConfig({
+  build: {
+    sourcemap: 'hidden',
+  },
   plugins: [
     colorSchemeStorageKeyPlugin(),
     react(),
@@ -73,6 +77,19 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
+    }),
+    sentryVitePlugin({
+      disable:
+        process.env.SENTRY_AUTH_TOKEN === undefined ||
+        process.env.SENTRY_AUTH_TOKEN.length === 0,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      url: process.env.SENTRY_URL || 'https://de.sentry.io',
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
+      telemetry: false,
     }),
   ],
   optimizeDeps: {

@@ -13,13 +13,14 @@ This is a pnpm workspaces monorepo with:
 
 ### Tech Stack
 
-- **Frontend**: React 19, Vite 6, Mantine UI 9, react-i18next, Zustand, TanStack Query, vite-plugin-pwa
-- **Backend**: NestJS 11, Prisma 6, PostgreSQL 16, @nestjs/swagger
+- **Frontend**: React 19, Vite 6, Mantine UI 9, react-i18next, Zustand, TanStack Query (`persistQueryClient`), vite-plugin-pwa, Sentry
+- **Backend**: NestJS 11, Prisma 6, PostgreSQL 16, @nestjs/swagger, Sentry
 - **Shared**: Zod schemas, Orval-generated React Query clients
 - **Tooling**: TypeScript 5.7, ESLint 9 (flat config), Prettier, Vitest, Playwright, Storybook
 - **Package Management**: pnpm 10+ workspaces
 - **Task runner**: Turborepo 2 (lint, typecheck, test, build)
-- **CI/CD**: GitHub Actions, Dependabot, CodeQL, Release Please
+- **CI/CD**: GitHub Actions, Dependabot, CodeQL, Release Please, Cloudflare Pages, Render
+- **Observability**: Sentry EU (`@sentry/react`, `@sentry/nestjs`), disabled when the DSN is unset
 
 ## Prerequisites
 
@@ -75,10 +76,15 @@ The defaults are configured for local development and should work out of the box
 - `DATABASE_URL`: PostgreSQL connection string
 - `PORT`: API server port (default: 3001)
 - `CORS_ORIGINS`: Comma-separated list of allowed CORS origins (default: `http://localhost:3000`)
+- `SENTRY_DSN`: optional EU Sentry DSN. Empty disables Sentry
 
 **Web environment variables:**
 
-- `VITE_API_URL`: API server URL for Vite dev proxy target (default: `http://localhost:3001`)
+- `VITE_API_URL`: API origin (Vite proxy target in development; fetch prefix in production)
+- `VITE_SENTRY_DSN`: optional EU Sentry DSN. Empty disables Sentry
+
+Hosted setup (Cloudflare Pages, Render, Neon, Sentry EU) is documented in
+[docs/deployment.md](docs/deployment.md).
 
 ### 4. Start the database
 
@@ -157,11 +163,13 @@ giving-day/
 │   └── ui/           # Atomic design system + Storybook
 │       └── src/
 ├── .github/
-│   ├── workflows/    # CI, CodeQL, Release Please, commitlint
+│   ├── workflows/    # CI, deploy, keep-awake, CodeQL, Release Please, commitlint
 │   ├── ISSUE_TEMPLATE/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── docs/
+│   ├── deployment.md
 │   └── branch-protection.md
+├── render.yaml       # Render free web service (Frankfurt)
 ├── turbo.json
 ├── docker-compose.yml
 ├── pnpm-workspace.yaml
@@ -186,11 +194,11 @@ Workflows on pull requests to `master`:
      - Type-checks all packages (`pnpm typecheck`)
      - Checks generated OpenAPI/Orval clients
      - Checks code formatting with Prettier
-     - Pushes the Prisma schema to CI Postgres (`prisma db push`)
+     - Applies Prisma migrations to CI Postgres (`prisma migrate deploy`)
      - Builds all packages (`pnpm build`)
      - Runs unit and integration tests (`pnpm test:ci`)
    - E2E Tests Job:
-     - Sets up PostgreSQL and pushes the Prisma schema
+     - Sets up PostgreSQL and applies Prisma migrations
      - Installs Playwright browsers (`pnpm exec playwright install`) and caches them
      - Builds the apps with Turbo, then runs Playwright against `api start` + `web preview`
      - Waits for `GET :3001/api/health` before UI assertions
@@ -213,9 +221,16 @@ Also:
   updates (ADR 0016)
 - **Release Please** (`.github/workflows/release-please.yml`): version and
   changelog PR from Conventional Commits after merge to `master` (ADR 0017)
+- **Deploy API** (`.github/workflows/deploy-api.yml`): `prisma migrate deploy`
+  then Render deploy hook (ADR 0018)
+- **Deploy Web** (`.github/workflows/deploy-web.yml`): build and upload to
+  Cloudflare Pages
+- **Keep awake** (`.github/workflows/keep-awake.yml`): ping `/health` every
+  10 minutes inside the Jerusalem daytime window
 
 Recommended `master` protection rules and required check names are in
-[docs/branch-protection.md](docs/branch-protection.md).
+[docs/branch-protection.md](docs/branch-protection.md). Hosted free-tier
+setup is in [docs/deployment.md](docs/deployment.md).
 
 ## PWA Features
 
@@ -278,10 +293,10 @@ The API uses CORS with an origin allowlist. Configure allowed origins via the `C
 
 OpenAPI/Swagger UI is available at http://localhost:3001/api/docs while the API is running. After changing controllers or DTOs, run `pnpm codegen` and commit the updated spec and generated client.
 
-The web app makes requests to relative `/api/*` URLs, which are:
+The web app makes requests to `/api/*` URLs, which are:
 
 - Proxied to the API server in development (via Vite proxy)
-- Handled as same-origin requests in production
+- Prefixed with `VITE_API_URL` in production so Cloudflare Pages can call Render
 
 ## License
 

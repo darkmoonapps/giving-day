@@ -4,6 +4,9 @@ import '@mantine/core/styles.css';
 import App from './App';
 import { initI18n } from './i18n';
 import { AppProviders } from './providers/app-providers';
+import { initSentry } from './sentry';
+
+initSentry();
 
 const rootElement = document.getElementById('root');
 

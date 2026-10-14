@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   COLOR_SCHEME_STORAGE_KEY,
   colorSchemePreferenceSchema,
+  createSentryInitConfig,
   getDirection,
   healthResponseSchema,
   languageCodeSchema,
+  SENTRY_SEND_DEFAULT_PII,
 } from './index';
 
 describe('shared public exports', () => {
@@ -20,5 +22,11 @@ describe('shared public exports', () => {
     expect(getDirection('en')).toBe('ltr');
     expect(colorSchemePreferenceSchema.parse('auto')).toBe('auto');
     expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
+    expect(SENTRY_SEND_DEFAULT_PII).toBe(false);
+    expect(
+      createSentryInitConfig(
+        'https://examplePublicKey@o0.ingest.de.sentry.io/0'
+      ).sendDefaultPii
+    ).toBe(false);
   });
 });

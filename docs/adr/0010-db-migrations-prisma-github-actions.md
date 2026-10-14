@@ -1,8 +1,12 @@
 # ADR 0010: Database Migrations with Prisma via GitHub Actions
 
-**Status**: Proposed
+**Status**: Accepted
 
 **Date**: 2026-10-13
+
+**Accepted**: 2026-10-14 — GitHub Actions `deploy-api.yml` and Render
+`preDeployCommand` both run `prisma migrate deploy`. See
+[docs/deployment.md](../deployment.md).
 
 ## Context
 

@@ -57,6 +57,16 @@ describe('GET /api/health (disconnected database)', () => {
   it('serves Swagger UI at /api/docs', async () => {
     await request(app.getHttpServer()).get('/api/docs').expect(200);
   });
+
+  it('serves the root /health endpoint for Render and keep-awake', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/health')
+      .expect(200);
+
+    const body = response.body as HealthResponse;
+    expect(body.status).toBe('unhealthy');
+    expect(body.database.connected).toBe(false);
+  });
 });
 
 describe.skipIf(!process.env.DATABASE_URL)(
@@ -86,6 +96,16 @@ describe.skipIf(!process.env.DATABASE_URL)(
         },
       });
       expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
+    });
+
+    it('serves the same payload at /health', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/health')
+        .expect(200);
+
+      const body = response.body as HealthResponse;
+      expect(body.status).toBe('healthy');
+      expect(body.database.connected).toBe(true);
     });
   }
 );

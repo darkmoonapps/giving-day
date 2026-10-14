@@ -31,5 +31,10 @@
     "last_checked": "נבדק לאחרונה:",
     "show_details": "הצג פרטים",
     "hide_details": "הסתר פרטים"
+  },
+  "error": {
+    "unexpected_title": "משהו השתבש",
+    "unexpected_body": "אירעה שגיאה לא צפויה. נסו לטעון מחדש את העמוד.",
+    "reload": "טען מחדש"
   }
 }
