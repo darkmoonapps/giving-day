@@ -32,6 +32,15 @@ describe('HealthStatusCard', () => {
     expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
   });
 
+  it('does not fall back to the raw status token', () => {
+    renderWithMantine(
+      <HealthStatusCard {...healthyProps} apiStatusValue={null} />
+    );
+
+    expect(screen.queryByText('healthy')).not.toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+  });
+
   it('shows a loading state', () => {
     renderWithMantine(
       <HealthStatusCard

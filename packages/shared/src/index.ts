@@ -7,6 +7,7 @@ export {
   type HealthStatus,
 } from './schemas/health';
 export {
+  COLOR_SCHEME_STORAGE_KEY,
   colorSchemePreferenceSchema,
   type ColorSchemePreference,
 } from './schemas/color-scheme';

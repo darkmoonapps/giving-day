@@ -20,7 +20,6 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
-coverage/
 *.lcov
 
 # nyc test coverage
@@ -147,19 +146,13 @@ vite.config.ts.timestamp-*
 storybook-static/
 
 # Playwright
-/test-results/
-/playwright-report/
 /blob-report/
 /playwright/.cache/
-apps/web/test-results/
-apps/web/playwright-report/
+playwright-report/
+test-results/
 
 # Astro generated types
 .astro/
 
 # Turbo Repo
 .turbo
-
-# Playwright
-playwright-report/
-test-results/

@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/configure-app';
 import { PrismaService } from '../src/prisma/prisma.service';
 import type { HealthResponse } from '@giving-day/shared';
 
@@ -19,7 +20,7 @@ async function createApp(
 
   const moduleFixture: TestingModule = await builder.compile();
   const app = moduleFixture.createNestApplication();
-  app.setGlobalPrefix('api');
+  configureApp(app);
   await app.init();
   return app;
 }
@@ -51,6 +52,10 @@ describe('GET /api/health (disconnected database)', () => {
       },
     });
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
+  });
+
+  it('serves Swagger UI at /api/docs', async () => {
+    await request(app.getHttpServer()).get('/api/docs').expect(200);
   });
 });
 

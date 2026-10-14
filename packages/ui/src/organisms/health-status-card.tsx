@@ -74,7 +74,7 @@ export function HealthStatusCard({
         <Stack gap="md">
           <LabeledStatus
             label={apiStatusLabel}
-            value={apiStatusValue ?? status}
+            value={apiStatusValue ?? ''}
             color={statusColor(status, null)}
             icon={<IconCircleCheck size={12} />}
             testId="status-badge"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COLOR_SCHEME_STORAGE_KEY,
   colorSchemePreferenceSchema,
   getDirection,
   healthResponseSchema,
@@ -18,5 +19,6 @@ describe('shared public exports', () => {
     expect(languageCodeSchema.parse('he')).toBe('he');
     expect(getDirection('en')).toBe('ltr');
     expect(colorSchemePreferenceSchema.parse('auto')).toBe('auto');
+    expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
   });
 });
