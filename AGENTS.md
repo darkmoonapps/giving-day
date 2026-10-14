@@ -10,7 +10,7 @@
 - **Backend**: NestJS + Prisma + PostgreSQL
 - **Language**: TypeScript throughout
 - **Internationalization**: Hebrew (RTL) + English (LTR) via react-i18next
-- **Infrastructure**: pnpm monorepo, Docker for local development
+- **Infrastructure**: pnpm monorepo + Turborepo, Docker for local development
 
 ## Repository Structure
 
@@ -33,7 +33,10 @@ giving-day/
 │   ├── adr/             # Architecture Decision Records
 │   └── roles/           # Role-specific guides
 ├── .github/
-│   └── workflows/       # CI/CD workflows
+│   ├── workflows/       # CI, CodeQL, Release Please, commitlint
+│   ├── ISSUE_TEMPLATE/  # Bug and feature issue forms
+│   └── PULL_REQUEST_TEMPLATE.md
+├── turbo.json           # Turborepo lint/typecheck/test/build pipelines
 ├── pnpm-workspace.yaml
 └── package.json
 ```
@@ -74,17 +77,17 @@ pnpm dev                    # Start all apps in dev mode
 pnpm --filter @giving-day/web dev     # Start only frontend
 pnpm --filter @giving-day/api dev     # Start only backend
 
-# Building
-pnpm build                  # Build all apps
+# Building (Turborepo; caches dist/**)
+pnpm build                  # Build all packages and apps
 pnpm --filter @giving-day/web build   # Build only frontend
 
 # Linting and Formatting
-pnpm lint                   # Lint all packages
+pnpm lint                   # Lint all packages via Turbo
 pnpm format                 # Format all files with Prettier
 pnpm format:check           # Check formatting without modifying
 
 # Type Checking
-pnpm typecheck              # Type-check all packages
+pnpm typecheck              # Type-check all packages via Turbo
 
 # Database
 pnpm db:generate            # Generate Prisma client
@@ -330,11 +333,16 @@ pnpm prepare
 
 **CI Enforcement**:
 
-Three GitHub Actions workflows enforce standards on all PRs:
+GitHub Actions workflows on PRs to `master`:
 
-1. **CI** (`.github/workflows/ci.yml`): Runs lint, typecheck, generated-client check, tests, format checks, and build
+1. **CI** (`.github/workflows/ci.yml`): Turborepo `lint`, `typecheck`, `build`, and `test:ci`, plus format, codegen, and Playwright
 2. **Commit Lint** (`.github/workflows/commitlint.yml`): Validates all commits in a PR against Conventional Commits
 3. **PR Title Check** (`.github/workflows/pr-title.yml`): Validates PR title against Conventional Commits (important for squash merges)
+4. **CodeQL** (`.github/workflows/codeql.yml`): Static analysis for JavaScript/TypeScript
+
+Dependabot opens weekly npm and Actions update PRs (ADR 0016). Release Please
+opens a version/changelog PR from Conventional Commits on `master` (ADR 0017).
+Recommended `master` rules live in [docs/branch-protection.md](docs/branch-protection.md).
 
 ### 10. Database and Schema Changes
 

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project documentation
+    url: https://github.com/darkmoonapps/giving-day/blob/master/docs/PRD.md
+    about: Read the PRD and ADRs before opening an issue

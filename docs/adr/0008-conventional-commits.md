@@ -171,7 +171,10 @@ BREAKING CHANGE: The /api/confirmations/:id endpoint now returns
 
 ### Semantic Release
 
-**Deferred**: Fully automated versioning based on commits. Can adopt later if we want automatic releases. Conventional Commits is a prerequisite for it.
+**Superseded**: [ADR 0017](0017-release-please.md) adopts Release Please for
+version bumps, `CHANGELOG.md`, and GitHub Releases from Conventional Commits.
+semantic-release was rejected because it publishes immediately instead of
+opening a reviewable release PR.
 
 ### Other Commit Conventions (Gitmoji, Angular)
 

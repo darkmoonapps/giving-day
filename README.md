@@ -18,7 +18,8 @@ This is a pnpm workspaces monorepo with:
 - **Shared**: Zod schemas, Orval-generated React Query clients
 - **Tooling**: TypeScript 5.7, ESLint 9 (flat config), Prettier, Vitest, Playwright, Storybook
 - **Package Management**: pnpm 10+ workspaces
-- **CI/CD**: GitHub Actions
+- **Task runner**: Turborepo 2 (lint, typecheck, test, build)
+- **CI/CD**: GitHub Actions, Dependabot, CodeQL, Release Please
 
 ## Prerequisites
 
@@ -107,9 +108,9 @@ The web app uses relative `/api` URLs that are proxied to the API server in deve
 From the root directory:
 
 - `pnpm dev` - Start all apps in development mode (parallel)
-- `pnpm build` - Build all packages and apps
-- `pnpm lint` - Lint all packages with ESLint 9
-- `pnpm typecheck` - Type-check all packages (included in build)
+- `pnpm build` - Build all packages and apps (Turborepo, cached)
+- `pnpm lint` - Lint all packages via Turborepo
+- `pnpm typecheck` - Type-check all packages via Turborepo
 - `pnpm format` - Format all files with Prettier
 - `pnpm format:check` - Check formatting without modifying files
 - `pnpm db:generate` - Generate Prisma Client
@@ -156,8 +157,12 @@ giving-day/
 │   └── ui/           # Atomic design system + Storybook
 │       └── src/
 ├── .github/
-│   └── workflows/
-│       └── ci.yml    # GitHub Actions CI
+│   ├── workflows/    # CI, CodeQL, Release Please, commitlint
+│   ├── ISSUE_TEMPLATE/
+│   └── PULL_REQUEST_TEMPLATE.md
+├── docs/
+│   └── branch-protection.md
+├── turbo.json
 ├── docker-compose.yml
 ├── pnpm-workspace.yaml
 ├── eslint.config.js  # ESLint 9 flat config
@@ -172,22 +177,22 @@ giving-day/
 
 ## CI/CD
 
-Three GitHub Actions workflows run on pull requests to `master`:
+Workflows on pull requests to `master`:
 
 1. **CI** (`.github/workflows/ci.yml`):
-   - Lint and Build Job:
+   - Lint and Build Job (Turborepo, with `.turbo` cache):
      - Installs dependencies with pnpm 10
-     - Runs ESLint on all packages
-     - Type-checks all packages
+     - Runs ESLint on all packages (`pnpm lint`)
+     - Type-checks all packages (`pnpm typecheck`)
      - Checks generated OpenAPI/Orval clients
      - Checks code formatting with Prettier
      - Pushes the Prisma schema to CI Postgres (`prisma db push`)
-     - Builds all packages
-     - Runs unit and integration tests (including Supertest against `/api/health`)
+     - Builds all packages (`pnpm build`)
+     - Runs unit and integration tests (`pnpm test:ci`)
    - E2E Tests Job:
      - Sets up PostgreSQL and pushes the Prisma schema
      - Installs Playwright browsers (`pnpm exec playwright install`) and caches them
-     - Builds the apps, then runs Playwright against `api start` + `web preview`
+     - Builds the apps with Turbo, then runs Playwright against `api start` + `web preview`
      - Waits for `GET :3001/api/health` before UI assertions
      - Covers Hebrew RTL to English LTR and the color-scheme toggle
      - Uploads Playwright reports as artifacts **only on failure**
@@ -198,6 +203,19 @@ Three GitHub Actions workflows run on pull requests to `master`:
 3. **PR Title Check** (`.github/workflows/pr-title.yml`):
    - Validates the PR title follows Conventional Commits format
    - Important for squash merges (PR title becomes the commit message)
+
+4. **CodeQL** (`.github/workflows/codeql.yml`):
+   - Analyzes JavaScript/TypeScript on PRs, pushes to `master`, and weekly
+
+Also:
+
+- **Dependabot** (`.github/dependabot.yml`): weekly npm and GitHub Actions
+  updates (ADR 0016)
+- **Release Please** (`.github/workflows/release-please.yml`): version and
+  changelog PR from Conventional Commits after merge to `master` (ADR 0017)
+
+Recommended `master` protection rules and required check names are in
+[docs/branch-protection.md](docs/branch-protection.md).
 
 ## PWA Features
 

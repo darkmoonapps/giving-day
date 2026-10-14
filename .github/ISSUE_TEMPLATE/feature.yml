@@ -1,0 +1,48 @@
+name: Feature request
+description: Propose a new capability or improvement
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user problem first. Do not include real personal
+        data in examples (ADR 0007).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or coordinator problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the product do?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - web
+        - api
+        - shared
+        - ui
+        - ci
+        - docs
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches and why they are weaker.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Related PRD sections, ADRs, or mockups.

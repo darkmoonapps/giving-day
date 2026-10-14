@@ -265,8 +265,8 @@ The CI workflow includes:
 
 ### Root Scripts
 
-- `pnpm test` - Run all unit/integration tests with `--if-present`
-- `pnpm test:ci` - Run all tests with coverage using `--if-present`
+- `pnpm test` - Turborepo `test` (once, with `--run`) plus repo-foundation checks
+- `pnpm test:ci` - Turborepo `test:ci` (coverage) plus repo-foundation checks
 - `pnpm test:e2e` - Run E2E tests
 
 ## Resolved Decisions
