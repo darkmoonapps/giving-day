@@ -4,8 +4,8 @@ This document is the approved product data model for Giving Day. It is
 **documentation only**. No Prisma schema or migrations are implied by this
 file. Implementation will follow later.
 
-Source of truth: owner-approved schema proposal (2026-10-15), plus two
-follow-up decisions documented in [PRD Resolved Decisions](./PRD.md#resolved-decisions).
+Source of truth: owner-approved schema proposal (2026-10-15), plus the
+follow-up decisions in [PRD Resolved Decisions](./PRD.md#resolved-decisions).
 
 Related:
 
@@ -43,7 +43,6 @@ Examples below use **fake data only**.
 | `MembershipStatus`    | `pending`, `active`, `paused`, `removed`                                                                                                      |
 | `ElderStatus`         | `active`, `paused`, `hospitalized`, `moved`, `deceased`, `removed`                                                                            |
 | `GeocodeStatus`       | `pending`, `ok`, `failed`, `manual`                                                                                                           |
-| `AccessibilityFlag`   | `no_elevator`, `mobility_impaired`, `hearing_impaired`, `vision_impaired`, `cognitive`                                                        |
 | `ContactRelation`     | `child`, `spouse`, `sibling`, `caregiver`, `social_worker`, `neighbor`, `other`                                                               |
 | `ChangeRequestStatus` | `pending`, `approved`, `rejected`, `superseded`                                                                                               |
 | `MatchType`           | `permanent`, `one_time`                                                                                                                       |
@@ -89,18 +88,25 @@ Examples below use **fake data only**.
 
 Anyone who logs in. **Elders are not users.**
 
-| Field               | Type         | Notes                                                                 |
-| ------------------- | ------------ | --------------------------------------------------------------------- |
-| `fullName`          | text?        | Required once onboarding is done                                      |
-| `email`             | citext?      | From the login provider                                               |
-| `phone`             | text?        | E.164, collected at onboarding                                        |
-| `locale`            | `Locale`     | Default `he`                                                          |
-| `themePref`         | `ThemePref`  | Default `system`                                                      |
-| `isSuperAdmin`      | bool         | Default `false`. Set only from the seed CLI or by another super admin |
-| `onboardedAt`       | timestamptz? | `null` means the user is sent to onboarding                           |
-| `privacyAcceptedAt` | timestamptz? |                                                                       |
-| `lastLoginAt`       | timestamptz? |                                                                       |
-| `archivedAt`        | timestamptz? |                                                                       |
+| Field          | Type         | Notes                                                                 |
+| -------------- | ------------ | --------------------------------------------------------------------- |
+| `firstName`    | text?        | Required once onboarding is done                                      |
+| `lastName`     | text?        | Required once onboarding is done                                      |
+| `phone`        | text?        | E.164. Required once onboarding is done                               |
+| `email`        | citext?      | Optional. May come from the login provider                            |
+| `birthDate`    | date?        | Optional                                                              |
+| `locale`       | `Locale`     | Preferred locale. Set during onboarding. Default `he`                 |
+| `themePref`    | `ThemePref`  | Default `system`                                                      |
+| `isSuperAdmin` | bool         | Default `false`. Set only from the seed CLI or by another super admin |
+| `onboardedAt`  | timestamptz? | `null` means onboarding blocks the rest of the app                    |
+| `lastLoginAt`  | timestamptz? |                                                                       |
+| `archivedAt`   | timestamptz? |                                                                       |
+
+There is no `fullName` column and no `privacyAcceptedAt`. Display name is
+`firstName` + `lastName`. Onboarding is **mandatory** and blocks the app
+until `firstName`, `lastName`, and `phone` are set and `onboardedAt` is
+written. At the end of onboarding the app prompts for notification
+permission and for PWA install (or iOS add-to-home-screen instructions).
 
 ### AuthIdentity
 
@@ -124,7 +130,7 @@ Unique on `(provider, providerSubject)`. One user can link several providers.
 
 ### CityInvite
 
-Shareable join link created by a coordinator (or super admin).
+Permanent shareable join link: **one active link per city and role**.
 
 | Field         | Type         | Notes                                            |
 | ------------- | ------------ | ------------------------------------------------ |
@@ -132,14 +138,21 @@ Shareable join link created by a coordinator (or super admin).
 | `role`        | `CityRole`   | `coordinator` or `volunteer`                     |
 | `tokenHash`   | text unique  | Raw token is shown once; only the hash is stored |
 | `createdById` | uuid         |                                                  |
-| `expiresAt`   | timestamptz  | **Approved: 48 hours** from creation             |
-| `maxUses`     | int?         | **Approved: `1` (single-use)**                   |
-| `usedCount`   | int          |                                                  |
-| `revokedAt`   | timestamptz? |                                                  |
+| `expiresAt`   | timestamptz? | Default `null` (no expiry)                       |
+| `maxUses`     | int?         | Default `null` (no use cap)                      |
+| `usedCount`   | int          | How many times the link was redeemed             |
+| `revokedAt`   | timestamptz? | Set when a coordinator revokes the current link  |
 
-Owner decision: join links are **single-use**, expire after **48 hours**,
-and still create a **pending** membership that a coordinator must approve.
-A leaked or forwarded link cannot grant access by itself.
+Owner decision: the join link is a **permanent, shareable** URL per city
+and role. It does **not** expire after 48 hours and has **no `maxUses`**
+by default. A coordinator can **revoke** it and **regenerate** a new
+token (the old URL stops working). The landing page has an **Install
+app** button (PWA install prompt; iOS add-to-home-screen instructions).
+Redeeming still creates a **pending** membership. A coordinator must
+approve (one tap). A leaked link cannot grant access by itself.
+
+Partial unique: one current invite per `(cityId, role)` where
+`revokedAt IS NULL`.
 
 ### CityMembership
 
@@ -158,34 +171,36 @@ The same person can be a coordinator in one city and a volunteer in another.
 
 ### Elder
 
-| Field                            | Type                  | Notes                                      |
-| -------------------------------- | --------------------- | ------------------------------------------ |
-| `cityId`                         | uuid                  |                                            |
-| `fullName`                       | text                  |                                            |
-| `phone`, `phoneAlt`              | text?                 | E.164                                      |
-| `language`                       | text                  | Default `he`                               |
-| `street`, `houseNumber`          | text                  |                                            |
-| `entrance`, `floor`, `apartment` | text?                 |                                            |
-| `buildingCode`                   | text?                 | Sensitive; time-boxed volunteer visibility |
-| `addressNotes`                   | text?                 |                                            |
-| `lat`, `lng`                     | decimal(9,6)?         |                                            |
-| `geocodeStatus`                  | `GeocodeStatus`       |                                            |
-| `status`                         | `ElderStatus`         | Only `active` elders get deliveries        |
-| `statusReason`                   | text?                 |                                            |
-| `accessibilityFlags`             | `AccessibilityFlag[]` |                                            |
-| `dietaryNotes`                   | text?                 |                                            |
-| `volunteerNotes`                 | text?                 | Visible to the assigned volunteer          |
-| `coordinatorNotes`               | text?                 | Coordinators only                          |
-| `archivedAt`                     | timestamptz?          |                                            |
+| Field                            | Type            | Notes                                                                                                                                             |
+| -------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cityId`                         | uuid            |                                                                                                                                                   |
+| `fullName`                       | text            |                                                                                                                                                   |
+| `phone`, `phoneAlt`              | text?           | E.164                                                                                                                                             |
+| `language`                       | text            | Default `he`                                                                                                                                      |
+| `street`, `houseNumber`          | text            |                                                                                                                                                   |
+| `entrance`, `floor`, `apartment` | text?           |                                                                                                                                                   |
+| `buildingCode`                   | text?           | Sensitive; time-boxed volunteer visibility                                                                                                        |
+| `addressNotes`                   | text?           |                                                                                                                                                   |
+| `lat`, `lng`                     | decimal(9,6)?   |                                                                                                                                                   |
+| `geocodeStatus`                  | `GeocodeStatus` |                                                                                                                                                   |
+| `status`                         | `ElderStatus`   | Only `active` elders get deliveries                                                                                                               |
+| `statusReason`                   | text?           |                                                                                                                                                   |
+| `notes`                          | text?           | One general field. Visible to the assigned volunteer and to coordinators. Example: "entrance is around the back", "hard of hearing, knock loudly" |
+| `archivedAt`                     | timestamptz?    |                                                                                                                                                   |
 
 Index: `(cityId, status)`.
 
-**Not stored:** national ID number, date of birth, diagnoses, or volunteer
-home street addresses.
+There are no `dietaryNotes`, `accessibilityFlags`, `volunteerNotes`, or
+`coordinatorNotes`. Practical details go in `notes`.
+
+**Not stored on Elder:** national ID number, date of birth, diagnoses, or
+structured dietary / accessibility enums. Volunteer home street addresses
+are not stored (neighborhood `homeArea` only).
 
 ### ElderContact
 
-Next of kin. Coordinators only.
+Next of kin. Visible to the **assigned volunteer** (so they can call if
+the elder does not answer) and to coordinators.
 
 | Field       | Type              | Notes                                  |
 | ----------- | ----------------- | -------------------------------------- |
@@ -249,15 +264,15 @@ adjusts them. This is a prefill, **not** automatic reassignment.
 
 ### DayParticipation
 
-| Field          | Type                  | Notes                                       |
-| -------------- | --------------------- | ------------------------------------------- |
-| `cityId`       | uuid                  |                                             |
-| `dayId`        | uuid                  |                                             |
-| `volunteerId`  | uuid                  | Unique `(dayId, volunteerId)`               |
-| `status`       | `ParticipationStatus` |                                             |
-| `respondedAt`  | timestamptz?          |                                             |
-| `cancelReason` | text?                 |                                             |
-| `finishedAt`   | timestamptz?          | When set, the second fireworks screen shows |
+| Field          | Type                  | Notes                                                                       |
+| -------------- | --------------------- | --------------------------------------------------------------------------- |
+| `cityId`       | uuid                  |                                                                             |
+| `dayId`        | uuid                  |                                                                             |
+| `volunteerId`  | uuid                  | Unique `(dayId, volunteerId)`                                               |
+| `status`       | `ParticipationStatus` |                                                                             |
+| `respondedAt`  | timestamptz?          |                                                                             |
+| `cancelReason` | text?                 | Optional when the volunteer declines or cancels. Visible to the coordinator |
+| `finishedAt`   | timestamptz?          | When set, the second fireworks screen shows                                 |
 
 ### Delivery
 
@@ -283,7 +298,8 @@ One standard package for one elder on one day.
 Indexes: `(dayId, volunteerId)`, `(dayId, status)`.
 
 **Decline / cancel (owner-approved):** when a volunteer declines or cancels
-participation, every delivery still assigned to them on that day is moved
+participation, they can enter a `cancelReason` (visible to the
+coordinator). Every delivery still assigned to them on that day is moved
 to `volunteerId = null` and `status = unassigned`. They appear on the
 coordinator's "Needs a volunteer" list. The system **never** auto-reassigns
 them to another volunteer.
@@ -366,7 +382,8 @@ Rows are never updated or deleted.
 - Unique `(provider, providerSubject)` on `AuthIdentity`.
 - Unique `(cityId, key, locale)` on `MessageTemplate`.
 - Partial unique: one current permanent `Match` per elder.
-- Join links: `maxUses = 1`, `expiresAt` = created + 48 hours.
+- At most one active `CityInvite` per `(cityId, role)` (`revokedAt IS NULL`).
+  Default: no `expiresAt`, no `maxUses`.
 - Only `ElderStatus.active` elders receive prefilled deliveries.
 - `Delivery.note` required when status is `not_delivered`.
 - City-owned rows always carry `cityId`.
@@ -403,8 +420,9 @@ erDiagram
 ## Privacy constraints (data)
 
 - **Data owner:** Latet. Legal details are deferred.
-- **Not stored:** ID number, date of birth, diagnoses, volunteer home
-  addresses.
+- **Not stored:** national ID number, diagnoses, volunteer home street
+  addresses. Optional user `birthDate` is collected only if the person
+  enters it at onboarding. Elders have no date of birth field.
 - **Building code and elder phone:** volunteers see them only while a
   delivery is active (from day publish until a final status). Each view is
   logged (`elder.view_pii`).
@@ -419,9 +437,14 @@ erDiagram
 
 - Multi-city tenancy with `cityId` on city-owned tables
 - Roles: Volunteer, City coordinator, Super admin
-- Google and Facebook OAuth; join links (single-use, 48h, approval required)
+- Google and Facebook OAuth; mandatory onboarding (`firstName`, `lastName`,
+  `phone`, locale; optional `birthDate` and `email`); then notification
+  and install prompts
+- Permanent join links per city and role (revoke / regenerate); approval
+  still required
 - Permanent and one-time matches; day prefill from permanent matches
-- Confirm / decline / cancel; unassign on decline or cancel
+- Confirm / decline / cancel with optional `cancelReason`; unassign on
+  decline or cancel
 - Pickup and delivery statuses; coordinator-led reassignment
 - Push notifications and city-scoped settings
 - Soft archive; append-only delivery events and audit log

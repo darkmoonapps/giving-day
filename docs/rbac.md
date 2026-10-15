@@ -39,25 +39,25 @@ Elders are not users and have no login.
 
 ## Permission matrix
 
-| Resource                              | Volunteer                                         | City coordinator                               | Super admin                                    |
-| ------------------------------------- | ------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| City                                  | R own cities (name)                               | R city                                         | CRUD                                           |
-| CitySettings                          | none                                              | R/U city                                       | R/U all                                        |
-| CityInvite                            | none                                              | CRUD city (volunteer or coordinator role)      | all                                            |
-| Membership: volunteer                 | R own                                             | approve, pause, remove (city)                  | all                                            |
-| Membership: coordinator               | none                                              | add, approve, remove other coordinators (city) | all, including first coordinator of a new city |
-| User profile                          | R/U own                                           | R city members                                 | R/U all; can set `isSuperAdmin`                |
-| Elder: core, address, volunteerNotes  | R assigned                                        | CRUD city                                      | all                                            |
-| Elder: buildingCode, phone            | R assigned, from day publish until final status   | R/U city                                       | all                                            |
-| Elder: coordinatorNotes, ElderContact | none                                              | CRUD city                                      | all                                            |
-| ElderChangeRequest                    | C assigned, R own                                 | approve or reject (city)                       | all                                            |
-| Match                                 | R own                                             | CRUD city                                      | all                                            |
-| DistributionDay                       | R published days in own city (Flow 2 fields)      | CRUD, publish, close (city)                    | all                                            |
-| DayParticipation                      | confirm, decline, cancel (own)                    | R city; mark `no_show` or `attended`           | all                                            |
-| Delivery                              | R own; set `picked`, `delivered`, `not_delivered` | CRUD, reassign, override (city)                | all                                            |
-| MessageTemplate                       | none                                              | CRUD city                                      | CRUD global and all                            |
-| PushSubscription                      | CRUD own                                          | none                                           | none                                           |
-| NotificationLog, AuditLog             | none                                              | R city                                         | R all                                          |
+| Resource                      | Volunteer                                               | City coordinator                                                | Super admin                                    |
+| ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| City                          | R own cities (name)                                     | R city                                                          | CRUD                                           |
+| CitySettings                  | none                                                    | R/U city                                                        | R/U all                                        |
+| CityInvite                    | none                                                    | CRUD city (volunteer or coordinator role)                       | all                                            |
+| Membership: volunteer         | R own                                                   | approve, pause, remove (city)                                   | all                                            |
+| Membership: coordinator       | none                                                    | add, approve, remove other coordinators (city)                  | all, including first coordinator of a new city |
+| User profile                  | R/U own                                                 | R city members                                                  | R/U all; can set `isSuperAdmin`                |
+| Elder: core, address, `notes` | R assigned                                              | CRUD city                                                       | all                                            |
+| Elder: buildingCode, phone    | R assigned, from day publish until final status         | R/U city                                                        | all                                            |
+| ElderContact                  | R assigned (name, relation, phone)                      | CRUD city                                                       | all                                            |
+| ElderChangeRequest            | C assigned, R own                                       | approve or reject (city)                                        | all                                            |
+| Match                         | R own                                                   | CRUD city                                                       | all                                            |
+| DistributionDay               | R published days in own city (Flow 2 fields)            | CRUD, publish, close (city)                                     | all                                            |
+| DayParticipation              | confirm, decline, cancel (own); optional `cancelReason` | R city (including `cancelReason`); mark `no_show` or `attended` | all                                            |
+| Delivery                      | R own; set `picked`, `delivered`, `not_delivered`       | CRUD, reassign, override (city)                                 | all                                            |
+| MessageTemplate               | none                                                    | CRUD city                                                       | CRUD global and all                            |
+| PushSubscription              | CRUD own                                                | none                                                            | none                                           |
+| NotificationLog, AuditLog     | none                                                    | R city                                                          | R all                                          |
 
 ### Rules
 
@@ -65,12 +65,16 @@ Elders are not users and have no login.
   last active coordinator.
 - Volunteers never receive a list of elders. They see only assigned elders
   after they have confirmed, and never on the confirmation screen (Flow 2).
+- Assigned volunteers see the elder's general `notes` and next-of-kin
+  (`ElderContact`) so they can call if the elder does not answer.
 - Building code and elder phone are time-boxed for volunteers. Each view is
   audited as `elder.view_pii`.
 - Decline or cancel unassigns that volunteer's deliveries on the day. The
+  volunteer may enter a `cancelReason`, which the coordinator can read. The
   coordinator reassigns. There is **no automatic reassignment**.
 - Super admin is the only role that creates cities and the first coordinator
-  invite for a new city.
+  invite for a new city. Coordinators can revoke and regenerate the
+  permanent join link for each role.
 
 ## City scoping enforcement
 
@@ -97,12 +101,19 @@ Free, no SMS. Details: [ADR 0020](./adr/0020-oauth-join-link-auth.md).
 
 1. **Sign in** with Google or Facebook. Apple is later (paid developer
    account). This creates or links a `User` and an `AuthIdentity`.
-2. **Onboarding** when `onboardedAt` is null: full name, phone (E.164),
-   language, and privacy acceptance.
-3. **Join a city** via a coordinator-created `CityInvite` (typically shared
-   on WhatsApp):
-   - Links are **single-use**.
-   - Links **expire after 48 hours**.
+2. **Mandatory onboarding** when `onboardedAt` is null. The rest of the app
+   is blocked until done. Required: `firstName`, `lastName`, `phone`
+   (E.164), preferred `locale`. Optional: `birthDate`, `email`. There is
+   no privacy-acceptance step. At the end: notification permission prompt
+   and PWA install prompt (iOS: add-to-home-screen instructions).
+3. **Join a city** via the city's permanent `CityInvite` for that role
+   (typically shared on WhatsApp):
+   - One **shareable** link per city and role. No 48-hour expiry and no
+     `maxUses` by default.
+   - A coordinator can **revoke** the current link and **regenerate** a
+     new one.
+   - The landing page has an **Install app** button (PWA install prompt;
+     iOS add-to-home-screen instructions).
    - Opening a valid link after login creates a **pending** membership with
      the link's role.
    - A coordinator **must approve** (one tap). The user then gets a push

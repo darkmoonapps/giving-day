@@ -39,8 +39,9 @@ person can be a coordinator in one city and a volunteer in another.
 - Configures **city** settings (distribution center, notification offsets,
   day hours, notification texts and languages, default theme, org name and
   logo, and other knobs)
-- Creates join links (single-use, 48 hours) and **approves** pending
-  memberships (volunteer or coordinator). Approval is always required
+- Shares a **permanent** join link per role (revoke and regenerate anytime)
+  and **approves** pending memberships (volunteer or coordinator) with one
+  tap. Approval is always required
 - Approves volunteer requests to change an elder's details
 - Handles assignments and reassignments (**no automatic reassignment**)
 - Views city dashboards and statistics
@@ -48,14 +49,19 @@ person can be a coordinator in one city and a volunteer in another.
 
 ### Volunteer
 
-- Joins a city through a join link, then waits for coordinator approval
-- Confirms, declines, or cancels participation for published days
+- Completes mandatory onboarding (`firstName`, `lastName`, `phone`, locale;
+  optional `birthDate` and `email`), then notification and install prompts
+- Joins a city through the city's shareable join link, then waits for
+  coordinator approval
+- Confirms, declines, or cancels participation for published days (optional
+  reason on decline/cancel, visible to the coordinator)
 - After confirming, marks each assigned package Picked, then Delivered or
   Not delivered
 - Receives push notifications for confirmations, reminders, unpicked
   packages, missing final status, and membership approval
 - Can be matched with more than one elder
-- Sees notes and details only for elders assigned to them
+- Sees the general `notes` field, address details, and next-of-kin
+  (`ElderContact`) only for elders assigned to them
 - Can submit a request to change an elder's details; a coordinator must
   approve
 - Access: primarily mobile, with web available
@@ -128,7 +134,8 @@ person can be a coordinator in one city and a volunteer in another.
 1. Volunteer receives push notification: "Can you deliver on [date]?"
 2. Opens app (or clicks notification)
 3. Sees only the distribution day details (date, hours, and day notes). The volunteer does not see assigned elders on this screen
-4. Taps "Confirm" or "Can't make it"
+4. Taps "Confirm" or "Can't make it". Decline/cancel may include a reason
+   (`cancelReason`), which the coordinator can see
 5. If they confirm, a fireworks thank-you screen appears
 6. Confirmation immediately updates in the city coordinator dashboard
 
@@ -142,9 +149,11 @@ person can be a coordinator in one city and a volunteer in another.
 
 ### Flow 4: Volunteer Cancellation and Reassignment
 
-1. Volunteer declines or cancels participation
+1. Volunteer declines or cancels participation and may enter a reason
+   (`cancelReason`)
 2. Their deliveries on that day are set to unassigned (`volunteerId` null)
-   immediately and appear on the coordinator's "Needs a volunteer" list
+   immediately and appear on the coordinator's "Needs a volunteer" list,
+   with the reason visible to the coordinator
 3. Coordinator views available volunteers, sorted by proximity (home area)
 4. Coordinator selects a volunteer and sends a notification
 5. Replacement volunteer confirms or declines
@@ -156,7 +165,7 @@ person can be a coordinator in one city and a volunteer in another.
 1. City coordinator opens the city dashboard
 2. Sees overview: total volunteers, confirmed count, pending count, cancelled count, unassigned elders
 3. Views the "Needs a volunteer" list
-4. Sees who responded, who is pending, who declined
+4. Sees who responded, who is pending, who declined, and any cancel reasons
 5. Opens an individual volunteer or elder for details
 
 ### Flow 6: Volunteer Pickup and Delivery
@@ -171,7 +180,8 @@ person can be a coordinator in one city and a volunteer in another.
 
 ### Flow 7: Volunteer Requests an Elder Detail Change
 
-1. Volunteer views notes and details for an elder assigned to them
+1. Volunteer views the general `notes`, address, and next-of-kin contact
+   for an elder assigned to them
 2. Volunteer submits a request to change the elder's details (for example address or notes)
 3. City coordinator reviews the request and approves or rejects it
 4. Approved changes update the elder record; rejected requests leave the record unchanged
@@ -189,28 +199,43 @@ person can be a coordinator in one city and a volunteer in another.
 
 ### Flow 10: Join a City
 
-1. Coordinator (or super admin) creates a join link for volunteer or
-   coordinator role. The link is single-use and expires in 48 hours
-2. They share it (typically WhatsApp)
-3. The person signs in with Google or Facebook, finishes onboarding if needed,
-   and opens the link
-4. A pending city membership is created; the user sees "waiting for approval"
-5. A city coordinator approves; the user receives a push
-6. A leaked link cannot grant access without that approval
+1. Each city has a permanent shareable join link per role (volunteer or
+   coordinator). A coordinator can revoke it and regenerate a new URL
+2. They share the current link (typically WhatsApp)
+3. The landing page offers an **Install app** button (PWA install prompt;
+   iOS add-to-home-screen instructions)
+4. The person signs in with Google or Facebook, finishes onboarding if
+   needed, and opens the link
+5. A pending city membership is created; the user sees "waiting for approval"
+6. A city coordinator approves with one tap; the user receives a push
+7. A leaked link cannot grant access without that approval
+
+### Flow 11: Mandatory Onboarding
+
+1. After first Google or Facebook sign-in, if `onboardedAt` is null the
+   app is blocked on the onboarding screen
+2. The user must enter `firstName`, `lastName`, and `phone`, and choose a
+   preferred locale. `birthDate` and `email` are optional. There is no
+   privacy-acceptance step
+3. On finish, the app prompts for notification permission, then for PWA
+   install (iOS: add-to-home-screen instructions)
+4. `onboardedAt` is set; the rest of the app unlocks
 
 ## Feature List
 
 ### Phase 1: Foundation & Management
 
-- [ ] User authentication (Google & Facebook OAuth; onboarding; sessions)
+- [ ] User authentication (Google & Facebook OAuth; mandatory onboarding; sessions)
 - [ ] Multi-city tenancy and role-based access (Volunteer, City coordinator, Super admin)
-- [ ] Join links (single-use, 48h) with coordinator approval
+- [ ] Permanent join links per city and role (revoke / regenerate) with coordinator approval
+- [ ] Join landing page Install app button (PWA / iOS add-to-home-screen)
 - [ ] Volunteer profile management (CRUD)
 - [ ] Elder profile management (CRUD)
   - Full address, including building entrance and building code
-  - Notes textarea per elder
+  - One general `notes` field per elder (no dietary/accessibility enums)
+  - Next of kin (`ElderContact`) visible to the assigned volunteer
 - [ ] Volunteer-elder matching and assignment (a volunteer can be matched with more than one elder)
-- [ ] Volunteer visibility limited to notes and details of assigned elders
+- [ ] Volunteer visibility limited to notes, details, and next of kin of assigned elders
 - [ ] Volunteer requests to change elder details; coordinator approval
 - [ ] Create distribution day (date required; optional notes and hours for that day; prefill from permanent matches)
 - [ ] Simple, beautiful Settings area where a coordinator configures the city
@@ -232,7 +257,7 @@ person can be a coordinator in one city and a volunteer in another.
 - [ ] Fireworks thank-you screen after confirming attendance
 - [ ] Automated reminder scheduling
 - [ ] Reminder job execution for non-responders
-- [ ] Volunteer cancellation handling (deliveries become unassigned immediately)
+- [ ] Volunteer cancellation handling (optional `cancelReason`; deliveries become unassigned immediately)
 - [ ] "Needs a volunteer" list for coordinators
 - [ ] Volunteer replacement suggestions (sorted by proximity)
 - [ ] Manual reassignment by coordinator only (no automatic reassignment)
@@ -272,10 +297,10 @@ person can be a coordinator in one city and a volunteer in another.
 
 **Deliverables**:
 
-- Working authentication with Google/Facebook, onboarding, and join-link approval
+- Working authentication with Google/Facebook, mandatory onboarding, and join-link approval
 - Super admin can create a city; coordinator can manage that city's volunteers and elders
 - A volunteer can be matched with more than one elder
-- Volunteers see notes and details only for assigned elders
+- Volunteers see notes, details, and next of kin only for assigned elders
 - Volunteers can request elder detail changes; coordinator approves
 - Coordinator can create a distribution day by entering a date, add notes per day, and set that day's hours
 - Coordinator can configure the city from Settings (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo)
@@ -299,7 +324,7 @@ person can be a coordinator in one city and a volunteer in another.
 - Picked-without-final-status reminder (default 3 days; configurable)
 - Scheduled confirmation reminders
 - Reassignment workflow with proximity-based suggestions; coordinator decides (no automatic reassignment)
-- Decline/cancel immediately unassigns that volunteer's deliveries
+- Decline/cancel immediately unassigns that volunteer's deliveries; optional `cancelReason` is visible to the coordinator
 
 **Success Criteria**: Volunteers receive notifications, confirm attendance, mark pickup and delivery, and coordinators handle not-delivered and cancellation cases
 
@@ -399,9 +424,10 @@ Resolved (see Resolved Decisions): when to send unpicked and missing-final-statu
 - GDPR/local privacy law requirements
 - Backup and disaster recovery strategy
 
-Resolved (see Resolved Decisions): a volunteer sees notes and details only
-for elders assigned to them. Multi-city scoping, roles, join-link rules,
-and decline/cancel unassignment are also resolved.
+Resolved (see Resolved Decisions): a volunteer sees notes, details, and
+next of kin only for elders assigned to them. Multi-city scoping, roles,
+join-link rules, onboarding fields, and decline/cancel unassignment are
+also resolved.
 
 ### Resolved Decisions
 
@@ -409,8 +435,9 @@ These items were previously open or unspecified. They are now product decisions 
 
 - **Matching**: A volunteer can be matched with more than one elder (for example volunteer "Maya Cohen" with elders "Rivkah Levi" and "Yosef Abraham").
 - **Elder address**: The elder address is the full address, including building entrance and building code (for example "12 Example St, Entrance B, code 1234, Tel Aviv").
-- **Elder notes**: Each elder has volunteer notes and coordinator-only notes. Volunteers may submit requests to change an elder's details; a coordinator approves them before they apply.
-- **Volunteer visibility**: A volunteer sees notes and details only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
+- **Elder notes**: Each elder has **one** general `notes` field (for example "entrance is around the back", "hard of hearing, knock loudly"), visible to the assigned volunteer and to coordinators. There are no `dietaryNotes`, `accessibilityFlags`, `volunteerNotes`, or `coordinatorNotes`. Volunteers may submit requests to change an elder's details; a coordinator approves them before they apply.
+- **Elder next of kin**: `ElderContact` (name, relation, phone) is visible to the assigned volunteer and to coordinators so the volunteer can call if the elder does not answer.
+- **Volunteer visibility**: A volunteer sees notes, details, and next of kin only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
 - **City Settings**: A coordinator can configure their city from a simple, beautiful Settings area, including distribution center address, notification offsets and timings, day hours, notification texts and languages, default theme, and org name/logo.
 - **Theming**: Light theme by default with a pastel "Wisteria & mint" palette (wisteria `#A99BE0` primary, mint `#A8E6CF` accent; mint for Delivered states). Dark theme uses deep plum `#1E1A2E` as the background with brightened accents. Users can toggle the theme and it follows the system preference.
 - **Distribution day creation**: A coordinator creates a distribution day by entering just a date. They can add notes per day and set that day's hours. Creating a day prefills deliveries from current permanent matches.
@@ -424,5 +451,6 @@ These items were previously open or unspecified. They are now product decisions 
 - **Missing final status push**: If a package is Picked but has no final status after a coordinator-configured wait (default 3 days), send a reminder push.
 - **Multi-city**: Tenant is city. City-owned tables carry `cityId`. Super admin creates cities. See [ADR 0019](./adr/0019-multi-tenant-city-scoping.md).
 - **Roles**: Volunteer, City coordinator, Super admin. Permissions are per city. See [docs/rbac.md](./rbac.md).
-- **Auth**: Google and Facebook OAuth, then onboarding. Join links are single-use, expire after 48 hours, and still require coordinator approval. See [ADR 0020](./adr/0020-oauth-join-link-auth.md).
-- **Decline / cancel**: The volunteer's deliveries on that day move to unassigned and appear on the "Needs a volunteer" list. They are never auto-reassigned.
+- **Auth**: Google and Facebook OAuth (unchanged). Mandatory onboarding: `firstName`, `lastName`, `phone` required; `birthDate` and `email` optional; preferred locale. No privacy-acceptance step. After onboarding: notification permission and install prompts. See [ADR 0020](./adr/0020-oauth-join-link-auth.md).
+- **Join links**: Permanent shareable link per city and role. No 48-hour expiry and no `maxUses` by default. Coordinator can revoke and regenerate. Landing page has an Install app button. New members stay **pending** until a coordinator approves (one tap).
+- **Decline / cancel**: The volunteer may enter a `cancelReason` (visible to the coordinator). Their deliveries on that day move to unassigned and appear on the "Needs a volunteer" list. They are never auto-reassigned.
