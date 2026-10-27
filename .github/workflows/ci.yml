@@ -82,6 +82,9 @@ jobs:
       - name: Apply database migrations
         run: pnpm --filter @giving-day/api exec prisma migrate deploy
 
+      - name: Check schema drift
+        run: pnpm --filter @giving-day/api exec prisma migrate diff --from-schema-datasource ./prisma/schema.prisma --to-schema-datamodel ./prisma/schema.prisma --exit-code
+
       - name: Build
         run: pnpm build
 
@@ -165,6 +168,9 @@ jobs:
 
       - name: Apply database migrations
         run: pnpm --filter @giving-day/api exec prisma migrate deploy
+
+      - name: Check schema drift
+        run: pnpm --filter @giving-day/api exec prisma migrate diff --from-schema-datasource ./prisma/schema.prisma --to-schema-datamodel ./prisma/schema.prisma --exit-code
 
       - name: Build applications
         run: pnpm build
