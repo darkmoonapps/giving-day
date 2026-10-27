@@ -17,19 +17,19 @@
   "dependencies": {
     "@giving-day/shared": "workspace:*",
     "@giving-day/ui": "workspace:*",
-    "@mantine/core": "^9.7.2",
-    "@mantine/hooks": "^9.7.2",
+    "@mantine/core": "^9.7.3",
+    "@mantine/hooks": "^9.7.3",
     "@sentry/react": "^10.76.2",
     "@tabler/icons-react": "^3.24.0",
-    "@tanstack/query-sync-storage-persister": "^5.104.2",
-    "@tanstack/react-query": "^5.67.2",
-    "@tanstack/react-query-persist-client": "^5.104.2",
+    "@tanstack/query-sync-storage-persister": "^5.104.5",
+    "@tanstack/react-query": "^5.104.5",
+    "@tanstack/react-query-persist-client": "^5.104.5",
     "i18next": "^24.2.3",
-    "i18next-browser-languagedetector": "^8.0.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "i18next-browser-languagedetector": "^8.2.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-i18next": "^15.4.1",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
