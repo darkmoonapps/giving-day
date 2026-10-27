@@ -191,8 +191,8 @@ model CitySettings {
   centerAddress                String
   centerLat                    Decimal  @db.Decimal(9, 6)
   centerLng                    Decimal  @db.Decimal(9, 6)
-  defaultStartTime             DateTime @default(dbgenerated("'09:00:00'::time")) @db.Time
-  defaultEndTime               DateTime @default(dbgenerated("'14:00:00'::time")) @db.Time
+  defaultStartTime             DateTime @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time
+  defaultEndTime               DateTime @default(dbgenerated("'14:00:00'::time without time zone")) @db.Time
   confirmReminderAfterHours    Int      @default(24)
   unpickedPushMinutesBeforeEnd Int      @default(60)
   missingFinalStatusWaitHours  Int      @default(72)
