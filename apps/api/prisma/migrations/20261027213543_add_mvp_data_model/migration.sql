@@ -49,8 +49,8 @@ CREATE TABLE "city_settings" (
     "centerAddress" TEXT NOT NULL,
     "centerLat" DECIMAL(9,6) NOT NULL,
     "centerLng" DECIMAL(9,6) NOT NULL,
-    "defaultStartTime" TIME NOT NULL,
-    "defaultEndTime" TIME NOT NULL,
+    "defaultStartTime" TIME NOT NULL DEFAULT '09:00:00',
+    "defaultEndTime" TIME NOT NULL DEFAULT '14:00:00',
     "confirmReminderAfterHours" INTEGER NOT NULL DEFAULT 24,
     "unpickedPushMinutesBeforeEnd" INTEGER NOT NULL DEFAULT 60,
     "missingFinalStatusWaitHours" INTEGER NOT NULL DEFAULT 72,
@@ -391,6 +391,16 @@ CREATE UNIQUE INDEX "notification_logs_dedupeKey_key" ON "notification_logs"("de
 CREATE INDEX "notification_logs_cityId_userId_idx" ON "notification_logs"("cityId", "userId");
 CREATE INDEX "audit_logs_cityId_entity_idx" ON "audit_logs"("cityId", "entity");
 CREATE INDEX "audit_logs_actorId_idx" ON "audit_logs"("actorId");
+
+-- Partial unique indexes per docs/data-model.md
+-- One active CityInvite per (cityId, role) WHERE revokedAt IS NULL
+CREATE UNIQUE INDEX "city_invites_cityId_role_active" ON "city_invites"("cityId", "role") WHERE "revokedAt" IS NULL;
+
+-- One current permanent Match per elder WHERE type='permanent' AND endsAt IS NULL
+CREATE UNIQUE INDEX "matches_elderId_current_permanent" ON "matches"("elderId") WHERE "type" = 'permanent' AND "endsAt" IS NULL;
+
+-- Global MessageTemplate uniqueness: (key, locale) WHERE cityId IS NULL
+CREATE UNIQUE INDEX "message_templates_key_locale_global" ON "message_templates"("key", "locale") WHERE "cityId" IS NULL;
 
 -- AddForeignKey
 ALTER TABLE "city_settings" ADD CONSTRAINT "city_settings_cityId_fkey" FOREIGN KEY ("cityId") REFERENCES "cities"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -163,19 +163,19 @@ model City {
   timezone String  @default("Asia/Jerusalem")
   isActive Boolean @default(true)
 
-  settings       CitySettings?
-  invites        CityInvite[]
-  memberships    CityMembership[]
-  elders         Elder[]
-  distributionDays DistributionDay[]
-  messageTemplates MessageTemplate[]
-  notificationLogs NotificationLog[]
-  auditLogs      AuditLog[]
-  elderContacts  ElderContact[]
+  settings            CitySettings?
+  invites             CityInvite[]
+  memberships         CityMembership[]
+  elders              Elder[]
+  distributionDays    DistributionDay[]
+  messageTemplates    MessageTemplate[]
+  notificationLogs    NotificationLog[]
+  auditLogs           AuditLog[]
+  elderContacts       ElderContact[]
   elderChangeRequests ElderChangeRequest[]
-  matches        Match[]
-  dayParticipations DayParticipation[]
-  deliveries     Delivery[]
+  matches             Match[]
+  dayParticipations   DayParticipation[]
+  deliveries          Delivery[]
 
   @@map("cities")
 }
@@ -188,19 +188,19 @@ model CitySettings {
   cityId String @unique @db.Uuid
   city   City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
-  centerAddress              String
-  centerLat                  Decimal  @db.Decimal(9, 6)
-  centerLng                  Decimal  @db.Decimal(9, 6)
-  defaultStartTime           DateTime @db.Time
-  defaultEndTime             DateTime @db.Time
-  confirmReminderAfterHours  Int      @default(24)
-  unpickedPushMinutesBeforeEnd Int    @default(60)
-  missingFinalStatusWaitHours Int     @default(72)
-  defaultLocale              Locale   @default(he)
-  defaultTheme               String   @default("wisteria-mint")
-  orgName                    String?
-  logoUrl                    String?
-  extra                      Json     @default("{}")
+  centerAddress                String
+  centerLat                    Decimal  @db.Decimal(9, 6)
+  centerLng                    Decimal  @db.Decimal(9, 6)
+  defaultStartTime             DateTime @default(dbgenerated("'09:00:00'::time")) @db.Time
+  defaultEndTime               DateTime @default(dbgenerated("'14:00:00'::time")) @db.Time
+  confirmReminderAfterHours    Int      @default(24)
+  unpickedPushMinutesBeforeEnd Int      @default(60)
+  missingFinalStatusWaitHours  Int      @default(72)
+  defaultLocale                Locale   @default(he)
+  defaultTheme                 String   @default("wisteria-mint")
+  orgName                      String?
+  logoUrl                      String?
+  extra                        Json     @default("{}")
 
   @@map("city_settings")
 }
@@ -211,32 +211,32 @@ model User {
   updatedAt  DateTime  @updatedAt @db.Timestamptz
   archivedAt DateTime? @db.Timestamptz
 
-  firstName      String?
-  lastName       String?
-  phone          String?
-  email          String?   @db.Citext
-  birthDate      DateTime? @db.Date
-  locale         Locale    @default(he)
-  themePref      ThemePref @default(system)
-  isSuperAdmin   Boolean   @default(false)
-  onboardedAt    DateTime? @db.Timestamptz
-  lastLoginAt    DateTime? @db.Timestamptz
+  firstName    String?
+  lastName     String?
+  phone        String?
+  email        String?   @db.Citext
+  birthDate    DateTime? @db.Date
+  locale       Locale    @default(he)
+  themePref    ThemePref @default(system)
+  isSuperAdmin Boolean   @default(false)
+  onboardedAt  DateTime? @db.Timestamptz
+  lastLoginAt  DateTime? @db.Timestamptz
 
-  authIdentities   AuthIdentity[]
-  sessions         Session[]
-  pushSubscriptions PushSubscription[]
-  memberships      CityMembership[]
-  createdInvites   CityInvite[]
-  approvedMemberships CityMembership[] @relation("ApprovedBy")
-  matches          Match[]
-  dayParticipations DayParticipation[]
-  deliveries       Delivery[]
-  elderChangeRequests ElderChangeRequest[]
+  authIdentities         AuthIdentity[]
+  sessions               Session[]
+  pushSubscriptions      PushSubscription[]
+  memberships            CityMembership[]
+  createdInvites         CityInvite[]
+  approvedMemberships    CityMembership[]     @relation("ApprovedBy")
+  matches                Match[]
+  dayParticipations      DayParticipation[]
+  deliveries             Delivery[]
+  elderChangeRequests    ElderChangeRequest[]
   reviewedChangeRequests ElderChangeRequest[] @relation("ReviewedBy")
-  createdDays      DistributionDay[]
-  notificationLogs NotificationLog[]
-  auditLogs        AuditLog[]
-  resolvedDeliveries Delivery[] @relation("ResolvedBy")
+  createdDays            DistributionDay[]
+  notificationLogs       NotificationLog[]
+  auditLogs              AuditLog[]
+  resolvedDeliveries     Delivery[]           @relation("ResolvedBy")
 
   @@map("users")
 }
@@ -288,6 +288,8 @@ model CityInvite {
 
   memberships CityMembership[]
 
+  // Partial unique: one active invite per (cityId, role) WHERE revokedAt IS NULL
+  // Enforced by unique index city_invites_cityId_role_active in migration
   @@index([cityId, role, revokedAt])
   @@map("city_invites")
 }
@@ -322,25 +324,25 @@ model Elder {
   updatedAt  DateTime  @updatedAt @db.Timestamptz
   archivedAt DateTime? @db.Timestamptz
 
-  cityId       String        @db.Uuid
-  city         City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  fullName     String
-  phone        String?
-  phoneAlt     String?
-  language     String        @default("he")
-  street       String
-  houseNumber  String
-  entrance     String?
-  floor        String?
-  apartment    String?
-  buildingCode String?
-  addressNotes String?
-  lat          Decimal?      @db.Decimal(9, 6)
-  lng          Decimal?      @db.Decimal(9, 6)
+  cityId        String        @db.Uuid
+  city          City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  fullName      String
+  phone         String?
+  phoneAlt      String?
+  language      String        @default("he")
+  street        String
+  houseNumber   String
+  entrance      String?
+  floor         String?
+  apartment     String?
+  buildingCode  String?
+  addressNotes  String?
+  lat           Decimal?      @db.Decimal(9, 6)
+  lng           Decimal?      @db.Decimal(9, 6)
   geocodeStatus GeocodeStatus @default(pending)
-  status       ElderStatus   @default(active)
-  statusReason String?
-  notes        String?
+  status        ElderStatus   @default(active)
+  statusReason  String?
+  notes         String?
 
   contacts       ElderContact[]
   changeRequests ElderChangeRequest[]
@@ -374,18 +376,18 @@ model ElderChangeRequest {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  cityId        String               @db.Uuid
-  city          City                 @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  elderId       String               @db.Uuid
-  elder         Elder                @relation(fields: [elderId], references: [id], onDelete: Cascade)
-  requestedById String               @db.Uuid
-  requestedBy   User                 @relation(fields: [requestedById], references: [id])
+  cityId        String              @db.Uuid
+  city          City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  elderId       String              @db.Uuid
+  elder         Elder               @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  requestedById String              @db.Uuid
+  requestedBy   User                @relation(fields: [requestedById], references: [id])
   changes       Json
   reason        String?
-  status        ChangeRequestStatus  @default(pending)
-  reviewedById  String?              @db.Uuid
-  reviewedBy    User?                @relation("ReviewedBy", fields: [reviewedById], references: [id])
-  reviewedAt    DateTime?            @db.Timestamptz
+  status        ChangeRequestStatus @default(pending)
+  reviewedById  String?             @db.Uuid
+  reviewedBy    User?               @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?           @db.Timestamptz
   reviewNote    String?
 
   @@index([cityId, status])
@@ -397,21 +399,23 @@ model Match {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  cityId       String          @db.Uuid
-  city         City            @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  elderId      String          @db.Uuid
-  elder        Elder           @relation(fields: [elderId], references: [id], onDelete: Cascade)
-  volunteerId  String          @db.Uuid
-  volunteer    User            @relation(fields: [volunteerId], references: [id])
-  type         MatchType
-  dayId        String?         @db.Uuid
-  day          DistributionDay? @relation(fields: [dayId], references: [id])
-  startsAt     DateTime        @db.Date
-  endsAt       DateTime?       @db.Date
-  endReason    MatchEndReason?
+  cityId      String           @db.Uuid
+  city        City             @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  elderId     String           @db.Uuid
+  elder       Elder            @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  volunteerId String           @db.Uuid
+  volunteer   User             @relation(fields: [volunteerId], references: [id])
+  type        MatchType
+  dayId       String?          @db.Uuid
+  day         DistributionDay? @relation(fields: [dayId], references: [id])
+  startsAt    DateTime         @db.Date
+  endsAt      DateTime?        @db.Date
+  endReason   MatchEndReason?
 
   deliveries Delivery[]
 
+  // Partial unique: one current permanent match per elder WHERE type='permanent' AND endsAt IS NULL
+  // Enforced by unique index matches_elderId_current_permanent in migration
   @@index([cityId, elderId, type, endsAt])
   @@index([cityId, volunteerId])
   @@map("matches")
@@ -471,28 +475,28 @@ model Delivery {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  cityId             String               @db.Uuid
-  city               City                 @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  dayId              String               @db.Uuid
-  day                DistributionDay      @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  elderId            String               @db.Uuid
-  elder              Elder                @relation(fields: [elderId], references: [id], onDelete: Cascade)
-  volunteerId        String?              @db.Uuid
-  volunteer          User?                @relation(fields: [volunteerId], references: [id])
-  matchId            String?              @db.Uuid
-  match              Match?               @relation(fields: [matchId], references: [id])
-  status             DeliveryStatus       @default(unassigned)
+  cityId             String              @db.Uuid
+  city               City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  dayId              String              @db.Uuid
+  day                DistributionDay     @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  elderId            String              @db.Uuid
+  elder              Elder               @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  volunteerId        String?             @db.Uuid
+  volunteer          User?               @relation(fields: [volunteerId], references: [id])
+  matchId            String?             @db.Uuid
+  match              Match?              @relation(fields: [matchId], references: [id])
+  status             DeliveryStatus      @default(unassigned)
   notDeliveredReason NotDeliveredReason?
   note               String?
   routeOrder         Int?
-  assignedAt         DateTime?            @db.Timestamptz
-  pickedAt           DateTime?            @db.Timestamptz
-  finalAt            DateTime?            @db.Timestamptz
+  assignedAt         DateTime?           @db.Timestamptz
+  pickedAt           DateTime?           @db.Timestamptz
+  finalAt            DateTime?           @db.Timestamptz
   resolution         DeliveryResolution?
-  resolvedById       String?              @db.Uuid
-  resolvedBy         User?                @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  resolvedById       String?             @db.Uuid
+  resolvedBy         User?               @relation("ResolvedBy", fields: [resolvedById], references: [id])
 
-  events         DeliveryEvent[]
+  events           DeliveryEvent[]
   notificationLogs NotificationLog[]
 
   @@unique([dayId, elderId])
@@ -506,15 +510,15 @@ model DeliveryEvent {
   id        String   @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @db.Timestamptz
 
-  deliveryId        String    @db.Uuid
-  delivery          Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  fromStatus        String
-  toStatus          String
-  fromVolunteerId   String?   @db.Uuid
-  toVolunteerId     String?   @db.Uuid
-  actorId           String    @db.Uuid
-  note              String?
-  at                DateTime  @db.Timestamptz
+  deliveryId      String   @db.Uuid
+  delivery        Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  fromStatus      String
+  toStatus        String
+  fromVolunteerId String?  @db.Uuid
+  toVolunteerId   String?  @db.Uuid
+  actorId         String   @db.Uuid
+  note            String?
+  at              DateTime @db.Timestamptz
 
   @@index([deliveryId])
   @@map("delivery_events")
@@ -525,13 +529,16 @@ model MessageTemplate {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  cityId String? @db.Uuid
-  city   City?   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  cityId String?     @db.Uuid
+  city   City?       @relation(fields: [cityId], references: [id], onDelete: Cascade)
   key    TemplateKey
   locale Locale
   title  String
   body   String
 
+  // Unique on (cityId, key, locale) for city templates
+  // Plus partial unique on (key, locale) WHERE cityId IS NULL for global templates
+  // Enforced by unique index message_templates_key_locale_global in migration
   @@unique([cityId, key, locale])
   @@index([cityId])
   @@map("message_templates")
@@ -542,15 +549,15 @@ model PushSubscription {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  userId         String    @db.Uuid
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  endpoint       String    @unique
-  p256dh         String
-  auth           String
-  userAgent      String
-  lastSuccessAt  DateTime? @db.Timestamptz
-  failedCount    Int       @default(0)
-  disabledAt     DateTime? @db.Timestamptz
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String
+  lastSuccessAt DateTime? @db.Timestamptz
+  failedCount   Int       @default(0)
+  disabledAt    DateTime? @db.Timestamptz
 
   @@index([userId])
   @@map("push_subscriptions")
