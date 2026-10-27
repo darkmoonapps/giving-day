@@ -5,7 +5,7 @@ import {
   type OpenAPIObject,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { HealthService } from './health/health.service';
 
 export function createSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {

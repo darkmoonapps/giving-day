@@ -19,7 +19,7 @@ import { AbilitiesModule } from '../abilities/abilities.module';
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'development-jwt-secret',
       signOptions: {
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+        expiresIn: 900,
       },
     }),
   ],

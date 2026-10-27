@@ -41,7 +41,11 @@ export class AbilitiesGuard implements CanActivate {
 
     const hasAllAbilities = requiredAbilities.every((requiredAbility) => {
       const { action, subject, conditions } = requiredAbility;
-      return ability.can(action, subject, conditions);
+      return ability.can(
+        action as never,
+        subject as never,
+        conditions as never
+      );
     });
 
     if (!hasAllAbilities) {
