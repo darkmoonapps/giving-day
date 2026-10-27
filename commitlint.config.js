@@ -21,7 +21,7 @@ export default {
     'scope-enum': [
       2,
       'always',
-      ['web', 'api', 'shared', 'ui', 'ci', 'docs', 'deps'],
+      ['web', 'api', 'shared', 'ui', 'ci', 'docs', 'deps', 'deps-dev'],
     ],
     'scope-empty': [1, 'never'],
     'subject-case': [2, 'always', 'lower-case'],
