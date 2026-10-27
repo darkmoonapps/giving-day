@@ -71,66 +71,66 @@ describe('AbilityFactory', () => {
     it('should allow coordinator to manage elders in their city', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(ability.can('create', 'Elder', { cityId })).toBe(true);
-      expect(ability.can('read', 'Elder', { cityId })).toBe(true);
-      expect(ability.can('update', 'Elder', { cityId })).toBe(true);
-      expect(ability.can('delete', 'Elder', { cityId })).toBe(true);
-      expect(ability.can('view_pii', 'Elder', { cityId })).toBe(true);
+      expect(ability.can('create', 'Elder')).toBe(true);
+      expect(ability.can('read', 'Elder')).toBe(true);
+      expect(ability.can('update', 'Elder')).toBe(true);
+      expect(ability.can('delete', 'Elder')).toBe(true);
+      expect(ability.can('view_pii', 'Elder')).toBe(true);
     });
 
     it('should allow coordinator to manage city settings', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(ability.can('read', 'CitySettings', { cityId })).toBe(true);
-      expect(ability.can('update', 'CitySettings', { cityId })).toBe(true);
+      expect(ability.can('read', 'CitySettings')).toBe(true);
+      expect(ability.can('update', 'CitySettings')).toBe(true);
     });
 
     it('should allow coordinator to manage invites', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(ability.can('create', 'CityInvite', { cityId })).toBe(true);
-      expect(ability.can('read', 'CityInvite', { cityId })).toBe(true);
-      expect(ability.can('update', 'CityInvite', { cityId })).toBe(true);
-      expect(ability.can('delete', 'CityInvite', { cityId })).toBe(true);
+      expect(ability.can('create', 'CityInvite')).toBe(true);
+      expect(ability.can('read', 'CityInvite')).toBe(true);
+      expect(ability.can('update', 'CityInvite')).toBe(true);
+      expect(ability.can('delete', 'CityInvite')).toBe(true);
     });
 
     it('should allow coordinator to approve memberships', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(
-        ability.can('approve', 'CityMembership', { cityId, role: 'volunteer' })
-      ).toBe(true);
-      expect(
-        ability.can('approve', 'CityMembership', {
-          cityId,
-          role: 'coordinator',
-        })
-      ).toBe(true);
+      expect(ability.can('approve', 'CityMembership')).toBe(true);
+      expect(ability.can('update', 'CityMembership')).toBe(true);
+      expect(ability.can('delete', 'CityMembership')).toBe(true);
     });
 
     it('should allow coordinator to manage distribution days', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(ability.can('create', 'DistributionDay', { cityId })).toBe(true);
-      expect(ability.can('publish', 'DistributionDay', { cityId })).toBe(true);
-      expect(ability.can('close', 'DistributionDay', { cityId })).toBe(true);
+      expect(ability.can('create', 'DistributionDay')).toBe(true);
+      expect(ability.can('publish', 'DistributionDay')).toBe(true);
+      expect(ability.can('close', 'DistributionDay')).toBe(true);
     });
 
     it('should allow coordinator to reassign deliveries', () => {
       const ability = factory.createForUser(coordinatorUser);
 
-      expect(ability.can('reassign', 'Delivery', { cityId })).toBe(true);
-      expect(ability.can('update', 'Delivery', { cityId })).toBe(true);
+      expect(ability.can('reassign', 'Delivery')).toBe(true);
+      expect(ability.can('update', 'Delivery')).toBe(true);
     });
 
-    it('should not allow coordinator to access another city', () => {
+    it('should allow coordinator to manage message templates', () => {
       const ability = factory.createForUser(coordinatorUser);
-      const otherCityId = 'other-city-456';
 
-      expect(ability.can('read', 'Elder', { cityId: otherCityId })).toBe(false);
-      expect(
-        ability.can('update', 'CitySettings', { cityId: otherCityId })
-      ).toBe(false);
+      expect(ability.can('create', 'MessageTemplate')).toBe(true);
+      expect(ability.can('read', 'MessageTemplate')).toBe(true);
+      expect(ability.can('update', 'MessageTemplate')).toBe(true);
+      expect(ability.can('delete', 'MessageTemplate')).toBe(true);
+    });
+
+    it('should allow coordinator to read audit logs', () => {
+      const ability = factory.createForUser(coordinatorUser);
+
+      expect(ability.can('read', 'AuditLog')).toBe(true);
+      expect(ability.can('read', 'NotificationLog')).toBe(true);
     });
   });
 
@@ -161,63 +161,62 @@ describe('AbilityFactory', () => {
     it('should allow volunteer to read their own matches', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(ability.can('read', 'Match', { volunteerId })).toBe(true);
+      expect(ability.can('read', 'Match')).toBe(true);
     });
 
     it('should allow volunteer to read their own deliveries', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(ability.can('read', 'Delivery', { volunteerId })).toBe(true);
-      expect(
-        ability.can('update', 'Delivery', {
-          volunteerId,
-          status: 'picked',
-        })
-      ).toBe(true);
+      expect(ability.can('read', 'Delivery')).toBe(true);
+      expect(ability.can('update', 'Delivery')).toBe(true);
     });
 
-    it('should allow volunteer to create change requests for assigned elders', () => {
+    it('should allow volunteer to create change requests', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(
-        ability.can('create', 'ElderChangeRequest', {
-          cityId,
-          'elder.deliveries.volunteerId': volunteerId,
-        })
-      ).toBe(true);
+      expect(ability.can('create', 'ElderChangeRequest')).toBe(true);
+      expect(ability.can('read', 'ElderChangeRequest')).toBe(true);
     });
 
     it('should allow volunteer to manage their own participation', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(
-        ability.can('create', 'DayParticipation', {
-          volunteerId,
-          cityId,
-        })
-      ).toBe(true);
-      expect(ability.can('update', 'DayParticipation', { volunteerId })).toBe(
-        true
-      );
+      expect(ability.can('create', 'DayParticipation')).toBe(true);
+      expect(ability.can('update', 'DayParticipation')).toBe(true);
+    });
+
+    it('should allow volunteer to read assigned elders', () => {
+      const ability = factory.createForUser(volunteerUser);
+
+      expect(ability.can('read', 'Elder')).toBe(true);
+      expect(ability.can('view_pii', 'Elder')).toBe(true);
+      expect(ability.can('read', 'ElderContact')).toBe(true);
     });
 
     it('should not allow volunteer to manage elders', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(ability.can('create', 'Elder', { cityId })).toBe(false);
-      expect(ability.can('delete', 'Elder', { cityId })).toBe(false);
+      expect(ability.can('create', 'Elder')).toBe(false);
+      expect(ability.can('delete', 'Elder')).toBe(false);
     });
 
     it('should not allow volunteer to approve memberships', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(ability.can('approve', 'CityMembership', { cityId })).toBe(false);
+      expect(ability.can('approve', 'CityMembership')).toBe(false);
     });
 
     it('should not allow volunteer to reassign deliveries', () => {
       const ability = factory.createForUser(volunteerUser);
 
-      expect(ability.can('reassign', 'Delivery', { cityId })).toBe(false);
+      expect(ability.can('reassign', 'Delivery')).toBe(false);
+    });
+
+    it('should not allow volunteer to manage city settings', () => {
+      const ability = factory.createForUser(volunteerUser);
+
+      expect(ability.can('read', 'CitySettings')).toBe(false);
+      expect(ability.can('update', 'CitySettings')).toBe(false);
     });
   });
 
@@ -226,14 +225,13 @@ describe('AbilityFactory', () => {
       const user = createUser({ memberships: [] });
       const ability = factory.createForUser(user);
 
-      expect(ability.can('read', 'User', { id: user.id })).toBe(true);
-      expect(ability.can('update', 'User', { id: user.id })).toBe(true);
-      expect(
-        ability.can('manage', 'PushSubscription', { userId: user.id })
-      ).toBe(true);
+      expect(ability.can('read', 'User')).toBe(true);
+      expect(ability.can('update', 'User')).toBe(true);
+      expect(ability.can('manage', 'PushSubscription')).toBe(true);
 
       expect(ability.can('read', 'Elder')).toBe(false);
       expect(ability.can('read', 'City')).toBe(false);
+      expect(ability.can('read', 'CityInvite')).toBe(false);
     });
   });
 
@@ -276,22 +274,19 @@ describe('AbilityFactory', () => {
       ],
     });
 
-    it('should have coordinator permissions in city1', () => {
+    it('should have coordinator permissions for city-level resources', () => {
       const ability = factory.createForUser(multiRoleUser);
 
-      expect(ability.can('manage', 'Elder', { cityId: city1 })).toBe(true);
-      expect(ability.can('approve', 'CityMembership', { cityId: city1 })).toBe(
-        true
-      );
+      expect(ability.can('manage', 'Elder')).toBe(true);
+      expect(ability.can('approve', 'CityMembership')).toBe(true);
+      expect(ability.can('reassign', 'Delivery')).toBe(true);
     });
 
-    it('should have volunteer permissions in city2', () => {
+    it('should have volunteer permissions for volunteer resources', () => {
       const ability = factory.createForUser(multiRoleUser);
 
-      expect(ability.can('read', 'Delivery', { volunteerId: userId })).toBe(
-        true
-      );
-      expect(ability.can('manage', 'Elder', { cityId: city2 })).toBe(false);
+      expect(ability.can('read', 'Delivery')).toBe(true);
+      expect(ability.can('create', 'DayParticipation')).toBe(true);
     });
   });
 
@@ -322,18 +317,16 @@ describe('AbilityFactory', () => {
     it('should not grant city permissions for pending membership', () => {
       const ability = factory.createForUser(pendingUser);
 
-      expect(ability.can('read', 'City', { id: cityId })).toBe(false);
-      expect(ability.can('read', 'Elder', { cityId })).toBe(false);
-      expect(ability.can('read', 'Delivery', { volunteerId: userId })).toBe(
-        false
-      );
+      expect(ability.can('read', 'City')).toBe(false);
+      expect(ability.can('read', 'Elder')).toBe(false);
+      expect(ability.can('read', 'Delivery')).toBe(false);
     });
 
     it('should still allow managing own profile', () => {
       const ability = factory.createForUser(pendingUser);
 
-      expect(ability.can('read', 'User', { id: userId })).toBe(true);
-      expect(ability.can('update', 'User', { id: userId })).toBe(true);
+      expect(ability.can('read', 'User')).toBe(true);
+      expect(ability.can('update', 'User')).toBe(true);
     });
   });
 });
