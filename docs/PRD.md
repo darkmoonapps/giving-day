@@ -2,7 +2,9 @@
 
 ## Problem Statement
 
-The Latet volunteer coordinator currently manages a monthly food-package distribution day for ~140 elderly recipients and ~100 volunteers using manual processes. The current workflow involves:
+Latet volunteer coordinators currently manage monthly food-package
+distribution days (about 140 elderly recipients and 100 volunteers in a
+typical city) using manual processes. The current workflow involves:
 
 - Announcing the distribution day 2 weeks in advance
 - Manually contacting every volunteer via WhatsApp 2 days before to confirm attendance
@@ -10,30 +12,59 @@ The Latet volunteer coordinator currently manages a monthly food-package distrib
 - Finding replacement volunteers when someone cancels (asking who can help, prioritizing closest volunteers)
 - Manually updating a Google Sheet to track all changes
 
-This manual process is time-consuming, error-prone, and doesn't scale well. The coordinator needs a dedicated application to automate confirmations, reminders, and volunteer reassignment while maintaining the personal volunteer-elder relationships.
+This manual process is time-consuming, error-prone, and does not scale
+across cities. Coordinators need a dedicated application to automate
+confirmations, reminders, and **manual** volunteer reassignment while
+keeping volunteer–elder matches. The product is **multi-city**: each city
+has its own elders, volunteers, settings, and days. See
+[docs/data-model.md](./data-model.md) and [docs/rbac.md](./rbac.md).
 
 ## Users and Roles
 
-### Admin (Volunteer Coordinator)
+Roles are **Volunteer**, **City coordinator**, and **Super admin**. The
+legacy word "admin" in older flows means **city coordinator**. The same
+person can be a coordinator in one city and a volunteer in another.
 
-- Manages the entire distribution day process
-- Creates a distribution day by entering a date, then adds notes for that day and sets that day's hours
-- Configures the organization from a simple, beautiful Settings area (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo, and other app knobs)
-- Manages volunteer and elder profiles
+### Super admin
+
+- Creates cities and the first coordinator join link for a new city
+- Can read and update every city; can set `isSuperAdmin` on users
+- Set only from the seed CLI or by another super admin
+- Access: web dashboard
+
+### City coordinator
+
+- Manages one city's distribution days, elders, volunteers, and matches
+- Creates a distribution day by entering a date, then adds notes and hours
+- Configures **city** settings (distribution center, notification offsets,
+  day hours, notification texts and languages, default theme, org name and
+  logo, and other knobs)
+- Shares a **permanent** join link per role (revoke and regenerate anytime)
+  and **approves** pending memberships (volunteer or coordinator) with one
+  tap. Approval is always required
 - Approves volunteer requests to change an elder's details
-- Handles volunteer assignments and reassignments (no automatic reassignment)
-- Views dashboards and statistics
-- Access: Web dashboard (desktop) + mobile app
+- Handles assignments and reassignments (**no automatic reassignment**)
+- Views city dashboards and statistics
+- Access: web dashboard (desktop) + mobile
 
 ### Volunteer
 
-- Confirms or declines participation for upcoming distribution days
-- After confirming, marks each assigned package Picked, then Delivered or Not delivered
-- Receives push notifications for confirmations, reminders, unpicked packages, and missing final status
+- Completes mandatory onboarding (`firstName`, `lastName`, `phone`, locale;
+  optional `birthDate` and `email`), then notification and install prompts
+- Joins a city through the city's shareable join link, then waits for
+  coordinator approval
+- Confirms, declines, or cancels participation for published days (optional
+  reason on decline/cancel, visible to the coordinator)
+- After confirming, marks each assigned package Picked, then Delivered or
+  Not delivered
+- Receives push notifications for confirmations, reminders, unpicked
+  packages, missing final status, and membership approval
 - Can be matched with more than one elder
-- Sees notes and details only for the elders assigned to them
-- Can submit a request to change an elder's details; an admin must approve the change
-- Access: Primarily mobile app, with web access available
+- Sees the general `notes` field, address details, and next-of-kin
+  (`ElderContact`) only for elders assigned to them
+- Can submit a request to change an elder's details; a coordinator must
+  approve
+- Access: primarily mobile, with web available
 
 ## Goals
 
@@ -41,16 +72,26 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 2. **Enable self-service confirmations**: Allow volunteers to confirm or decline participation through the app
 3. **Automate reminder system**: Send scheduled reminders to non-responders without manual intervention
 4. **Track pickup and delivery**: Let volunteers mark each package Picked, then Delivered or Not delivered
-5. **Streamline reassignment**: Surface cancelled or not-delivered cases for the admin; the admin decides what to do (no automatic reassignment)
-6. **Centralize data management**: Replace Google Sheets with a proper database for volunteer and elder data
-7. **Provide visibility**: Give admins real-time dashboards showing confirmation status, coverage gaps, and statistics
-8. **Build relationships**: Maintain volunteer-elder matching (one volunteer may be matched with more than one elder)
-9. **Guide the route**: Show an optimized map route that starts at the admin-configured distribution center, with a Navigate menu (Google Maps, Apple Maps, Waze) on each address
-10. **Admin-configurable product**: An admin can configure everything from the app through a simple, beautiful Settings area
+5. **Streamline reassignment**: When a volunteer declines or cancels, their
+   deliveries become unassigned and appear on the city's "Needs a volunteer"
+   list. The coordinator decides; the system never auto-reassigns
+6. **Centralize data management**: Replace Google Sheets with a city-scoped
+   database for volunteer and elder data
+7. **Provide visibility**: Give coordinators real-time dashboards showing
+   confirmation status, coverage gaps, and statistics
+8. **Build relationships**: Maintain volunteer-elder matching (one volunteer
+   may be matched with more than one elder)
+9. **Guide the route**: Show an optimized map route that starts at the
+   coordinator-configured distribution center, with a Navigate menu (Google
+   Maps, Apple Maps, Waze) on each address
+10. **City-configurable product**: A coordinator can configure their city
+    from a simple, beautiful Settings area
+11. **Multi-city tenancy**: Isolate elders, volunteers, days, and settings
+    per city, with super-admin oversight
 
 ## Principles
 
-**An admin can configure everything from the app through a simple, beautiful Settings area.** Settings is the single place for organization knobs. No code change or deploy is required for day-to-day configuration. Configurable items include:
+**A city coordinator can configure their city from a simple, beautiful Settings area.** Settings is the single place for city knobs. No code change or deploy is required for day-to-day configuration. Configurable items include:
 
 - Distribution center address (start of the volunteer map route)
 - Notification offsets and timings (confirmation reminders; unpicked-package warning before the window ends; wait after Picked before a missing-final-status reminder; default 3 days for that wait)
@@ -65,30 +106,38 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 2. **Real-time chat**: Not building an in-app messaging system; WhatsApp integration is a later phase
 3. **Payment processing**: Not handling any financial transactions
 4. **Third-party routing engines**: The in-app map shows an optimized route from the distribution center; we are not integrating a commercial fleet-routing product
-5. **Multi-organization support**: Single-organization solution for now
+5. **Multi-organization support**: Single organization (Latet). Multi-**city**
+   is in scope; a second organization tenant is not
 6. **Advanced scheduling**: Beyond simple monthly distribution days (no complex recurring patterns initially)
-7. **Automatic reassignment**: The system does not reassign elders or packages on its own; the admin decides
+7. **Automatic reassignment**: The system never assigns a declined, cancelled,
+   or not-delivered package to another volunteer. Decline/cancel moves those
+   deliveries to unassigned; the coordinator decides
+8. **Self-serve city join without approval**: Join links always create a
+   pending membership
+9. **SMS / Apple Sign In in MVP**: Google and Facebook OAuth only (Apple later)
 
 ## Core User Flows
 
-### Flow 1: Admin Creates a Distribution Day
+### Flow 1: Coordinator Creates a Distribution Day
 
-1. Admin logs into web dashboard
+1. City coordinator logs into the web dashboard
 2. Navigates to "Create Distribution Day"
 3. Enters a date (that is the only required field to create the day)
 4. Optionally adds notes for that day and sets that day's hours
-5. System shows list of all volunteers and their match status
-6. Admin confirms creation
-7. System sends initial notification to all volunteers
+5. System prefills one delivery per active elder with a current permanent
+   match; the coordinator adjusts as needed
+6. Coordinator confirms creation and publishes
+7. System sends the initial notification to the city's volunteers
 
 ### Flow 2: Volunteer Confirms Participation
 
 1. Volunteer receives push notification: "Can you deliver on [date]?"
 2. Opens app (or clicks notification)
 3. Sees only the distribution day details (date, hours, and day notes). The volunteer does not see assigned elders on this screen
-4. Taps "Confirm" or "Can't make it"
+4. Taps "Confirm" or "Can't make it". Decline/cancel may include a reason
+   (`cancelReason`), which the coordinator can see
 5. If they confirm, a fireworks thank-you screen appears
-6. Confirmation immediately updates in admin dashboard
+6. Confirmation immediately updates in the city coordinator dashboard
 
 ### Flow 3: Automated Reminders
 
@@ -100,21 +149,24 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 ### Flow 4: Volunteer Cancellation and Reassignment
 
-1. Volunteer declines or cancels participation
-2. Their assigned elder appears in admin's "Needs Deliverer" list
-3. Admin views list of available volunteers, sorted by proximity to elder
-4. Admin selects a volunteer and sends notification
+1. Volunteer declines or cancels participation and may enter a reason
+   (`cancelReason`)
+2. Their deliveries on that day are set to unassigned (`volunteerId` null)
+   immediately and appear on the coordinator's "Needs a volunteer" list,
+   with the reason visible to the coordinator
+3. Coordinator views available volunteers, sorted by proximity (home area)
+4. Coordinator selects a volunteer and sends a notification
 5. Replacement volunteer confirms or declines
-6. Process repeats until elder is covered
-7. There is no automatic reassignment; the admin decides
+6. Process repeats until the elder is covered
+7. There is no automatic reassignment
 
-### Flow 5: Admin Views Dashboard
+### Flow 5: Coordinator Views Dashboard
 
-1. Admin opens dashboard
+1. City coordinator opens the city dashboard
 2. Sees overview: total volunteers, confirmed count, pending count, cancelled count, unassigned elders
-3. Views list of elders needing deliverers
-4. Sees who responded, who's pending, who declined
-5. Clicks individual volunteer/elder for detailed information
+3. Views the "Needs a volunteer" list
+4. Sees who responded, who is pending, who declined, and any cancel reasons
+5. Opens an individual volunteer or elder for details
 
 ### Flow 6: Volunteer Pickup and Delivery
 
@@ -122,43 +174,71 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 2. The volunteer marks each package Picked
 3. After pickup, the volunteer marks the package Delivered or Not delivered
 4. Not delivered opens a notes popup; the volunteer enters a note
-5. The note is sent to the admin and saved
-6. The system does not reassign the package automatically; the admin decides the next step
+5. The note is sent to the city coordinator and saved
+6. The system does not reassign the package automatically; the coordinator decides the next step
 7. When the volunteer has finished all deliveries (every assigned package has a final status), a fireworks thank-you screen appears
 
 ### Flow 7: Volunteer Requests an Elder Detail Change
 
-1. Volunteer views notes and details for an elder assigned to them
+1. Volunteer views the general `notes`, address, and next-of-kin contact
+   for an elder assigned to them
 2. Volunteer submits a request to change the elder's details (for example address or notes)
-3. Admin reviews the request and approves or rejects it
+3. City coordinator reviews the request and approves or rejects it
 4. Approved changes update the elder record; rejected requests leave the record unchanged
 
 ### Flow 8: Map and Navigation
 
 1. Volunteer opens the map for their assigned elders
-2. The map shows an optimized route that starts at the distribution center address (set by an admin on the Settings page)
+2. The map shows an optimized route that starts at the distribution center address (set by a coordinator on the city Settings page)
 3. Each address has a Navigate menu with Google Maps, Apple Maps, and Waze
 
 ### Flow 9: Pickup and Status Reminder Pushes
 
-1. If a package is not marked Picked one hour before the distribution window ends, the system sends a push notification. An admin can configure this offset.
-2. If a package is Picked but has no final status (Delivered or Not delivered) after an admin-configured wait (default 3 days), the system sends a reminder push.
+1. If a package is not marked Picked one hour before the distribution window ends, the system sends a push notification. A coordinator can configure this offset.
+2. If a package is Picked but has no final status (Delivered or Not delivered) after a coordinator-configured wait (default 3 days), the system sends a reminder push.
+
+### Flow 10: Join a City
+
+1. Each city has a permanent shareable join link per role (volunteer or
+   coordinator). A coordinator can revoke it and regenerate a new URL
+2. They share the current link (typically WhatsApp)
+3. The landing page offers an **Install app** button (PWA install prompt;
+   iOS add-to-home-screen instructions)
+4. The person signs in with Google or Facebook, finishes onboarding if
+   needed, and opens the link
+5. A pending city membership is created; the user sees "waiting for approval"
+6. A city coordinator approves with one tap; the user receives a push
+7. A leaked link cannot grant access without that approval
+
+### Flow 11: Mandatory Onboarding
+
+1. After first Google or Facebook sign-in, if `onboardedAt` is null the
+   app is blocked on the onboarding screen
+2. The user must enter `firstName`, `lastName`, and `phone`, and choose a
+   preferred locale. `birthDate` and `email` are optional. There is no
+   privacy-acceptance step
+3. On finish, the app prompts for notification permission, then for PWA
+   install (iOS: add-to-home-screen instructions)
+4. `onboardedAt` is set; the rest of the app unlocks
 
 ## Feature List
 
 ### Phase 1: Foundation & Management
 
-- [ ] User authentication (Google & Facebook OAuth)
-- [ ] Role-based access control (Admin, Volunteer)
+- [ ] User authentication (Google & Facebook OAuth; mandatory onboarding; sessions)
+- [ ] Multi-city tenancy and role-based access (Volunteer, City coordinator, Super admin)
+- [ ] Permanent join links per city and role (revoke / regenerate) with coordinator approval
+- [ ] Join landing page Install app button (PWA / iOS add-to-home-screen)
 - [ ] Volunteer profile management (CRUD)
 - [ ] Elder profile management (CRUD)
   - Full address, including building entrance and building code
-  - Notes textarea per elder
+  - One general `notes` field per elder (no dietary/accessibility enums)
+  - Next of kin (`ElderContact`) visible to the assigned volunteer
 - [ ] Volunteer-elder matching and assignment (a volunteer can be matched with more than one elder)
-- [ ] Volunteer visibility limited to notes and details of assigned elders
-- [ ] Volunteer requests to change elder details; admin approval
-- [ ] Create distribution day (date required; optional notes and hours for that day)
-- [ ] Simple, beautiful Settings area where an admin configures the organization
+- [ ] Volunteer visibility limited to notes, details, and next of kin of assigned elders
+- [ ] Volunteer requests to change elder details; coordinator approval
+- [ ] Create distribution day (date required; optional notes and hours for that day; prefill from permanent matches)
+- [ ] Simple, beautiful Settings area where a coordinator configures the city
   - Distribution center address
   - Notification offsets and timings
   - Day hours
@@ -177,19 +257,19 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 - [ ] Fireworks thank-you screen after confirming attendance
 - [ ] Automated reminder scheduling
 - [ ] Reminder job execution for non-responders
-- [ ] Volunteer cancellation handling
-- [ ] "Needs Deliverer" list for admins
+- [ ] Volunteer cancellation handling (optional `cancelReason`; deliveries become unassigned immediately)
+- [ ] "Needs a volunteer" list for coordinators
 - [ ] Volunteer replacement suggestions (sorted by proximity)
-- [ ] Manual reassignment by admin only (no automatic reassignment)
+- [ ] Manual reassignment by coordinator only (no automatic reassignment)
 - [ ] Package status: Picked, then Delivered or Not delivered
-- [ ] Not delivered notes popup; note sent to admin and saved
+- [ ] Not delivered notes popup; note sent to coordinator and saved
 - [ ] Fireworks thank-you screen when the volunteer finishes all deliveries
-- [ ] Push if packages are not Picked before the window ends (default 1 hour; admin-configurable offset)
-- [ ] Push if Picked with no final status after the wait (default 3 days; admin-configurable)
+- [ ] Push if packages are not Picked before the window ends (default 1 hour; coordinator-configurable offset)
+- [ ] Push if Picked with no final status after the wait (default 3 days; coordinator-configurable)
 
 ### Phase 3: Dashboards & Analytics
 
-- [ ] Admin overview dashboard
+- [ ] Coordinator overview dashboard
   - Confirmation statistics
   - Coverage metrics
   - Response rates
@@ -217,39 +297,40 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 **Deliverables**:
 
-- Working authentication with Google/Facebook
-- Admin can manage volunteers and elders (full address, notes)
+- Working authentication with Google/Facebook, mandatory onboarding, and join-link approval
+- Super admin can create a city; coordinator can manage that city's volunteers and elders
 - A volunteer can be matched with more than one elder
-- Volunteers see notes and details only for assigned elders
-- Volunteers can request elder detail changes; admin approves
-- Admin can create a distribution day by entering a date, add notes per day, and set that day's hours
-- Admin can configure the organization from Settings (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo)
+- Volunteers see notes, details, and next of kin only for assigned elders
+- Volunteers can request elder detail changes; coordinator approves
+- Coordinator can create a distribution day by entering a date, add notes per day, and set that day's hours
+- Coordinator can configure the city from Settings (distribution center, notification offsets and timings, day hours, notification texts and languages, default theme, org name and logo)
 - Light "Wisteria & mint" theme by default and a deep-plum dark theme; users can toggle the theme and it follows the system preference
-- Database schema and API endpoints for core entities (schema still to be designed with the product owner)
+- Approved data model documented in [docs/data-model.md](./data-model.md) (implementation and Prisma later)
 
-**Success Criteria**: Admin can log in, manage volunteer/elder profiles, create a distribution day from a date, and configure settings
+**Success Criteria**: Coordinator can log in, manage volunteer/elder profiles in their city, create a distribution day from a date, and configure city settings
 
 ### Phase 2: Confirmations & Automation
 
-**Scope**: Push notifications, confirmation workflow, pickup/delivery status, reminders, admin-led reassignment
+**Scope**: Push notifications, confirmation workflow, pickup/delivery status, reminders, coordinator-led reassignment
 
 **Deliverables**:
 
 - Push notification infrastructure
 - Volunteer confirmation UI shows only distribution day details (not assigned elders); fireworks thank-you after confirm
 - Package flow: Picked, then Delivered or Not delivered
-- Not delivered notes popup; note sent to admin and saved
+- Not delivered notes popup; note sent to coordinator and saved
 - Fireworks thank-you when all deliveries are finished
 - Unpicked-package push (default 1 hour before window end; configurable)
 - Picked-without-final-status reminder (default 3 days; configurable)
 - Scheduled confirmation reminders
-- Reassignment workflow with proximity-based suggestions; admin decides (no automatic reassignment)
+- Reassignment workflow with proximity-based suggestions; coordinator decides (no automatic reassignment)
+- Decline/cancel immediately unassigns that volunteer's deliveries; optional `cancelReason` is visible to the coordinator
 
-**Success Criteria**: Volunteers receive notifications, confirm attendance, mark pickup and delivery, and admins handle not-delivered and cancellation cases
+**Success Criteria**: Volunteers receive notifications, confirm attendance, mark pickup and delivery, and coordinators handle not-delivered and cancellation cases
 
 ### Phase 3: Dashboards & Visibility
 
-**Scope**: Admin dashboards, statistics, reporting
+**Scope**: Coordinator dashboards, statistics, reporting
 
 **Deliverables**:
 
@@ -259,7 +340,7 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 - Historical reporting
 - Enhanced filtering and search
 
-**Success Criteria**: Admin has clear visibility into confirmation status, coverage gaps, package outcomes, and can make data-driven decisions
+**Success Criteria**: Coordinator has clear visibility into confirmation status, coverage gaps, package outcomes, and can make data-driven decisions
 
 ### Phase 4+: Advanced Features
 
@@ -290,7 +371,7 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 - Volunteer app adoption rate (target: >90%)
 - Notification open rate (target: >70%)
-- Self-service confirmation rate (target: >80% without admin intervention)
+- Self-service confirmation rate (target: >80% without coordinator intervention)
 
 ### Quality Metrics
 
@@ -303,18 +384,10 @@ This manual process is time-consuming, error-prone, and doesn't scale well. The 
 
 ### Database Schema Design
 
-The database schema for volunteers, elders, distribution days, confirmations, and assignments needs to be designed with the product owner. Key considerations:
-
-- Volunteer profile fields (name, contact, location, availability preferences, etc.)
-- Elder profile fields (name, full address including building entrance and building code, notes textarea, dietary requirements, special needs, etc.)
-- How to store volunteer change requests for elder details and admin approval
-- Distribution day configuration and state management (date, notes, hours)
-- Confirmation and response tracking
-- Package status (Picked, Delivered, Not delivered) and not-delivered notes
-- Assignment history and relationship tracking (a volunteer may have more than one elder)
-- Audit trail for admin-decided reassignments
-
-The schema itself remains undecided. No implementation or migration is specified in this document.
+**Resolved.** The MVP model lives in [docs/data-model.md](./data-model.md).
+No Prisma implementation or migration ships with this documentation
+change. Remaining later items (Apple Sign In, retention jobs, CSV,
+WhatsApp/SMS) are listed there under "MVP vs later."
 
 ### Push Notification Strategy
 
@@ -324,12 +397,12 @@ Still open:
 - Notification permission strategy for web PWA
 - Fallback handling for failed notifications
 
-Resolved (see Resolved Decisions): when to send unpicked and missing-final-status pushes, and that those offsets are admin-configurable.
+Resolved (see Resolved Decisions): when to send unpicked and missing-final-status pushes, and that those offsets are coordinator-configurable.
 
 ### Proximity Calculation
 
-- How to calculate volunteer-to-elder proximity? (straight-line distance, driving distance, manual admin input)
-- Should we store coordinates or use address geocoding?
+- How to calculate volunteer-to-elder proximity? (straight-line distance, driving distance, volunteer `homeArea`)
+- Elders store optional lat/lng and `geocodeStatus`; volunteers store neighborhood only (`homeArea`), never a home street address
 - Privacy considerations for location data
 
 ### Internationalization & Accessibility
@@ -351,7 +424,10 @@ Resolved (see Resolved Decisions): when to send unpicked and missing-final-statu
 - GDPR/local privacy law requirements
 - Backup and disaster recovery strategy
 
-Resolved (see Resolved Decisions): a volunteer sees notes and details only for elders assigned to them.
+Resolved (see Resolved Decisions): a volunteer sees notes, details, and
+next of kin only for elders assigned to them. Multi-city scoping, roles,
+join-link rules, onboarding fields, and decline/cancel unassignment are
+also resolved.
 
 ### Resolved Decisions
 
@@ -359,16 +435,22 @@ These items were previously open or unspecified. They are now product decisions 
 
 - **Matching**: A volunteer can be matched with more than one elder (for example volunteer "Maya Cohen" with elders "Rivkah Levi" and "Yosef Abraham").
 - **Elder address**: The elder address is the full address, including building entrance and building code (for example "12 Example St, Entrance B, code 1234, Tel Aviv").
-- **Elder notes**: Each elder has a notes textarea. Volunteers may submit requests to change an elder's details; an admin approves them before they apply.
-- **Volunteer visibility**: A volunteer sees notes and details only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
-- **Admin Settings**: An admin can configure everything from the app through a simple, beautiful Settings area, including distribution center address, notification offsets and timings, day hours, notification texts and languages, default theme, and org name/logo.
+- **Elder notes**: Each elder has **one** general `notes` field (for example "entrance is around the back", "hard of hearing, knock loudly"), visible to the assigned volunteer and to coordinators. There are no `dietaryNotes`, `accessibilityFlags`, `volunteerNotes`, or `coordinatorNotes`. Volunteers may submit requests to change an elder's details; a coordinator approves them before they apply.
+- **Elder next of kin**: `ElderContact` (name, relation, phone) is visible to the assigned volunteer and to coordinators so the volunteer can call if the elder does not answer.
+- **Volunteer visibility**: A volunteer sees notes, details, and next of kin only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
+- **City Settings**: A coordinator can configure their city from a simple, beautiful Settings area, including distribution center address, notification offsets and timings, day hours, notification texts and languages, default theme, and org name/logo.
 - **Theming**: Light theme by default with a pastel "Wisteria & mint" palette (wisteria `#A99BE0` primary, mint `#A8E6CF` accent; mint for Delivered states). Dark theme uses deep plum `#1E1A2E` as the background with brightened accents. Users can toggle the theme and it follows the system preference.
-- **Distribution day creation**: An admin creates a distribution day by entering just a date. The admin can add notes per day and sets that day's hours.
-- **Distribution center**: An admin sets the distribution center address on the Settings page. Example: "10 Warehouse Rd, Holon".
+- **Distribution day creation**: A coordinator creates a distribution day by entering just a date. They can add notes per day and set that day's hours. Creating a day prefills deliveries from current permanent matches.
+- **Distribution center**: A coordinator sets the distribution center address on the city Settings page. Example: "10 Warehouse Rd, Holon".
 - **Map**: The map shows an optimized route that starts at the distribution center address.
 - **Navigate menu**: Each address has a Navigate menu with Google Maps, Apple Maps, and Waze.
 - **Volunteer delivery flow**: Confirm attendance, then mark each package Picked, then mark it Delivered or Not delivered.
-- **Not delivered**: Opens a notes popup. The note is sent to the admin and saved. There is no automatic reassignment; the admin decides.
+- **Not delivered**: Opens a notes popup. The note is sent to the coordinator and saved. There is no automatic reassignment; the coordinator decides.
 - **Thank-you screens**: A fireworks thank-you screen appears when the volunteer confirms attendance and again when they finish all deliveries.
-- **Unpicked push**: If packages are not Picked one hour before the window ends, send a push. An admin can configure this offset.
-- **Missing final status push**: If a package is Picked but has no final status after an admin-configured wait (default 3 days), send a reminder push.
+- **Unpicked push**: If packages are not Picked one hour before the window ends, send a push. A coordinator can configure this offset.
+- **Missing final status push**: If a package is Picked but has no final status after a coordinator-configured wait (default 3 days), send a reminder push.
+- **Multi-city**: Tenant is city. City-owned tables carry `cityId`. Super admin creates cities. See [ADR 0019](./adr/0019-multi-tenant-city-scoping.md).
+- **Roles**: Volunteer, City coordinator, Super admin. Permissions are per city. See [docs/rbac.md](./rbac.md).
+- **Auth**: Google and Facebook OAuth (unchanged). Mandatory onboarding: `firstName`, `lastName`, `phone` required; `birthDate` and `email` optional; preferred locale. No privacy-acceptance step. After onboarding: notification permission and install prompts. See [ADR 0020](./adr/0020-oauth-join-link-auth.md).
+- **Join links**: Permanent shareable link per city and role. No 48-hour expiry and no `maxUses` by default. Coordinator can revoke and regenerate. Landing page has an Install app button. New members stay **pending** until a coordinator approves (one tap).
+- **Decline / cancel**: The volunteer may enter a `cancelReason` (visible to the coordinator). Their deliveries on that day move to unassigned and appear on the "Needs a volunteer" list. They are never auto-reassigned.
