@@ -5,6 +5,7 @@ import {
   type OpenAPIObject,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import * as cookieParser from 'cookie-parser';
 import { HealthService } from './health/health.service';
 
 export function createSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
@@ -27,6 +28,9 @@ export function setupSwagger(app: INestApplication): void {
 
 export function configureApp(app: INestApplication): INestApplication {
   app.setGlobalPrefix('api');
+
+  app.use(cookieParser());
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
