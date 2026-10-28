@@ -12,6 +12,7 @@ Related:
 - [RBAC and city scoping](./rbac.md)
 - [ADR 0019: Multi-tenant city scoping](./adr/0019-multi-tenant-city-scoping.md)
 - [ADR 0020: OAuth and join-link authentication](./adr/0020-oauth-join-link-auth.md)
+- [ADR 0021: Provider-agnostic Web Push (VAPID)](./adr/0021-web-push-vapid.md)
 - [ADR 0007: No personal data in the repository](./adr/0007-no-personal-data-in-repo.md)
 
 Examples below use **fake data only**.

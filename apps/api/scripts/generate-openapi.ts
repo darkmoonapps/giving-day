@@ -26,4 +26,11 @@ async function generateOpenApi(): Promise<void> {
   await app.close();
 }
 
-void generateOpenApi();
+void generateOpenApi().catch((error: unknown) => {
+  const message =
+    error instanceof Error
+      ? `${error.name}: ${error.message}\n${error.stack}`
+      : String(error);
+  process.stderr.write(`${message}\n`);
+  process.exit(1);
+});
