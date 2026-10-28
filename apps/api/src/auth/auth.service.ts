@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -61,28 +65,45 @@ export class AuthService {
       return existingIdentity.user;
     }
 
-    return await this.prisma.user.create({
+    const createdUser = await this.prisma.user.create({
       data: {
         email: profile.email,
         firstName: profile.firstName,
         lastName: profile.lastName,
         lastLoginAt: new Date(),
-        identities: {
-          create: {
-            provider: profile.provider,
-            providerSubject: profile.providerSubject,
-          },
+      },
+    });
+
+    await this.prisma.authIdentity.create({
+      data: {
+        userId: createdUser.id,
+        provider: profile.provider,
+        providerSubject: profile.providerSubject,
+      },
+    });
+
+    return createdUser;
+  }
+
+  async createSession(userId: string, userAgent: string): Promise<AuthTokens> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        memberships: {
+          where: { status: 'active' },
         },
       },
     });
-  }
 
-  async createSession(
-    userId: string,
-    userAgent: string,
-    isCoordinator: boolean
-  ): Promise<AuthTokens> {
-    const refreshTokenTTL = isCoordinator ? 14 : 90;
+    if (!user) {
+      throw new UnauthorizedException('auth.user_not_found');
+    }
+
+    const hasActiveCoordinatorRole = user.memberships.some(
+      (m) => m.role === 'coordinator' && m.status === 'active'
+    );
+
+    const refreshTokenTTL = hasActiveCoordinatorRole ? 14 : 90;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + refreshTokenTTL);
 
@@ -106,11 +127,24 @@ export class AuthService {
     };
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<string> {
+  async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
+    if (!refreshToken) {
+      throw new UnauthorizedException('auth.refresh_token_required');
+    }
+
     const sessions = await this.prisma.session.findMany({
       where: {
         revokedAt: null,
         expiresAt: { gt: new Date() },
+      },
+      include: {
+        user: {
+          include: {
+            memberships: {
+              where: { status: 'active' },
+            },
+          },
+        },
       },
     });
 
@@ -119,15 +153,50 @@ export class AuthService {
         refreshToken,
         session.refreshTokenHash
       );
+
       if (isValid) {
-        return this.generateAccessToken(session.userId);
+        await this.prisma.session.update({
+          where: { id: session.id },
+          data: { revokedAt: new Date() },
+        });
+
+        const hasActiveCoordinatorRole = session.user.memberships.some(
+          (m) => m.role === 'coordinator' && m.status === 'active'
+        );
+
+        const refreshTokenTTL = hasActiveCoordinatorRole ? 14 : 90;
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + refreshTokenTTL);
+
+        const newRefreshToken = this.generateRefreshToken();
+        const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
+
+        await this.prisma.session.create({
+          data: {
+            userId: session.userId,
+            refreshTokenHash: newRefreshTokenHash,
+            userAgent: session.userAgent,
+            expiresAt,
+          },
+        });
+
+        const newAccessToken = this.generateAccessToken(session.userId);
+
+        return {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        };
       }
     }
 
-    throw new UnauthorizedException('Invalid refresh token');
+    throw new UnauthorizedException('auth.invalid_refresh_token');
   }
 
   async revokeSession(userId: string, refreshToken: string): Promise<void> {
+    if (!refreshToken) {
+      return;
+    }
+
     const sessions = await this.prisma.session.findMany({
       where: {
         userId,
@@ -204,6 +273,18 @@ export class AuthService {
       locale?: 'he' | 'en';
     }
   ): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('auth.user_not_found');
+    }
+
+    if (user.onboardedAt) {
+      throw new BadRequestException('auth.already_onboarded');
+    }
+
     return await this.prisma.user.update({
       where: { id: userId },
       data: {

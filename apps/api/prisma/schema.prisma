@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// Enums
+// ============================================================================
+
 enum Locale {
   he
   en
@@ -36,114 +40,566 @@ enum MembershipStatus {
   removed
 }
 
+enum ElderStatus {
+  active
+  paused
+  hospitalized
+  moved
+  deceased
+  removed
+}
+
+enum GeocodeStatus {
+  pending
+  ok
+  failed
+  manual
+}
+
+enum ContactRelation {
+  child
+  spouse
+  sibling
+  caregiver
+  social_worker
+  neighbor
+  other
+}
+
+enum ChangeRequestStatus {
+  pending
+  approved
+  rejected
+  superseded
+}
+
+enum MatchType {
+  permanent
+  one_time
+}
+
+enum MatchEndReason {
+  volunteer_left
+  elder_inactive
+  reassigned
+  other
+}
+
+enum DayStatus {
+  draft
+  published
+  in_progress
+  closed
+  cancelled
+}
+
+enum ParticipationStatus {
+  invited
+  confirmed
+  declined
+  cancelled
+  no_show
+  attended
+}
+
+enum DeliveryStatus {
+  unassigned
+  assigned
+  picked
+  delivered
+  not_delivered
+  cancelled
+}
+
+enum NotDeliveredReason {
+  not_home
+  refused
+  wrong_address
+  hospitalized
+  deceased
+  other
+}
+
+enum DeliveryResolution {
+  redeliver
+  reassigned
+  skipped
+  follow_up
+}
+
+enum TemplateKey {
+  day_invite
+  confirm_reminder
+  unpicked_warning
+  final_status_reminder
+  reassigned
+  change_request_reviewed
+  membership_approved
+}
+
+enum NotificationChannel {
+  push
+}
+
+enum NotificationStatus {
+  sent
+  failed
+  clicked
+}
+
+// ============================================================================
+// Models
+// ============================================================================
+
 model City {
   id         String    @id @default(uuid()) @db.Uuid
-  slug       String    @unique
-  nameHe     String
-  nameEn     String
-  timezone   String    @default("Asia/Jerusalem")
-  isActive   Boolean   @default(true)
-  archivedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @db.Timestamptz
+  archivedAt DateTime? @db.Timestamptz
 
-  invites     CityInvite[]
-  memberships CityMembership[]
+  slug     String  @unique
+  nameHe   String
+  nameEn   String
+  timezone String  @default("Asia/Jerusalem")
+  isActive Boolean @default(true)
+
+  settings            CitySettings?
+  invites             CityInvite[]
+  memberships         CityMembership[]
+  elders              Elder[]
+  distributionDays    DistributionDay[]
+  messageTemplates    MessageTemplate[]
+  notificationLogs    NotificationLog[]
+  auditLogs           AuditLog[]
+  elderContacts       ElderContact[]
+  elderChangeRequests ElderChangeRequest[]
+  matches             Match[]
+  dayParticipations   DayParticipation[]
+  deliveries          Delivery[]
 
   @@map("cities")
 }
 
+model CitySettings {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId String @unique @db.Uuid
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  centerAddress                String
+  centerLat                    Decimal  @db.Decimal(9, 6)
+  centerLng                    Decimal  @db.Decimal(9, 6)
+  defaultStartTime             DateTime @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time
+  defaultEndTime               DateTime @default(dbgenerated("'14:00:00'::time without time zone")) @db.Time
+  confirmReminderAfterHours    Int      @default(24)
+  unpickedPushMinutesBeforeEnd Int      @default(60)
+  missingFinalStatusWaitHours  Int      @default(72)
+  defaultLocale                Locale   @default(he)
+  defaultTheme                 String   @default("wisteria-mint")
+  orgName                      String?
+  logoUrl                      String?
+  extra                        Json     @default("{}")
+
+  @@map("city_settings")
+}
+
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @db.Timestamptz
+  archivedAt DateTime? @db.Timestamptz
+
   firstName    String?
   lastName     String?
   phone        String?
-  email        String?    @db.Citext
-  birthDate    DateTime?  @db.Date
-  locale       Locale     @default(he)
-  themePref    ThemePref  @default(system)
-  isSuperAdmin Boolean    @default(false)
-  onboardedAt  DateTime?
-  lastLoginAt  DateTime?
-  archivedAt   DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  email        String?   @db.Citext
+  birthDate    DateTime? @db.Date
+  locale       Locale    @default(he)
+  themePref    ThemePref @default(system)
+  isSuperAdmin Boolean   @default(false)
+  onboardedAt  DateTime? @db.Timestamptz
+  lastLoginAt  DateTime? @db.Timestamptz
 
-  identities  AuthIdentity[]
-  sessions    Session[]
-  memberships CityMembership[]
-  invitesCreated CityInvite[]
+  authIdentities         AuthIdentity[]
+  sessions               Session[]
+  pushSubscriptions      PushSubscription[]
+  memberships            CityMembership[]
+  createdInvites         CityInvite[]
+  approvedMemberships    CityMembership[]     @relation("ApprovedBy")
+  matches                Match[]
+  dayParticipations      DayParticipation[]
+  deliveries             Delivery[]
+  elderChangeRequests    ElderChangeRequest[]
+  reviewedChangeRequests ElderChangeRequest[] @relation("ReviewedBy")
+  createdDays            DistributionDay[]
+  notificationLogs       NotificationLog[]
+  auditLogs              AuditLog[]
+  resolvedDeliveries     Delivery[]           @relation("ResolvedBy")
 
   @@map("users")
 }
 
 model AuthIdentity {
-  id              String       @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
   userId          String       @db.Uuid
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider        AuthProvider
   providerSubject String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerSubject])
   @@map("auth_identities")
 }
 
 model Session {
-  id               String    @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
   userId           String    @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokenHash String
   userAgent        String
-  expiresAt        DateTime
-  revokedAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt        DateTime  @db.Timestamptz
+  revokedAt        DateTime? @db.Timestamptz
 
   @@map("sessions")
 }
 
 model CityInvite {
-  id          String    @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
   cityId      String    @db.Uuid
+  city        City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
   role        CityRole
   tokenHash   String    @unique
   createdById String    @db.Uuid
-  expiresAt   DateTime?
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  expiresAt   DateTime? @db.Timestamptz
   maxUses     Int?
   usedCount   Int       @default(0)
-  revokedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  revokedAt   DateTime? @db.Timestamptz
 
-  city      City             @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  createdBy User             @relation(fields: [createdById], references: [id])
   memberships CityMembership[]
 
+  // Partial unique: one active invite per (cityId, role) WHERE revokedAt IS NULL
+  // Enforced by unique index city_invites_cityId_role_active in migration
+  @@index([cityId, role, revokedAt])
   @@map("city_invites")
 }
 
 model CityMembership {
-  id               String           @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
   cityId           String           @db.Uuid
+  city             City             @relation(fields: [cityId], references: [id], onDelete: Cascade)
   userId           String           @db.Uuid
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   role             CityRole
   status           MembershipStatus @default(pending)
   inviteId         String?          @db.Uuid
+  invite           CityInvite?      @relation(fields: [inviteId], references: [id])
   approvedById     String?          @db.Uuid
-  approvedAt       DateTime?
+  approvedBy       User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedAt       DateTime?        @db.Timestamptz
   homeArea         String?
   coordinatorNotes String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  city   City        @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invite CityInvite? @relation(fields: [inviteId], references: [id])
 
   @@unique([cityId, userId])
+  @@index([cityId, role, status])
   @@map("city_memberships")
+}
+
+model Elder {
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @db.Timestamptz
+  archivedAt DateTime? @db.Timestamptz
+
+  cityId        String        @db.Uuid
+  city          City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  fullName      String
+  phone         String?
+  phoneAlt      String?
+  language      String        @default("he")
+  street        String
+  houseNumber   String
+  entrance      String?
+  floor         String?
+  apartment     String?
+  buildingCode  String?
+  addressNotes  String?
+  lat           Decimal?      @db.Decimal(9, 6)
+  lng           Decimal?      @db.Decimal(9, 6)
+  geocodeStatus GeocodeStatus @default(pending)
+  status        ElderStatus   @default(active)
+  statusReason  String?
+  notes         String?
+
+  contacts       ElderContact[]
+  changeRequests ElderChangeRequest[]
+  matches        Match[]
+  deliveries     Delivery[]
+
+  @@index([cityId, status])
+  @@map("elders")
+}
+
+model ElderContact {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  elderId   String          @db.Uuid
+  elder     Elder           @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  cityId    String          @db.Uuid
+  city      City            @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  name      String
+  relation  ContactRelation
+  phone     String
+  isPrimary Boolean         @default(false)
+
+  @@index([cityId])
+  @@map("elder_contacts")
+}
+
+model ElderChangeRequest {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId        String              @db.Uuid
+  city          City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  elderId       String              @db.Uuid
+  elder         Elder               @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  requestedById String              @db.Uuid
+  requestedBy   User                @relation(fields: [requestedById], references: [id])
+  changes       Json
+  reason        String?
+  status        ChangeRequestStatus @default(pending)
+  reviewedById  String?             @db.Uuid
+  reviewedBy    User?               @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?           @db.Timestamptz
+  reviewNote    String?
+
+  @@index([cityId, status])
+  @@map("elder_change_requests")
+}
+
+model Match {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId      String           @db.Uuid
+  city        City             @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  elderId     String           @db.Uuid
+  elder       Elder            @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  volunteerId String           @db.Uuid
+  volunteer   User             @relation(fields: [volunteerId], references: [id])
+  type        MatchType
+  dayId       String?          @db.Uuid
+  day         DistributionDay? @relation(fields: [dayId], references: [id])
+  startsAt    DateTime         @db.Date
+  endsAt      DateTime?        @db.Date
+  endReason   MatchEndReason?
+
+  deliveries Delivery[]
+
+  // Partial unique: one current permanent match per elder WHERE type='permanent' AND endsAt IS NULL
+  // Enforced by unique index matches_elderId_current_permanent in migration
+  @@index([cityId, elderId, type, endsAt])
+  @@index([cityId, volunteerId])
+  @@map("matches")
+}
+
+model DistributionDay {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId             String    @db.Uuid
+  city               City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  date               DateTime  @db.Date
+  startTime          DateTime  @db.Time
+  endTime            DateTime  @db.Time
+  notesForVolunteers String?
+  internalNotes      String?
+  addOns             String[]
+  status             DayStatus @default(draft)
+  publishedAt        DateTime? @db.Timestamptz
+  closedAt           DateTime? @db.Timestamptz
+  createdById        String    @db.Uuid
+  createdBy          User      @relation(fields: [createdById], references: [id])
+
+  matches        Match[]
+  participations DayParticipation[]
+  deliveries     Delivery[]
+
+  @@unique([cityId, date])
+  @@index([cityId, status])
+  @@map("distribution_days")
+}
+
+model DayParticipation {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId       String              @db.Uuid
+  city         City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  dayId        String              @db.Uuid
+  day          DistributionDay     @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  volunteerId  String              @db.Uuid
+  volunteer    User                @relation(fields: [volunteerId], references: [id])
+  status       ParticipationStatus @default(invited)
+  respondedAt  DateTime?           @db.Timestamptz
+  cancelReason String?
+  finishedAt   DateTime?           @db.Timestamptz
+
+  @@unique([dayId, volunteerId])
+  @@index([cityId, status])
+  @@map("day_participations")
+}
+
+model Delivery {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId             String              @db.Uuid
+  city               City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  dayId              String              @db.Uuid
+  day                DistributionDay     @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  elderId            String              @db.Uuid
+  elder              Elder               @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  volunteerId        String?             @db.Uuid
+  volunteer          User?               @relation(fields: [volunteerId], references: [id])
+  matchId            String?             @db.Uuid
+  match              Match?              @relation(fields: [matchId], references: [id])
+  status             DeliveryStatus      @default(unassigned)
+  notDeliveredReason NotDeliveredReason?
+  note               String?
+  routeOrder         Int?
+  assignedAt         DateTime?           @db.Timestamptz
+  pickedAt           DateTime?           @db.Timestamptz
+  finalAt            DateTime?           @db.Timestamptz
+  resolution         DeliveryResolution?
+  resolvedById       String?             @db.Uuid
+  resolvedBy         User?               @relation("ResolvedBy", fields: [resolvedById], references: [id])
+
+  events           DeliveryEvent[]
+  notificationLogs NotificationLog[]
+
+  @@unique([dayId, elderId])
+  @@index([dayId, volunteerId])
+  @@index([dayId, status])
+  @@index([cityId])
+  @@map("deliveries")
+}
+
+model DeliveryEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  deliveryId      String   @db.Uuid
+  delivery        Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  fromStatus      String
+  toStatus        String
+  fromVolunteerId String?  @db.Uuid
+  toVolunteerId   String?  @db.Uuid
+  actorId         String   @db.Uuid
+  note            String?
+  at              DateTime @db.Timestamptz
+
+  @@index([deliveryId])
+  @@map("delivery_events")
+}
+
+model MessageTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  cityId String?     @db.Uuid
+  city   City?       @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  key    TemplateKey
+  locale Locale
+  title  String
+  body   String
+
+  // Unique on (cityId, key, locale) for city templates
+  // Plus partial unique on (key, locale) WHERE cityId IS NULL for global templates
+  // Enforced by unique index message_templates_key_locale_global in migration
+  @@unique([cityId, key, locale])
+  @@index([cityId])
+  @@map("message_templates")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String
+  lastSuccessAt DateTime? @db.Timestamptz
+  failedCount   Int       @default(0)
+  disabledAt    DateTime? @db.Timestamptz
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model NotificationLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  cityId      String              @db.Uuid
+  city        City                @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  userId      String              @db.Uuid
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateKey TemplateKey
+  channel     NotificationChannel
+  dayId       String?             @db.Uuid
+  deliveryId  String?             @db.Uuid
+  delivery    Delivery?           @relation(fields: [deliveryId], references: [id])
+  dedupeKey   String              @unique
+  status      NotificationStatus
+  error       String?
+  sentAt      DateTime            @db.Timestamptz
+
+  @@index([cityId, userId])
+  @@map("notification_logs")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  cityId   String?  @db.Uuid
+  city     City?    @relation(fields: [cityId], references: [id])
+  actorId  String   @db.Uuid
+  actor    User     @relation(fields: [actorId], references: [id])
+  action   String
+  entity   String
+  entityId String   @db.Uuid
+  diff     Json
+  at       DateTime @db.Timestamptz
+
+  @@index([cityId, entity])
+  @@index([actorId])
+  @@map("audit_logs")
 }

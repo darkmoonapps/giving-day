@@ -40,12 +40,8 @@ export class AbilitiesGuard implements CanActivate {
     const ability = this.abilityFactory.createForUser(user);
 
     const hasAllAbilities = requiredAbilities.every((requiredAbility) => {
-      const { action, subject, conditions } = requiredAbility;
-      return ability.can(
-        action as never,
-        subject as never,
-        conditions as never
-      );
+      const { action, subject } = requiredAbility;
+      return ability.can(action, subject as never);
     });
 
     if (!hasAllAbilities) {

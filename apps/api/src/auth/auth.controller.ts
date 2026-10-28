@@ -45,27 +45,14 @@ export class AuthController {
     const user = req.user;
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const userWithMemberships = await this.authService.getUserWithMemberships(
-      user.id
-    );
-    const isCoordinator =
-      userWithMemberships?.memberships.some((m) => m.role === 'coordinator') ??
-      false;
-
-    const tokens = await this.authService.createSession(
-      user.id,
-      userAgent,
-      isCoordinator
-    );
+    const tokens = await this.authService.createSession(user.id, userAgent);
 
     this.setRefreshTokenCookie(res, tokens.refreshToken);
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const redirectUrl = user.onboardedAt
-      ? `${frontendUrl}/auth/callback?token=${tokens.accessToken}`
-      : `${frontendUrl}/onboarding?token=${tokens.accessToken}`;
+    const redirectPath = user.onboardedAt ? '/auth/callback' : '/onboarding';
 
-    res.redirect(redirectUrl);
+    res.redirect(`${frontendUrl}${redirectPath}`);
   }
 
   @Get('facebook')
@@ -85,27 +72,14 @@ export class AuthController {
     const user = req.user;
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const userWithMemberships = await this.authService.getUserWithMemberships(
-      user.id
-    );
-    const isCoordinator =
-      userWithMemberships?.memberships.some((m) => m.role === 'coordinator') ??
-      false;
-
-    const tokens = await this.authService.createSession(
-      user.id,
-      userAgent,
-      isCoordinator
-    );
+    const tokens = await this.authService.createSession(user.id, userAgent);
 
     this.setRefreshTokenCookie(res, tokens.refreshToken);
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const redirectUrl = user.onboardedAt
-      ? `${frontendUrl}/auth/callback?token=${tokens.accessToken}`
-      : `${frontendUrl}/onboarding?token=${tokens.accessToken}`;
+    const redirectPath = user.onboardedAt ? '/auth/callback' : '/onboarding';
 
-    res.redirect(redirectUrl);
+    res.redirect(`${frontendUrl}${redirectPath}`);
   }
 
   @Post('onboarding')
@@ -134,16 +108,17 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Token refreshed' })
   async refresh(
     @Body() dto: RefreshTokenDto,
-    @Req() req: Request
-  ): Promise<{ accessToken: string }> {
+    @Req() req: Request,
+    @Res() res: Response
+  ): Promise<void> {
     const refreshToken =
       dto.refreshToken || this.getRefreshTokenFromCookie(req);
-    if (!refreshToken) {
-      throw new Error('Refresh token not provided');
-    }
 
-    const accessToken = await this.authService.refreshAccessToken(refreshToken);
-    return { accessToken };
+    const tokens = await this.authService.refreshAccessToken(refreshToken);
+
+    this.setRefreshTokenCookie(res, tokens.refreshToken);
+
+    res.json({ accessToken: tokens.accessToken });
   }
 
   @Post('logout')
@@ -186,7 +161,7 @@ export class AuthController {
     });
   }
 
-  private getRefreshTokenFromCookie(req: Request): string | undefined {
-    return (req.cookies as Record<string, string>)?.refreshToken;
+  private getRefreshTokenFromCookie(req: Request): string {
+    return (req.cookies as Record<string, string>)?.refreshToken || '';
   }
 }

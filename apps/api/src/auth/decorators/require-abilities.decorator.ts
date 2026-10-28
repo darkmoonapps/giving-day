@@ -1,7 +1,8 @@
 import { SetMetadata } from '@nestjs/common';
+import type { Action } from '../../abilities/ability.factory';
 
 export interface RequiredAbility {
-  action: string;
+  action: Action;
   subject: string;
   conditions?: Record<string, unknown>;
 }
