@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addCityCoordinatorSchema,
-  cityJoinLinkSchema,
+  cityJoinLinkCreatedSchema,
+  cityJoinLinkStatusSchema,
   citySettingsSchema,
   timeOfDaySchema,
   updateCitySettingsSchema,
@@ -40,8 +41,8 @@ describe('city schemas', () => {
     ).toEqual({ defaultStartTime: '08:30' });
   });
 
-  it('accepts a shareable join link payload', () => {
-    const link = {
+  it('accepts a one-time created join link payload', () => {
+    const created = {
       role: 'volunteer' as const,
       token: 'fake-join-token',
       url: 'http://localhost:3000/join/fake-join-token',
@@ -49,7 +50,25 @@ describe('city schemas', () => {
       usedCount: 0,
     };
 
-    expect(cityJoinLinkSchema.parse(link)).toEqual(link);
+    expect(cityJoinLinkCreatedSchema.parse(created)).toEqual(created);
+  });
+
+  it('lists join-link status without a secret token', () => {
+    const status = {
+      role: 'volunteer' as const,
+      active: true,
+      createdAt: '2026-10-28T09:00:00.000Z',
+      usedCount: 2,
+    };
+
+    expect(cityJoinLinkStatusSchema.parse(status)).toEqual(status);
+    expect(
+      cityJoinLinkStatusSchema.parse({
+        ...status,
+        token: 'fake-join-token',
+        url: 'http://localhost:3000/join/fake-join-token',
+      })
+    ).toEqual(status);
   });
 
   it('requires userId or email when adding a coordinator', () => {

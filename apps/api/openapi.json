@@ -258,7 +258,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get the current permanent join links for a city",
+        "summary": "Get active join-link status for a city (no secret token; regenerate to get a new URL)",
         "tags": [
           "cities"
         ]
@@ -295,7 +295,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CityJoinLinkDto"
+                  "$ref": "#/components/schemas/CityJoinLinkCreatedDto"
                 }
               }
             }
@@ -306,7 +306,7 @@
             "bearer": []
           }
         ],
-        "summary": "Revoke the current join link and generate a new permanent one",
+        "summary": "Revoke the current join link and return a new raw token once",
         "tags": [
           "cities"
         ]
@@ -554,7 +554,54 @@
           "extra"
         ]
       },
-      "CityJoinLinkDto": {
+      "CityJoinLinkStatusDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "volunteer",
+            "enum": [
+              "coordinator",
+              "volunteer"
+            ]
+          },
+          "active": {
+            "type": "boolean",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-28T09:00:00.000Z",
+            "nullable": true
+          },
+          "usedCount": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "role",
+          "active",
+          "createdAt",
+          "usedCount"
+        ]
+      },
+      "CityJoinLinksResponseDto": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CityJoinLinkStatusDto"
+            }
+          }
+        },
+        "required": [
+          "links"
+        ]
+      },
+      "CityJoinLinkCreatedDto": {
         "type": "object",
         "properties": {
           "role": {
@@ -589,20 +636,6 @@
           "url",
           "createdAt",
           "usedCount"
-        ]
-      },
-      "CityJoinLinksResponseDto": {
-        "type": "object",
-        "properties": {
-          "links": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CityJoinLinkDto"
-            }
-          }
-        },
-        "required": [
-          "links"
         ]
       },
       "CityCoordinatorDto": {

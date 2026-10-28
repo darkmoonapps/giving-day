@@ -20,6 +20,7 @@ import {
   superAdmin,
   volunteerA,
 } from '../test/fake-users';
+import { hashJoinToken } from './join-token';
 
 describe('Cities HTTP authorization', () => {
   let app: INestApplication;
@@ -64,20 +65,26 @@ describe('Cities HTTP authorization', () => {
     },
     cityInvite: {
       findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-      create: vi.fn().mockResolvedValue({
-        id: 'invite-1',
-        cityId: CITY_A_ID,
-        role: 'volunteer',
-        tokenHash: 'new-fake-token',
-        createdById: 'actor',
-        expiresAt: null,
-        maxUses: null,
-        usedCount: 0,
-        revokedAt: null,
-        createdAt: new Date('2026-10-28T09:00:00.000Z'),
-        updatedAt: new Date('2026-10-28T09:00:00.000Z'),
-      }),
+      create: vi
+        .fn()
+        .mockImplementation(
+          ({ data }: { data: { tokenHash: string; role: string } }) =>
+            Promise.resolve({
+              id: 'invite-1',
+              cityId: CITY_A_ID,
+              role: data.role,
+              tokenHash: data.tokenHash,
+              createdById: 'actor',
+              expiresAt: null,
+              maxUses: null,
+              usedCount: 0,
+              revokedAt: null,
+              createdAt: new Date('2026-10-28T09:00:00.000Z'),
+              updatedAt: new Date('2026-10-28T09:00:00.000Z'),
+            })
+        ),
     },
     cityMembership: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -139,19 +146,6 @@ describe('Cities HTTP authorization', () => {
     });
     mockPrisma.citySettings.findUnique.mockResolvedValue(settingsRow);
     mockPrisma.cityInvite.findMany.mockResolvedValue([]);
-    mockPrisma.cityInvite.create.mockResolvedValue({
-      id: 'invite-1',
-      cityId: CITY_A_ID,
-      role: 'volunteer',
-      tokenHash: 'new-fake-token',
-      createdById: 'actor',
-      expiresAt: null,
-      maxUses: null,
-      usedCount: 0,
-      revokedAt: null,
-      createdAt: new Date('2026-10-28T09:00:00.000Z'),
-      updatedAt: new Date('2026-10-28T09:00:00.000Z'),
-    });
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
@@ -239,42 +233,67 @@ describe('Cities HTTP authorization', () => {
   });
 
   describe('join links', () => {
-    it('allows a coordinator to read and regenerate', async () => {
+    it('allows a coordinator to read status and regenerate a secret URL once', async () => {
       currentUser = coordinatorA();
+      mockPrisma.cityInvite.findMany.mockResolvedValue([
+        {
+          id: 'invite-1',
+          cityId: CITY_A_ID,
+          role: 'volunteer',
+          tokenHash: hashJoinToken('fake-join-token'),
+          createdById: 'actor',
+          expiresAt: null,
+          maxUses: null,
+          usedCount: 2,
+          revokedAt: null,
+          createdAt: new Date('2026-10-01T09:00:00.000Z'),
+          updatedAt: new Date('2026-10-01T09:00:00.000Z'),
+        },
+      ]);
 
-      await request(app.getHttpServer())
+      const listed = await request(app.getHttpServer())
         .get(`/api/cities/${CITY_A_ID}/join-links`)
         .expect(200);
+
+      expect(listed.body.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: 'volunteer',
+            active: true,
+            usedCount: 2,
+          }),
+        ])
+      );
+      expect(listed.body).not.toHaveProperty('token');
+      expect(JSON.stringify(listed.body)).not.toContain('fake-join-token');
+      expect(JSON.stringify(listed.body)).not.toContain(
+        hashJoinToken('fake-join-token')
+      );
 
       const regenerated = await request(app.getHttpServer())
         .post(`/api/cities/${CITY_A_ID}/join-links/volunteer/regenerate`)
         .expect(201);
 
-      expect(regenerated.body.token).toBe('new-fake-token');
-      expect(regenerated.body.url).toContain('/join/new-fake-token');
+      const rawToken = regenerated.body.token as string;
+      expect(rawToken.length).toBeGreaterThan(20);
+      expect(regenerated.body.url).toContain(`/join/${rawToken}`);
+      expect(mockPrisma.cityInvite.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tokenHash: hashJoinToken(rawToken),
+        }),
+      });
     });
 
     it('allows a super admin to regenerate a coordinator link', async () => {
       currentUser = superAdmin();
-      mockPrisma.cityInvite.create.mockResolvedValue({
-        id: 'invite-2',
-        cityId: CITY_A_ID,
-        role: 'coordinator',
-        tokenHash: 'coord-token',
-        createdById: superAdmin().id,
-        expiresAt: null,
-        maxUses: null,
-        usedCount: 0,
-        revokedAt: null,
-        createdAt: new Date('2026-10-28T09:00:00.000Z'),
-        updatedAt: new Date('2026-10-28T09:00:00.000Z'),
-      });
 
       const response = await request(app.getHttpServer())
         .post(`/api/cities/${CITY_A_ID}/join-links/coordinator/regenerate`)
         .expect(201);
 
       expect(response.body.role).toBe('coordinator');
+      expect(response.body.token).toEqual(expect.any(String));
+      expect(response.body.url).toContain(response.body.token);
     });
 
     it('forbids a volunteer from reading or rotating links', async () => {

@@ -74,25 +74,42 @@ export interface CitySettingsResponseDto {
   extra: CitySettingsResponseDtoExtra;
 }
 
-export type CityJoinLinkDtoRole = typeof CityJoinLinkDtoRole[keyof typeof CityJoinLinkDtoRole];
+export type CityJoinLinkStatusDtoRole = typeof CityJoinLinkStatusDtoRole[keyof typeof CityJoinLinkStatusDtoRole];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const CityJoinLinkDtoRole = {
+export const CityJoinLinkStatusDtoRole = {
   coordinator: 'coordinator',
   volunteer: 'volunteer',
 } as const;
 
-export interface CityJoinLinkDto {
-  role: CityJoinLinkDtoRole;
-  token: string;
-  url: string;
-  createdAt: string;
+export interface CityJoinLinkStatusDto {
+  role: CityJoinLinkStatusDtoRole;
+  active: boolean;
+  /** @nullable */
+  createdAt: string | null;
   usedCount: number;
 }
 
 export interface CityJoinLinksResponseDto {
-  links: CityJoinLinkDto[];
+  links: CityJoinLinkStatusDto[];
+}
+
+export type CityJoinLinkCreatedDtoRole = typeof CityJoinLinkCreatedDtoRole[keyof typeof CityJoinLinkCreatedDtoRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityJoinLinkCreatedDtoRole = {
+  coordinator: 'coordinator',
+  volunteer: 'volunteer',
+} as const;
+
+export interface CityJoinLinkCreatedDto {
+  role: CityJoinLinkCreatedDtoRole;
+  token: string;
+  url: string;
+  createdAt: string;
+  usedCount: number;
 }
 
 export type CityCoordinatorDtoStatus = typeof CityCoordinatorDtoStatus[keyof typeof CityCoordinatorDtoStatus];
@@ -1123,7 +1140,7 @@ export const useUpdateCitySettings = <TError = unknown,
     }
     
 /**
- * @summary Get the current permanent join links for a city
+ * @summary Get active join-link status for a city (no secret token; regenerate to get a new URL)
  */
 export const getListCityJoinLinksUrl = (cityId: unknown,) => {
 
@@ -1202,7 +1219,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Get the current permanent join links for a city
+ * @summary Get active join-link status for a city (no secret token; regenerate to get a new URL)
  */
 
 export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(
@@ -1224,7 +1241,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
 
 
 /**
- * @summary Revoke the current join link and generate a new permanent one
+ * @summary Revoke the current join link and return a new raw token once
  */
 export const getRegenerateCityJoinLinkUrl = (cityId: unknown,
     role: 'coordinator' | 'volunteer',) => {
@@ -1236,9 +1253,9 @@ export const getRegenerateCityJoinLinkUrl = (cityId: unknown,
 }
 
 export const regenerateCityJoinLink = async (cityId: unknown,
-    role: 'coordinator' | 'volunteer', options?: RequestInit): Promise<CityJoinLinkDto> => {
+    role: 'coordinator' | 'volunteer', options?: RequestInit): Promise<CityJoinLinkCreatedDto> => {
   
-  return apiFetch<CityJoinLinkDto>(getRegenerateCityJoinLinkUrl(cityId,role),
+  return apiFetch<CityJoinLinkCreatedDto>(getRegenerateCityJoinLinkUrl(cityId,role),
   {      
     ...options,
     method: 'POST'
@@ -1280,7 +1297,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RegenerateCityJoinLinkMutationError = unknown
 
     /**
- * @summary Revoke the current join link and generate a new permanent one
+ * @summary Revoke the current join link and return a new raw token once
  */
 export const useRegenerateCityJoinLink = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: unknown;role: 'coordinator' | 'volunteer'}, TContext>, request?: SecondParameter<typeof apiFetch>}

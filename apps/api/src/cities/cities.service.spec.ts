@@ -19,6 +19,7 @@ import {
   volunteerA,
 } from '../test/fake-users';
 import { CitiesService } from './cities.service';
+import { hashJoinToken } from './join-token';
 
 describe('CitiesService', () => {
   let service: CitiesService;
@@ -60,6 +61,7 @@ describe('CitiesService', () => {
     },
     cityInvite: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       updateMany: vi.fn(),
       create: vi.fn(),
     },
@@ -192,7 +194,7 @@ describe('CitiesService', () => {
       id: 'invite-1',
       cityId: CITY_A_ID,
       role: 'volunteer' as const,
-      tokenHash: 'fake-join-token',
+      tokenHash: hashJoinToken('fake-join-token'),
       createdById: COORDINATOR_A_ID,
       expiresAt: null,
       maxUses: null,
@@ -202,26 +204,41 @@ describe('CitiesService', () => {
       updatedAt: new Date('2026-10-01T09:00:00.000Z'),
     };
 
-    it('returns the current permanent links', async () => {
+    it('returns join-link status without the secret token', async () => {
       mockPrisma.city.findUnique.mockResolvedValue(city);
       mockPrisma.cityInvite.findMany.mockResolvedValue([invite]);
 
       const result = await service.listJoinLinks(CITY_A_ID, coordinatorA());
 
-      expect(result.links).toHaveLength(1);
-      expect(result.links[0]?.token).toBe('fake-join-token');
-      expect(result.links[0]?.url).toContain('/join/fake-join-token');
-      expect(result.links[0]?.usedCount).toBe(2);
+      expect(result.links).toEqual([
+        {
+          role: 'coordinator',
+          active: false,
+          createdAt: null,
+          usedCount: 0,
+        },
+        {
+          role: 'volunteer',
+          active: true,
+          createdAt: '2026-10-01T09:00:00.000Z',
+          usedCount: 2,
+        },
+      ]);
+      expect(JSON.stringify(result)).not.toContain(invite.tokenHash);
+      expect(JSON.stringify(result)).not.toContain('fake-join-token');
     });
 
-    it('revokes the current link and creates a new one', async () => {
+    it('stores a hash and returns the raw token only on regenerate', async () => {
       mockPrisma.city.findUnique.mockResolvedValue(city);
       mockPrisma.cityInvite.updateMany.mockResolvedValue({ count: 1 });
-      mockPrisma.cityInvite.create.mockResolvedValue({
-        ...invite,
-        tokenHash: 'new-fake-token',
-        usedCount: 0,
-      });
+      mockPrisma.cityInvite.create.mockImplementation(
+        ({ data }: { data: { tokenHash: string } }) =>
+          Promise.resolve({
+            ...invite,
+            tokenHash: data.tokenHash,
+            usedCount: 0,
+          })
+      );
 
       const result = await service.regenerateJoinLink(
         CITY_A_ID,
@@ -233,8 +250,39 @@ describe('CitiesService', () => {
         where: { cityId: CITY_A_ID, role: 'volunteer', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
-      expect(result.token).toBe('new-fake-token');
-      expect(result.url).toContain('/join/new-fake-token');
+      const storedHash = mockPrisma.cityInvite.create.mock.calls[0]?.[0].data
+        .tokenHash as string;
+      expect(storedHash).toBe(hashJoinToken(result.token));
+      expect(storedHash).not.toBe(result.token);
+      expect(result.url).toContain(`/join/${result.token}`);
+      expect(result.url).not.toContain(storedHash);
+    });
+
+    it('looks up an active invite by hashing the incoming raw token', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(invite);
+
+      const found = await service.findActiveInviteByRawToken('fake-join-token');
+
+      expect(found).toEqual(invite);
+      expect(mockPrisma.cityInvite.findUnique).toHaveBeenCalledWith({
+        where: { tokenHash: hashJoinToken('fake-join-token') },
+      });
+    });
+
+    it('does not look up a revoked invite or a hash used as the raw token', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue({
+        ...invite,
+        revokedAt: new Date('2026-10-02T09:00:00.000Z'),
+      });
+
+      await expect(
+        service.findActiveInviteByRawToken('fake-join-token')
+      ).resolves.toBeNull();
+
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(null);
+      await expect(
+        service.findActiveInviteByRawToken(invite.tokenHash)
+      ).resolves.toBeNull();
     });
 
     it('forbids volunteers from reading or rotating links', async () => {

@@ -25,7 +25,7 @@ import { CityRole } from '@prisma/client';
 import type {
   CityCoordinator,
   CityCoordinatorsResponse,
-  CityJoinLink,
+  CityJoinLinkCreated,
   CityJoinLinksResponse,
   CitySettings,
 } from '@giving-day/shared';
@@ -41,7 +41,7 @@ import {
   CityCoordinatorsResponseDto,
 } from './dto/coordinator-response.dto';
 import {
-  CityJoinLinkDto,
+  CityJoinLinkCreatedDto,
   CityJoinLinksResponseDto,
 } from './dto/join-link-response.dto';
 import { CitySettingsResponseDto } from './dto/city-settings-response.dto';
@@ -89,7 +89,8 @@ export class CitiesController {
   @RequireAbilities({ action: 'read', subject: 'CityInvite' })
   @ApiOperation({
     operationId: 'listCityJoinLinks',
-    summary: 'Get the current permanent join links for a city',
+    summary:
+      'Get active join-link status for a city (no secret token; regenerate to get a new URL)',
   })
   @ApiParam({ name: 'cityId', format: 'uuid' })
   @ApiOkResponse({ type: CityJoinLinksResponseDto })
@@ -104,16 +105,16 @@ export class CitiesController {
   @RequireAbilities({ action: 'create', subject: 'CityInvite' })
   @ApiOperation({
     operationId: 'regenerateCityJoinLink',
-    summary: 'Revoke the current join link and generate a new permanent one',
+    summary: 'Revoke the current join link and return a new raw token once',
   })
   @ApiParam({ name: 'cityId', format: 'uuid' })
   @ApiParam({ name: 'role', enum: CityRole })
-  @ApiCreatedResponse({ type: CityJoinLinkDto })
+  @ApiCreatedResponse({ type: CityJoinLinkCreatedDto })
   async regenerateJoinLink(
     @Param('cityId', ParseUUIDPipe) cityId: string,
     @Param('role', new ParseEnumPipe(CityRole)) role: CityRole,
     @CurrentUser() user: UserWithMemberships
-  ): Promise<CityJoinLink> {
+  ): Promise<CityJoinLinkCreated> {
     return this.citiesService.regenerateJoinLink(cityId, role, user);
   }
 

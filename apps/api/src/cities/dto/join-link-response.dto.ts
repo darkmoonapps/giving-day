@@ -1,6 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CityJoinLinkDto {
+export class CityJoinLinkStatusDto {
+  @ApiProperty({
+    type: String,
+    example: 'volunteer',
+    enum: ['coordinator', 'volunteer'],
+  })
+  role!: 'coordinator' | 'volunteer';
+
+  @ApiProperty({ type: Boolean, example: true })
+  active!: boolean;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2026-10-28T09:00:00.000Z',
+    nullable: true,
+  })
+  createdAt!: string | null;
+
+  @ApiProperty({ type: Number, example: 0 })
+  usedCount!: number;
+}
+
+export class CityJoinLinksResponseDto {
+  @ApiProperty({ type: () => [CityJoinLinkStatusDto] })
+  links!: CityJoinLinkStatusDto[];
+}
+
+export class CityJoinLinkCreatedDto {
   @ApiProperty({
     type: String,
     example: 'volunteer',
@@ -26,9 +54,4 @@ export class CityJoinLinkDto {
 
   @ApiProperty({ type: Number, example: 0 })
   usedCount!: number;
-}
-
-export class CityJoinLinksResponseDto {
-  @ApiProperty({ type: () => [CityJoinLinkDto] })
-  links!: CityJoinLinkDto[];
 }

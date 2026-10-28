@@ -38,16 +38,23 @@ export const updateCitySettingsSchema = citySettingsSchema
   .omit({ cityId: true })
   .partial();
 
-export const cityJoinLinkSchema = z.object({
+export const cityJoinLinkStatusSchema = z.object({
+  role: cityRoleSchema,
+  active: z.boolean(),
+  createdAt: z.string().datetime().nullable(),
+  usedCount: z.number().int().min(0),
+});
+
+export const cityJoinLinksResponseSchema = z.object({
+  links: z.array(cityJoinLinkStatusSchema),
+});
+
+export const cityJoinLinkCreatedSchema = z.object({
   role: cityRoleSchema,
   token: z.string().min(1),
   url: z.string().url(),
   createdAt: z.string().datetime(),
   usedCount: z.number().int().min(0),
-});
-
-export const cityJoinLinksResponseSchema = z.object({
-  links: z.array(cityJoinLinkSchema),
 });
 
 export const cityCoordinatorSchema = z.object({
@@ -80,8 +87,9 @@ export type MembershipStatus = z.infer<typeof membershipStatusSchema>;
 export type Locale = z.infer<typeof localeSchema>;
 export type CitySettings = z.infer<typeof citySettingsSchema>;
 export type UpdateCitySettings = z.infer<typeof updateCitySettingsSchema>;
-export type CityJoinLink = z.infer<typeof cityJoinLinkSchema>;
+export type CityJoinLinkStatus = z.infer<typeof cityJoinLinkStatusSchema>;
 export type CityJoinLinksResponse = z.infer<typeof cityJoinLinksResponseSchema>;
+export type CityJoinLinkCreated = z.infer<typeof cityJoinLinkCreatedSchema>;
 export type CityCoordinator = z.infer<typeof cityCoordinatorSchema>;
 export type CityCoordinatorsResponse = z.infer<
   typeof cityCoordinatorsResponseSchema

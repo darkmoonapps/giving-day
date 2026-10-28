@@ -4,16 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
 import {
   cityCoordinatorsResponseSchema,
-  cityJoinLinkSchema,
+  cityJoinLinkCreatedSchema,
   cityJoinLinksResponseSchema,
   citySettingsExtraSchema,
   citySettingsSchema,
   type CityCoordinator,
   type CityCoordinatorsResponse,
-  type CityJoinLink,
+  type CityJoinLinkCreated,
   type CityJoinLinksResponse,
   type CitySettings,
 } from '@giving-day/shared';
@@ -34,6 +33,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { assertCanOnCity } from './city-access';
 import type { AddCoordinatorDto } from './dto/add-coordinator.dto';
 import type { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
+import { generateJoinToken, hashJoinToken, joinLinkUrl } from './join-token';
 
 type MembershipWithUser = CityMembership & {
   user: Pick<
@@ -167,11 +167,27 @@ export class CitiesService {
 
     const invites = await this.prisma.cityInvite.findMany({
       where: { cityId, revokedAt: null },
-      orderBy: { role: 'asc' },
     });
+    const byRole = new Map(invites.map((invite) => [invite.role, invite]));
 
     return cityJoinLinksResponseSchema.parse({
-      links: invites.map((invite) => this.toJoinLinkDto(invite)),
+      links: (['coordinator', 'volunteer'] as const).map((role) => {
+        const invite = byRole.get(role);
+        if (!invite) {
+          return {
+            role,
+            active: false,
+            createdAt: null,
+            usedCount: 0,
+          };
+        }
+        return {
+          role,
+          active: true,
+          createdAt: invite.createdAt.toISOString(),
+          usedCount: invite.usedCount,
+        };
+      }),
     });
   }
 
@@ -179,17 +195,14 @@ export class CitiesService {
     cityId: string,
     role: CityRole,
     actor: UserWithMemberships
-  ): Promise<CityJoinLink> {
+  ): Promise<CityJoinLinkCreated> {
     const ability = this.abilityFactory.createForUser(actor);
     assertCanOnCity(ability, 'create', 'CityInvite', cityId);
     assertCanOnCity(ability, 'delete', 'CityInvite', cityId);
     await this.requireCity(cityId);
 
-    // CityInvite.tokenHash stores the public shareable code so coordinators
-    // can retrieve the current WhatsApp URL. This is a join code, not a
-    // password; hashing it would make GET current-link impossible without a
-    // schema change.
-    const token = this.generateJoinToken();
+    const rawToken = generateJoinToken();
+    const tokenHash = hashJoinToken(rawToken);
     const invite = await this.prisma.$transaction(async (tx) => {
       await tx.cityInvite.updateMany({
         where: { cityId, role, revokedAt: null },
@@ -200,13 +213,41 @@ export class CitiesService {
         data: {
           cityId,
           role,
-          tokenHash: token,
+          tokenHash,
           createdById: actor.id,
         },
       });
     });
 
-    return this.toJoinLinkDto(invite);
+    return cityJoinLinkCreatedSchema.parse({
+      role: invite.role,
+      token: rawToken,
+      url: joinLinkUrl(rawToken),
+      createdAt: invite.createdAt.toISOString(),
+      usedCount: invite.usedCount,
+    });
+  }
+
+  async findActiveInviteByRawToken(
+    rawToken: string
+  ): Promise<CityInvite | null> {
+    if (!rawToken) {
+      return null;
+    }
+
+    const invite = await this.prisma.cityInvite.findUnique({
+      where: { tokenHash: hashJoinToken(rawToken) },
+    });
+
+    if (!invite || invite.revokedAt) {
+      return null;
+    }
+
+    if (invite.expiresAt && invite.expiresAt <= new Date()) {
+      return null;
+    }
+
+    return invite;
   }
 
   async listCoordinators(
@@ -414,16 +455,6 @@ export class CitiesService {
     });
   }
 
-  private toJoinLinkDto(invite: CityInvite): CityJoinLink {
-    return cityJoinLinkSchema.parse({
-      role: invite.role,
-      token: invite.tokenHash,
-      url: this.joinLinkUrl(invite.tokenHash),
-      createdAt: invite.createdAt.toISOString(),
-      usedCount: invite.usedCount,
-    });
-  }
-
   private toCoordinatorDto(membership: MembershipWithUser): CityCoordinator {
     return {
       membershipId: membership.id,
@@ -482,14 +513,5 @@ export class CitiesService {
       .split(':')
       .map((part) => Number(part));
     return hours * 3600 + minutes * 60 + seconds;
-  }
-
-  private generateJoinToken(): string {
-    return randomBytes(32).toString('base64url');
-  }
-
-  private joinLinkUrl(token: string): string {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    return `${frontendUrl.replace(/\/$/, '')}/join/${token}`;
   }
 }
