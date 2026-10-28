@@ -1,3 +1,4 @@
+import { subject } from '@casl/ability';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AbilityFactory } from './ability.factory';
 import type { UserWithMemberships } from './ability.factory';
@@ -97,9 +98,61 @@ describe('AbilityFactory', () => {
     it('should allow coordinator to approve memberships', () => {
       const ability = factory.createForUser(coordinatorUser);
 
+      expect(ability.can('read', 'CityMembership')).toBe(true);
+      expect(ability.can('create', 'CityMembership')).toBe(true);
       expect(ability.can('approve', 'CityMembership')).toBe(true);
       expect(ability.can('update', 'CityMembership')).toBe(true);
       expect(ability.can('delete', 'CityMembership')).toBe(true);
+    });
+
+    it('should scope city settings, invites, and coordinators to the city', () => {
+      const ability = factory.createForUser(coordinatorUser);
+
+      expect(ability.can('read', subject('CitySettings', { cityId }))).toBe(
+        true
+      );
+      expect(ability.can('update', subject('CitySettings', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can('read', subject('CitySettings', { cityId: 'city-other' }))
+      ).toBe(false);
+      expect(
+        ability.can('update', subject('CitySettings', { cityId: 'city-other' }))
+      ).toBe(false);
+
+      expect(ability.can('read', subject('CityInvite', { cityId }))).toBe(true);
+      expect(ability.can('create', subject('CityInvite', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can('read', subject('CityInvite', { cityId: 'city-other' }))
+      ).toBe(false);
+
+      expect(
+        ability.can(
+          'create',
+          subject('CityMembership', { cityId, role: 'coordinator' })
+        )
+      ).toBe(true);
+      expect(
+        ability.can(
+          'create',
+          subject('CityMembership', {
+            cityId: 'city-other',
+            role: 'coordinator',
+          })
+        )
+      ).toBe(false);
+      expect(ability.can('delete', subject('CityMembership', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can(
+          'delete',
+          subject('CityMembership', { cityId: 'city-other' })
+        )
+      ).toBe(false);
     });
 
     it('should allow coordinator to manage distribution days', () => {
@@ -217,6 +270,34 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('read', 'CitySettings')).toBe(false);
       expect(ability.can('update', 'CitySettings')).toBe(false);
+      expect(ability.can('read', subject('CitySettings', { cityId }))).toBe(
+        false
+      );
+    });
+
+    it('should not allow volunteer to manage join links or coordinators', () => {
+      const ability = factory.createForUser(volunteerUser);
+
+      expect(ability.can('read', 'CityInvite')).toBe(false);
+      expect(ability.can('create', 'CityInvite')).toBe(false);
+      expect(ability.can('read', 'CityMembership')).toBe(true);
+      expect(
+        ability.can(
+          'read',
+          subject('CityMembership', { cityId, userId: volunteerId })
+        )
+      ).toBe(true);
+      expect(
+        ability.can(
+          'read',
+          subject('CityMembership', {
+            cityId,
+            userId: 'someone-else',
+          })
+        )
+      ).toBe(false);
+      expect(ability.can('create', 'CityMembership')).toBe(false);
+      expect(ability.can('delete', 'CityMembership')).toBe(false);
     });
   });
 

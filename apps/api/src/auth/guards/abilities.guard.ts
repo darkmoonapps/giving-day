@@ -1,12 +1,15 @@
+import { subject } from '@casl/ability';
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
   AbilityFactory,
+  type AppSubjects,
   type UserWithMemberships,
 } from '../../abilities/ability.factory';
 import {
@@ -30,22 +33,35 @@ export class AbilitiesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user as UserWithMemberships;
+    const request = context.switchToHttp().getRequest<{
+      user?: UserWithMemberships;
+      params?: { cityId?: string };
+    }>();
+    const user = request.user;
 
     if (!user) {
       throw new ForbiddenException('auth.unauthenticated');
     }
 
     const ability = this.abilityFactory.createForUser(user);
+    const cityId = request.params?.cityId;
 
-    const hasAllAbilities = requiredAbilities.every((requiredAbility) => {
-      const { action, subject } = requiredAbility;
-      return ability.can(action, subject);
-    });
+    for (const requiredAbility of requiredAbilities) {
+      const { action, subject: subjectType, conditions } = requiredAbility;
 
-    if (!hasAllAbilities) {
-      throw new ForbiddenException('auth.insufficient_permissions');
+      if (!ability.can(action, subjectType)) {
+        throw new ForbiddenException('auth.insufficient_permissions');
+      }
+
+      if (cityId && typeof subjectType === 'string' && subjectType !== 'all') {
+        const instance = subject(subjectType, {
+          cityId,
+          ...conditions,
+        }) as AppSubjects;
+        if (ability.cannot(action, instance)) {
+          throw new NotFoundException('cities.not_found');
+        }
+      }
     }
 
     return true;
