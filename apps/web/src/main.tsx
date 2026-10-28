@@ -2,11 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '@mantine/core/styles.css';
 import App from './App';
+import { listenForInstallPrompt } from './auth/pwa-install';
 import { initI18n } from './i18n';
 import { AppProviders } from './providers/app-providers';
 import { initSentry } from './sentry';
 
 initSentry();
+listenForInstallPrompt();
 
 const rootElement = document.getElementById('root');
 
