@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   COLOR_SCHEME_STORAGE_KEY,
+  citySettingsSchema,
   colorSchemePreferenceSchema,
   createSentryInitConfig,
   getDirection,
@@ -23,6 +24,7 @@ describe('shared public exports', () => {
     expect(colorSchemePreferenceSchema.parse('auto')).toBe('auto');
     expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
     expect(SENTRY_SEND_DEFAULT_PII).toBe(false);
+    expect(citySettingsSchema.shape.defaultTheme).toBeDefined();
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'
