@@ -33,7 +33,7 @@ export type Action =
   | 'reassign'
   | 'view_pii';
 
-type AppSubjects =
+export type AppSubjects =
   | Subjects<{
       User: User;
       City: City;

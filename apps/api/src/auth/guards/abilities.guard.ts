@@ -34,18 +34,18 @@ export class AbilitiesGuard implements CanActivate {
     const user = request.user as UserWithMemberships;
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException('auth.unauthenticated');
     }
 
     const ability = this.abilityFactory.createForUser(user);
 
     const hasAllAbilities = requiredAbilities.every((requiredAbility) => {
       const { action, subject } = requiredAbility;
-      return ability.can(action, subject as never);
+      return ability.can(action, subject);
     });
 
     if (!hasAllAbilities) {
-      throw new ForbiddenException('Insufficient permissions');
+      throw new ForbiddenException('auth.insufficient_permissions');
     }
 
     return true;

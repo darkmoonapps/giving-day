@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -13,6 +14,7 @@ describe('AuthService', () => {
   const mockPrismaService = {
     authIdentity: {
       findUnique: vi.fn(),
+      create: vi.fn(),
     },
     user: {
       create: vi.fn(),
@@ -21,7 +23,7 @@ describe('AuthService', () => {
     },
     session: {
       create: vi.fn(),
-      findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -91,6 +93,7 @@ describe('AuthService', () => {
       };
 
       mockPrismaService.user.create.mockResolvedValue(newUser);
+      mockPrismaService.authIdentity.create.mockResolvedValue({});
 
       const result = await service.validateOrCreateUser({
         provider: 'facebook',
@@ -101,20 +104,8 @@ describe('AuthService', () => {
       });
 
       expect(result).toEqual(newUser);
-      expect(prismaService.user.create).toHaveBeenCalledWith({
-        data: {
-          email: 'new@example.com',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          lastLoginAt: expect.any(Date),
-          identities: {
-            create: {
-              provider: 'facebook',
-              providerSubject: 'facebook-sub-456',
-            },
-          },
-        },
-      });
+      expect(prismaService.user.create).toHaveBeenCalled();
+      expect(prismaService.authIdentity.create).toHaveBeenCalled();
     });
   });
 
@@ -122,23 +113,27 @@ describe('AuthService', () => {
     it('should create session with correct TTL for volunteer', async () => {
       const userId = 'user-123';
       const userAgent = 'test-agent';
-      const isCoordinator = false;
+
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        memberships: [],
+      });
 
       vi.mocked(bcrypt.hash).mockResolvedValue('hashed-token' as never);
       mockJwtService.sign.mockReturnValue('access-token');
       mockPrismaService.session.create.mockResolvedValue({
         id: 'session-id',
         userId,
+        refreshTokenHash: 'hashed-token',
+        userAgent,
+        expiresAt: new Date(),
       });
 
-      const result = await service.createSession(
-        userId,
-        userAgent,
-        isCoordinator
-      );
+      const result = await service.createSession(userId, userAgent);
 
       expect(result.accessToken).toBe('access-token');
       expect(result.refreshToken).toBeDefined();
+      expect(result.sessionId).toBe('session-id');
       expect(prismaService.session.create).toHaveBeenCalledWith({
         data: {
           userId,
@@ -147,12 +142,28 @@ describe('AuthService', () => {
           expiresAt: expect.any(Date),
         },
       });
+
+      const createCall = mockPrismaService.session.create.mock.calls[0][0];
+      const expiresAt = createCall.data.expiresAt as Date;
+      const daysDiff = Math.round(
+        (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      expect(daysDiff).toBe(90);
     });
 
-    it('should create session with shorter TTL for coordinator', async () => {
+    it('should create session with shorter TTL for active coordinator', async () => {
       const userId = 'coord-123';
       const userAgent = 'test-agent';
-      const isCoordinator = true;
+
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        memberships: [
+          {
+            role: 'coordinator',
+            status: 'active',
+          },
+        ],
+      });
 
       vi.mocked(bcrypt.hash).mockResolvedValue('hashed-token' as never);
       mockJwtService.sign.mockReturnValue('access-token');
@@ -161,7 +172,7 @@ describe('AuthService', () => {
         userId,
       });
 
-      await service.createSession(userId, userAgent, isCoordinator);
+      await service.createSession(userId, userAgent);
 
       const createCall = mockPrismaService.session.create.mock.calls[0][0];
       const expiresAt = createCall.data.expiresAt as Date;
@@ -170,102 +181,195 @@ describe('AuthService', () => {
       );
       expect(daysDiff).toBe(14);
     });
-  });
 
-  describe('completeOnboarding', () => {
-    it('should update user with onboarding data', async () => {
-      const userId = 'user-id';
-      const onboardingData = {
-        firstName: 'John',
-        lastName: 'Doe',
-        phone: '+972501234567',
-        locale: 'he' as const,
-      };
+    it('should use volunteer TTL for pending coordinator membership', async () => {
+      const userId = 'pending-coord-123';
+      const userAgent = 'test-agent';
 
-      const updatedUser = {
+      mockPrismaService.user.findUnique.mockResolvedValue({
         id: userId,
-        ...onboardingData,
-        onboardedAt: new Date(),
-      };
-
-      mockPrismaService.user.update.mockResolvedValue(updatedUser);
-
-      const result = await service.completeOnboarding(userId, onboardingData);
-
-      expect(result).toEqual(updatedUser);
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: userId },
-        data: {
-          ...onboardingData,
-          onboardedAt: expect.any(Date),
-        },
+        memberships: [
+          {
+            role: 'coordinator',
+            status: 'pending',
+          },
+        ],
       });
+
+      vi.mocked(bcrypt.hash).mockResolvedValue('hashed-token' as never);
+      mockJwtService.sign.mockReturnValue('access-token');
+      mockPrismaService.session.create.mockResolvedValue({
+        id: 'session-id',
+        userId,
+      });
+
+      await service.createSession(userId, userAgent);
+
+      const createCall = mockPrismaService.session.create.mock.calls[0][0];
+      const expiresAt = createCall.data.expiresAt as Date;
+      const daysDiff = Math.round(
+        (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      expect(daysDiff).toBe(90);
     });
   });
 
   describe('refreshAccessToken', () => {
-    it('should generate new access token for valid refresh token', async () => {
+    it('should generate new tokens for valid refresh token', async () => {
+      const sessionId = 'session-123';
       const refreshToken = 'valid-refresh-token';
       const userId = 'user-123';
 
-      mockPrismaService.session.findMany.mockResolvedValue([
-        {
-          id: 'session-id',
-          userId,
-          refreshTokenHash: 'hashed-token',
-          revokedAt: null,
-          expiresAt: new Date(Date.now() + 86400000),
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId,
+        refreshTokenHash: 'hashed-token',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 86400000),
+        userAgent: 'test-agent',
+        user: {
+          id: userId,
+          memberships: [],
         },
-      ]);
+      });
 
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(bcrypt.hash).mockResolvedValue('new-hashed-token' as never);
       mockJwtService.sign.mockReturnValue('new-access-token');
 
-      const result = await service.refreshAccessToken(refreshToken);
+      mockPrismaService.session.update.mockResolvedValue({} as never);
+      mockPrismaService.session.create.mockResolvedValue({
+        id: 'new-session-id',
+        userId,
+      });
 
-      expect(result).toBe('new-access-token');
+      const result = await service.refreshAccessToken(sessionId, refreshToken);
+
+      expect(result.accessToken).toBe('new-access-token');
+      expect(result.sessionId).toBe('new-session-id');
+      expect(prismaService.session.update).toHaveBeenCalledWith({
+        where: { id: sessionId },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prismaService.session.create).toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException for invalid refresh token', async () => {
-      mockPrismaService.session.findMany.mockResolvedValue([
-        {
-          refreshTokenHash: 'hashed-token',
+    it('should throw and revoke all sessions on token reuse', async () => {
+      const sessionId = 'session-123';
+      const refreshToken = 'reused-token';
+      const userId = 'user-123';
+
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId,
+        refreshTokenHash: 'hashed-token',
+        revokedAt: new Date(),
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      mockPrismaService.session.updateMany.mockResolvedValue({ count: 2 });
+
+      await expect(
+        service.refreshAccessToken(sessionId, refreshToken)
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prismaService.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId,
           revokedAt: null,
-          expiresAt: new Date(Date.now() + 86400000),
         },
-      ]);
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('should throw and revoke all sessions for invalid token', async () => {
+      const sessionId = 'session-123';
+      const refreshToken = 'invalid-token';
+      const userId = 'user-123';
+
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId,
+        refreshTokenHash: 'hashed-token',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 86400000),
+        user: {
+          id: userId,
+          memberships: [],
+        },
+      });
 
       vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+      mockPrismaService.session.updateMany.mockResolvedValue({ count: 2 });
 
-      await expect(service.refreshAccessToken('invalid-token')).rejects.toThrow(
-        'Invalid refresh token'
-      );
+      await expect(
+        service.refreshAccessToken(sessionId, refreshToken)
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prismaService.session.updateMany).toHaveBeenCalled();
+    });
+
+    it('should reject expired sessions without revoking other sessions', async () => {
+      const sessionId = 'session-123';
+      const refreshToken = 'expired-token';
+
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId: 'user-123',
+        refreshTokenHash: 'hashed-token',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() - 1000),
+        user: {
+          id: 'user-123',
+          memberships: [],
+        },
+      });
+
+      await expect(
+        service.refreshAccessToken(sessionId, refreshToken)
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(prismaService.session.updateMany).not.toHaveBeenCalled();
     });
   });
 
   describe('revokeSession', () => {
     it('should revoke session with matching refresh token', async () => {
-      const userId = 'user-123';
+      const sessionId = 'session-123';
       const refreshToken = 'valid-token';
 
-      mockPrismaService.session.findMany.mockResolvedValue([
-        {
-          id: 'session-id',
-          userId,
-          refreshTokenHash: 'hashed-token',
-          revokedAt: null,
-        },
-      ]);
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        refreshTokenHash: 'hashed-token',
+        revokedAt: null,
+      });
 
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
       mockPrismaService.session.update.mockResolvedValue({} as never);
 
-      await service.revokeSession(userId, refreshToken);
+      await service.revokeSession(sessionId, refreshToken);
 
       expect(prismaService.session.update).toHaveBeenCalledWith({
-        where: { id: 'session-id' },
+        where: { id: sessionId },
         data: { revokedAt: expect.any(Date) },
       });
+    });
+
+    it('should not revoke session for invalid refresh token', async () => {
+      const sessionId = 'session-123';
+      const refreshToken = 'invalid-token';
+
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: sessionId,
+        refreshTokenHash: 'hashed-token',
+        revokedAt: null,
+      });
+
+      vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+
+      await service.revokeSession(sessionId, refreshToken);
+
+      expect(prismaService.session.update).not.toHaveBeenCalled();
     });
   });
 
@@ -286,6 +390,60 @@ describe('AuthService', () => {
         },
         data: { revokedAt: expect.any(Date) },
       });
+    });
+  });
+
+  describe('completeOnboarding', () => {
+    it('should update user with onboarding data', async () => {
+      const userId = 'user-id';
+      const onboardingData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '+972501234567',
+        locale: 'he' as const,
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        onboardedAt: null,
+      });
+
+      const updatedUser = {
+        id: userId,
+        ...onboardingData,
+        onboardedAt: new Date(),
+      };
+
+      mockPrismaService.user.update.mockResolvedValue(updatedUser);
+
+      const result = await service.completeOnboarding(userId, onboardingData);
+
+      expect(result).toEqual(updatedUser);
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: {
+          ...onboardingData,
+          onboardedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should throw if user already onboarded', async () => {
+      const userId = 'user-id';
+      const onboardingData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '+972501234567',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        onboardedAt: new Date(),
+      });
+
+      await expect(
+        service.completeOnboarding(userId, onboardingData)
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

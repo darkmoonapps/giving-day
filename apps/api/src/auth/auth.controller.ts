@@ -8,6 +8,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -47,7 +48,7 @@ export class AuthController {
 
     const tokens = await this.authService.createSession(user.id, userAgent);
 
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
+    this.setRefreshTokenCookie(res, tokens.sessionId, tokens.refreshToken);
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectPath = user.onboardedAt ? '/auth/callback' : '/onboarding';
@@ -74,7 +75,7 @@ export class AuthController {
 
     const tokens = await this.authService.createSession(user.id, userAgent);
 
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
+    this.setRefreshTokenCookie(res, tokens.sessionId, tokens.refreshToken);
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectPath = user.onboardedAt ? '/auth/callback' : '/onboarding';
@@ -111,12 +112,16 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response
   ): Promise<void> {
-    const refreshToken =
-      dto.refreshToken || this.getRefreshTokenFromCookie(req);
+    const cookieValue = dto.refreshToken || this.getRefreshTokenFromCookie(req);
+    const { sessionId, refreshToken } =
+      this.parseRefreshTokenCookie(cookieValue);
 
-    const tokens = await this.authService.refreshAccessToken(refreshToken);
+    const tokens = await this.authService.refreshAccessToken(
+      sessionId,
+      refreshToken
+    );
 
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
+    this.setRefreshTokenCookie(res, tokens.sessionId, tokens.refreshToken);
 
     res.json({ accessToken: tokens.accessToken });
   }
@@ -126,14 +131,12 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Logout and revoke session' })
-  async logout(
-    @CurrentUser() user: User,
-    @Req() req: Request,
-    @Res() res: Response
-  ): Promise<void> {
-    const refreshToken = this.getRefreshTokenFromCookie(req);
-    if (refreshToken) {
-      await this.authService.revokeSession(user.id, refreshToken);
+  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const cookieValue = this.getRefreshTokenFromCookie(req);
+    if (cookieValue) {
+      const { sessionId, refreshToken } =
+        this.parseRefreshTokenCookie(cookieValue);
+      await this.authService.revokeSession(sessionId, refreshToken);
     }
 
     res.clearCookie('refreshToken');
@@ -149,11 +152,19 @@ export class AuthController {
     const userWithMemberships = await this.authService.getUserWithMemberships(
       user.id
     );
-    return { user: userWithMemberships! };
+    if (!userWithMemberships) {
+      throw new UnauthorizedException('auth.user_not_found');
+    }
+    return { user: userWithMemberships };
   }
 
-  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    res.cookie('refreshToken', refreshToken, {
+  private setRefreshTokenCookie(
+    res: Response,
+    sessionId: string,
+    refreshToken: string
+  ): void {
+    const cookieValue = `${sessionId}.${refreshToken}`;
+    res.cookie('refreshToken', cookieValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -163,5 +174,18 @@ export class AuthController {
 
   private getRefreshTokenFromCookie(req: Request): string {
     return (req.cookies as Record<string, string>)?.refreshToken || '';
+  }
+
+  private parseRefreshTokenCookie(cookieValue: string): {
+    sessionId: string;
+    refreshToken: string;
+  } {
+    const parts = cookieValue.split('.');
+    if (parts.length < 2) {
+      return { sessionId: '', refreshToken: '' };
+    }
+    const sessionId = parts[0];
+    const refreshToken = parts.slice(1).join('.');
+    return { sessionId, refreshToken };
   }
 }

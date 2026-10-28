@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
 import type {
   AuthProvider,
@@ -31,6 +32,7 @@ export interface SocialProfile {
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+  sessionId: string;
 }
 
 export interface SessionWithUser extends Session {
@@ -110,7 +112,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken();
     const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
 
-    await this.prisma.session.create({
+    const session = await this.prisma.session.create({
       data: {
         userId,
         refreshTokenHash,
@@ -124,19 +126,20 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      sessionId: session.id,
     };
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
-    if (!refreshToken) {
+  async refreshAccessToken(
+    sessionId: string,
+    refreshToken: string
+  ): Promise<AuthTokens> {
+    if (!sessionId || !refreshToken) {
       throw new UnauthorizedException('auth.refresh_token_required');
     }
 
-    const sessions = await this.prisma.session.findMany({
-      where: {
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
       include: {
         user: {
           include: {
@@ -148,74 +151,80 @@ export class AuthService {
       },
     });
 
-    for (const session of sessions) {
-      const isValid = await bcrypt.compare(
-        refreshToken,
-        session.refreshTokenHash
-      );
-
-      if (isValid) {
-        await this.prisma.session.update({
-          where: { id: session.id },
-          data: { revokedAt: new Date() },
-        });
-
-        const hasActiveCoordinatorRole = session.user.memberships.some(
-          (m) => m.role === 'coordinator' && m.status === 'active'
-        );
-
-        const refreshTokenTTL = hasActiveCoordinatorRole ? 14 : 90;
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + refreshTokenTTL);
-
-        const newRefreshToken = this.generateRefreshToken();
-        const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
-
-        await this.prisma.session.create({
-          data: {
-            userId: session.userId,
-            refreshTokenHash: newRefreshTokenHash,
-            userAgent: session.userAgent,
-            expiresAt,
-          },
-        });
-
-        const newAccessToken = this.generateAccessToken(session.userId);
-
-        return {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        };
+    if (!session || session.revokedAt || session.expiresAt < new Date()) {
+      if (session?.revokedAt) {
+        await this.revokeAllUserSessions(session.userId);
+        throw new UnauthorizedException('auth.token_reuse_detected');
       }
+      throw new UnauthorizedException('auth.invalid_refresh_token');
     }
 
-    throw new UnauthorizedException('auth.invalid_refresh_token');
-  }
+    const isValid = await bcrypt.compare(
+      refreshToken,
+      session.refreshTokenHash
+    );
 
-  async revokeSession(userId: string, refreshToken: string): Promise<void> {
-    if (!refreshToken) {
-      return;
+    if (!isValid) {
+      await this.revokeAllUserSessions(session.userId);
+      throw new UnauthorizedException('auth.invalid_refresh_token');
     }
 
-    const sessions = await this.prisma.session.findMany({
-      where: {
-        userId,
-        revokedAt: null,
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const hasActiveCoordinatorRole = session.user.memberships.some(
+      (m) => m.role === 'coordinator' && m.status === 'active'
+    );
+
+    const refreshTokenTTL = hasActiveCoordinatorRole ? 14 : 90;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + refreshTokenTTL);
+
+    const newRefreshToken = this.generateRefreshToken();
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
+
+    const newSession = await this.prisma.session.create({
+      data: {
+        userId: session.userId,
+        refreshTokenHash: newRefreshTokenHash,
+        userAgent: session.userAgent,
+        expiresAt,
       },
     });
 
-    for (const session of sessions) {
-      const isValid = await bcrypt.compare(
-        refreshToken,
-        session.refreshTokenHash
-      );
-      if (isValid) {
-        await this.prisma.session.update({
-          where: { id: session.id },
-          data: { revokedAt: new Date() },
-        });
-        return;
-      }
+    const newAccessToken = this.generateAccessToken(session.userId);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      sessionId: newSession.id,
+    };
+  }
+
+  async revokeSession(sessionId: string, refreshToken: string): Promise<void> {
+    if (!sessionId || !refreshToken) {
+      return;
+    }
+
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session || session.revokedAt) {
+      return;
+    }
+
+    const isValid = await bcrypt.compare(
+      refreshToken,
+      session.refreshTokenHash
+    );
+    if (isValid) {
+      await this.prisma.session.update({
+        where: { id: session.id },
+        data: { revokedAt: new Date() },
+      });
     }
   }
 
@@ -300,9 +309,6 @@ export class AuthService {
   }
 
   private generateRefreshToken(): string {
-    const randomBytes = Buffer.from(
-      Array.from({ length: 32 }, () => Math.floor(Math.random() * 256))
-    );
-    return randomBytes.toString('base64url');
+    return randomBytes(32).toString('base64url');
   }
 }

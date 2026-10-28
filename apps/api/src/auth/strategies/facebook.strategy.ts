@@ -16,8 +16,8 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
   }
 
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    _accessToken: string,
+    _refreshToken: string,
     profile: Profile,
     done: (error: Error | null, user?: Express.User | false) => void
   ): Promise<void> {
@@ -36,7 +36,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
       if (error instanceof Error) {
         done(error);
       } else {
-        done(new Error('Unknown error during Facebook authentication'));
+        done(new Error('auth.facebook_failed'));
       }
     }
   }

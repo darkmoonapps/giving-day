@@ -25,7 +25,7 @@ describe('Auth Integration Tests', () => {
         },
         session: {
           create: vi.fn(),
-          findMany: vi.fn(),
+          findUnique: vi.fn(),
           update: vi.fn(),
           updateMany: vi.fn(),
         },
@@ -139,6 +139,22 @@ describe('Auth Integration Tests', () => {
         });
 
       expect(response.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('should look up the session by id from the cookie', async () => {
+      vi.spyOn(prisma.session, 'findUnique').mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Cookie', 'refreshToken=session-id.raw-refresh-token')
+        .send({});
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(prisma.session.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'session-id' },
+        })
+      );
     });
   });
 
