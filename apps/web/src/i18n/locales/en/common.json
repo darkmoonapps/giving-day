@@ -32,6 +32,7 @@
     "show_details": "Show details",
     "hide_details": "Hide details"
   },
+  "loading": "Loading...",
   "error": {
     "unexpected_title": "Something went wrong",
     "unexpected_body": "An unexpected error occurred. Try reloading the page.",

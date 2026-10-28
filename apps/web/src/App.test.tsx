@@ -1,145 +1,260 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import App from './App';
 import { i18n } from './i18n';
-import { renderWithProviders } from './test/render';
+import { clearAccessToken } from './auth/access-token';
+import { createAuthFetchMock, fakeUser } from './test/auth-fixtures';
+import { renderApp } from './test/render';
 
-const healthyPayload = {
-  status: 'healthy',
-  timestamp: '2026-01-15T10:00:00.000Z',
-  database: { connected: true },
-};
-
-const mockJsonResponse = (payload: unknown): Response =>
-  ({
-    ok: true,
-    status: 200,
-    json: async () => payload,
-  }) as Response;
-
-describe('App', () => {
+describe('App routes', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(createAuthFetchMock({ refresh: 'unauthorized' }))
+    );
   });
 
   afterEach(async () => {
-    vi.useRealTimers();
     vi.unstubAllGlobals();
+    clearAccessToken();
     await i18n.changeLanguage('he');
   });
 
-  it('renders the Hebrew home copy by default', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockJsonResponse(healthyPayload));
-
-    renderWithProviders(<App />);
+  it('renders the Hebrew login screen by default', async () => {
+    renderApp('/');
 
     expect(
-      await screen.findByRole('heading', { name: 'ברוכים הבאים ליום הנתינה' })
+      await screen.findByRole('heading', { name: 'התחברות' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'המשך עם Google' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'המשך עם Facebook' })
     ).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'שפה' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'ערכת צבע' })).toBeInTheDocument();
   });
 
-  it('displays the loading state initially', () => {
-    vi.mocked(fetch).mockImplementationOnce(
-      () =>
-        new Promise(() => {
-          return;
-        })
-    );
-
-    renderWithProviders(<App />);
-
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.getByText('בודק את תקינות ה-API...')).toBeInTheDocument();
-  });
-
-  it('displays healthy status when the API responds', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockJsonResponse(healthyPayload));
-
-    renderWithProviders(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('status-badge')).toHaveAttribute(
-        'data-status',
-        'healthy'
-      );
-    });
-
-    expect(screen.getByTestId('database-badge')).toHaveAttribute(
-      'data-connected',
-      'true'
-    );
-    expect(screen.getByText('תקין')).toBeInTheDocument();
-  });
-
-  it('displays unhealthy status when the database is disconnected', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockJsonResponse({
-        status: 'unhealthy',
-        timestamp: '2026-01-15T10:00:00.000Z',
-        database: { connected: false },
-      })
-    );
-
-    renderWithProviders(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('status-badge')).toHaveAttribute(
-        'data-status',
-        'unhealthy'
-      );
-    });
-
-    expect(screen.getByTestId('database-badge')).toHaveAttribute(
-      'data-connected',
-      'false'
-    );
-  });
-
-  it('displays a translated error when the API fails', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      status: 500,
-    } as Response);
-
-    renderWithProviders(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('שגיאת HTTP 500');
-    });
-  });
-
-  it('switches visible copy from Hebrew to English', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockJsonResponse(healthyPayload));
+  it('switches visible login copy from Hebrew to English', async () => {
     const user = userEvent.setup();
+    renderApp('/login');
 
-    renderWithProviders(<App />);
-
-    await screen.findByRole('heading', { name: 'ברוכים הבאים ליום הנתינה' });
+    await screen.findByRole('heading', { name: 'התחברות' });
     await user.click(screen.getByRole('button', { name: 'English' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Welcome to Giving Day' })
+      await screen.findByRole('heading', { name: 'Sign in' })
     ).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
   });
 
-  it('polls the health endpoint every 30 seconds', async () => {
-    vi.useFakeTimers();
-    vi.mocked(fetch).mockResolvedValue(mockJsonResponse(healthyPayload));
+  it('sends an unauthenticated visitor from home to login', async () => {
+    renderApp('/');
 
-    renderWithProviders(<App />);
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+  });
 
-    await vi.runOnlyPendingTimersAsync();
-    const initialCalls = vi.mocked(fetch).mock.calls.length;
-    expect(initialCalls).toBeGreaterThanOrEqual(1);
+  it('sends a first-time user to onboarding', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: null }),
+        })
+      )
+    );
 
-    await vi.advanceTimersByTimeAsync(30000);
-    expect(fetch).toHaveBeenCalledTimes(initialCalls + 1);
+    renderApp('/');
 
-    await vi.advanceTimersByTimeAsync(30000);
-    expect(fetch).toHaveBeenCalledTimes(initialCalls + 2);
+    expect(await screen.findByTestId('onboarding-page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'השלמת פרופיל' })
+    ).toBeInTheDocument();
+  });
+
+  it('shows the empty home after onboarding is complete', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: '2026-10-28T08:00:00.000Z' }),
+        })
+      )
+    );
+
+    renderApp('/');
+
+    expect(await screen.findByTestId('home-page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'התחברתם בהצלחה' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('שלום, Noa Cohen.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'מצב המערכת' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('finishes OAuth callback into onboarding for a new user', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: null }),
+        })
+      )
+    );
+
+    renderApp('/auth/callback');
+
+    expect(await screen.findByTestId('onboarding-page')).toBeInTheDocument();
+  });
+
+  it('logs out from the empty home back to login', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: '2026-10-28T08:00:00.000Z' }),
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp('/');
+    await screen.findByTestId('home-page');
+    await user.click(screen.getByRole('button', { name: 'התנתקות' }));
+
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+  });
+
+  it('returns to login when the logout API call fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: '2026-10-28T08:00:00.000Z' }),
+          logout: 'error',
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp('/');
+    await screen.findByTestId('home-page');
+    await user.click(screen.getByRole('button', { name: 'התנתקות' }));
+
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
+  });
+});
+
+describe('onboarding form', () => {
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    clearAccessToken();
+    await i18n.changeLanguage('he');
+  });
+
+  it('requires first name, last name, and an E.164 phone', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({
+            firstName: null,
+            lastName: null,
+            phone: null,
+            email: null,
+            onboardedAt: null,
+          }),
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+    await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
+
+    expect(await screen.findAllByText('שדה חובה')).toHaveLength(3);
+  });
+
+  it('submits profile fields then opens the empty home', async () => {
+    const fetchMock = vi.fn(
+      createAuthFetchMock({
+        refresh: 'ok',
+        user: fakeUser({
+          firstName: null,
+          lastName: null,
+          phone: null,
+          email: 'noa.cohen@example.test',
+          onboardedAt: null,
+        }),
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('Notification', {
+      requestPermission: vi.fn().mockResolvedValue('granted'),
+    });
+    const user = userEvent.setup();
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+
+    await user.type(screen.getByLabelText(/שם פרטי/), 'Noa');
+    await user.type(screen.getByLabelText(/שם משפחה/), 'Cohen');
+    await user.type(screen.getByLabelText(/מספר טלפון/), '050-1234567');
+    expect(screen.getByLabelText(/אימייל/)).toHaveAttribute('readonly');
+    await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
+    });
+
+    const onboardingCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).includes('/api/auth/onboarding')
+    );
+    expect(onboardingCall).toBeDefined();
+    const body = JSON.parse(String(onboardingCall?.[1]?.body)) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toMatchObject({
+      firstName: 'Noa',
+      lastName: 'Cohen',
+      phone: '+972501234567',
+      locale: 'he',
+    });
+    expect(body).not.toHaveProperty('email');
+  });
+
+  it('hides email when the OAuth profile did not provide one', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({
+            firstName: null,
+            lastName: null,
+            phone: null,
+            email: null,
+            onboardedAt: null,
+          }),
+        })
+      )
+    );
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+
+    expect(screen.queryByLabelText(/אימייל/)).not.toBeInTheDocument();
   });
 });

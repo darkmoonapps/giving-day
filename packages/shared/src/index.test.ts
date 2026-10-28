@@ -4,9 +4,11 @@ import {
   citySettingsSchema,
   colorSchemePreferenceSchema,
   createSentryInitConfig,
+  e164PhoneSchema,
   getDirection,
   healthResponseSchema,
   languageCodeSchema,
+  normalizePhoneToE164,
   SENTRY_SEND_DEFAULT_PII,
 } from './index';
 
@@ -25,6 +27,8 @@ describe('shared public exports', () => {
     expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
     expect(SENTRY_SEND_DEFAULT_PII).toBe(false);
     expect(citySettingsSchema.shape.defaultTheme).toBeDefined();
+    expect(e164PhoneSchema.parse('+972501234567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('050-1234567')).toBe('+972501234567');
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'
