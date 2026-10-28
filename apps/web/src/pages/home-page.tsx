@@ -19,7 +19,7 @@ export function HomePage(): JSX.Element {
           size="xs"
           variant="light"
           onClick={() => {
-            void logout().then(() => {
+            void logout().finally(() => {
               void navigate('/login', { replace: true });
             });
           }}

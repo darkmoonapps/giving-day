@@ -5,14 +5,50 @@ export const e164PhoneSchema = z
   .string()
   .regex(/^\+[1-9]\d{7,14}$/, 'phone_e164');
 
+/**
+ * Converts common Israeli local numbers (050-1234567) and 00/972 prefixes
+ * to E.164. Already-international values are returned unchanged.
+ */
+export function normalizePhoneToE164(value: string): string {
+  const stripped = value.trim().replace(/[\s\-().]/g, '');
+
+  if (stripped.length === 0) {
+    return stripped;
+  }
+
+  if (stripped.startsWith('+')) {
+    return stripped;
+  }
+
+  if (stripped.startsWith('00')) {
+    return `+${stripped.slice(2)}`;
+  }
+
+  if (stripped.startsWith('972')) {
+    return `+${stripped}`;
+  }
+
+  if (/^0\d{8,9}$/.test(stripped)) {
+    return `+972${stripped.slice(1)}`;
+  }
+
+  return stripped;
+}
+
+export const phoneInputSchema = z
+  .string()
+  .trim()
+  .min(1, 'required')
+  .transform(normalizePhoneToE164)
+  .pipe(e164PhoneSchema);
+
 export const onboardingFormSchema = z.object({
   firstName: z.string().trim().min(1, 'required'),
   lastName: z.string().trim().min(1, 'required'),
-  phone: e164PhoneSchema,
+  phone: phoneInputSchema,
   birthDate: z
     .union([z.literal(''), z.string().date('invalid_date')])
     .optional(),
-  email: z.union([z.literal(''), z.string().email('invalid_email')]).optional(),
   locale: localeSchema,
 });
 
@@ -73,7 +109,7 @@ export function toOnboardingRequest(
   const request: OnboardingRequest = {
     firstName: values.firstName.trim(),
     lastName: values.lastName.trim(),
-    phone: values.phone,
+    phone: e164PhoneSchema.parse(normalizePhoneToE164(values.phone)),
     locale: values.locale,
   };
 

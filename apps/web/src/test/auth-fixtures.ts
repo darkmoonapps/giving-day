@@ -38,6 +38,7 @@ export interface AuthFetchStub {
   refresh?: 'ok' | 'unauthorized' | 'error';
   user?: AuthUser | null;
   onboardingUser?: AuthUser | 'error';
+  logout?: 'ok' | 'error';
 }
 
 export function createAuthFetchMock(
@@ -88,6 +89,9 @@ export function createAuthFetchMock(
     }
 
     if (url.includes('/api/auth/logout')) {
+      if (options.logout === 'error') {
+        return mockEmptyResponse(500);
+      }
       return mockEmptyResponse(204);
     }
 

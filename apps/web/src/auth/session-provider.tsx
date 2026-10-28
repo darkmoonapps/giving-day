@@ -75,10 +75,13 @@ export function SessionProvider({
   }, [bootstrap]);
 
   const logout = useCallback(async (): Promise<void> => {
-    await logoutSession();
-    setUser(null);
-    setStatus('anonymous');
-    setError(null);
+    try {
+      await logoutSession();
+    } finally {
+      setUser(null);
+      setStatus('anonymous');
+      setError(null);
+    }
   }, []);
 
   const completeOnboarding = useCallback(

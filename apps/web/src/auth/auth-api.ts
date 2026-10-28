@@ -55,6 +55,8 @@ export async function logoutSession(): Promise<void> {
       method: 'POST',
       skipAuthRefresh: true,
     });
+  } catch {
+    // The API revoke can fail while the client still must drop the session.
   } finally {
     clearAccessToken();
   }

@@ -81,4 +81,20 @@ describe('auth API wrappers', () => {
     await logoutSession();
     expect(getAccessToken()).toBeNull();
   });
+
+  it('still clears the access token when the logout API fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser(),
+          logout: 'error',
+        })
+      )
+    );
+    await refreshSession();
+    await expect(logoutSession()).resolves.toBeUndefined();
+    expect(getAccessToken()).toBeNull();
+  });
 });

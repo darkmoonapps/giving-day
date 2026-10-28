@@ -131,6 +131,27 @@ describe('App routes', () => {
 
     expect(await screen.findByTestId('login-page')).toBeInTheDocument();
   });
+
+  it('returns to login when the logout API call fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: '2026-10-28T08:00:00.000Z' }),
+          logout: 'error',
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp('/');
+    await screen.findByTestId('home-page');
+    await user.click(screen.getByRole('button', { name: 'התנתקות' }));
+
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
+  });
 });
 
 describe('onboarding form', () => {
@@ -162,7 +183,7 @@ describe('onboarding form', () => {
     await screen.findByTestId('onboarding-page');
     await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
 
-    expect(await screen.findAllByText('שדה חובה')).toHaveLength(2);
+    expect(await screen.findAllByText('שדה חובה')).toHaveLength(3);
   });
 
   it('submits profile fields then opens the empty home', async () => {
@@ -189,7 +210,8 @@ describe('onboarding form', () => {
 
     await user.type(screen.getByLabelText(/שם פרטי/), 'Noa');
     await user.type(screen.getByLabelText(/שם משפחה/), 'Cohen');
-    await user.type(screen.getByLabelText(/מספר טלפון/), '+972501234567');
+    await user.type(screen.getByLabelText(/מספר טלפון/), '050-1234567');
+    expect(screen.getByLabelText(/אימייל/)).toHaveAttribute('readonly');
     await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
 
     await waitFor(() => {
@@ -211,5 +233,28 @@ describe('onboarding form', () => {
       locale: 'he',
     });
     expect(body).not.toHaveProperty('email');
+  });
+
+  it('hides email when the OAuth profile did not provide one', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({
+            firstName: null,
+            lastName: null,
+            phone: null,
+            email: null,
+            onboardedAt: null,
+          }),
+        })
+      )
+    );
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+
+    expect(screen.queryByLabelText(/אימייל/)).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 {
   "required": "This field is required",
-  "phone_e164": "Enter a phone number in international format, for example +972501234567",
+  "phone_e164": "Enter a valid phone number, for example 050-1234567 or +972501234567",
   "invalid_email": "Enter a valid email address",
   "invalid_date": "Enter a valid date"
 }

@@ -6,7 +6,9 @@ import {
   getUserDisplayName,
   isUserOnboarded,
   meResponseSchema,
+  normalizePhoneToE164,
   onboardingFormSchema,
+  phoneInputSchema,
   refreshTokenResponseSchema,
   toOnboardingRequest,
 } from './auth';
@@ -32,19 +34,48 @@ describe('e164PhoneSchema', () => {
   });
 });
 
+describe('normalizePhoneToE164', () => {
+  it('converts common Israeli local formats to E.164', () => {
+    expect(normalizePhoneToE164('050-1234567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('0501234567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('050 123 4567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('(050) 123-4567')).toBe('+972501234567');
+  });
+
+  it('accepts 972 and 00 prefixes and existing E.164', () => {
+    expect(normalizePhoneToE164('+972501234567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('972501234567')).toBe('+972501234567');
+    expect(normalizePhoneToE164('00972501234567')).toBe('+972501234567');
+  });
+
+  it('leaves unrecognizable input for later validation', () => {
+    expect(normalizePhoneToE164('not a phone')).toBe('notaphone');
+    expect(normalizePhoneToE164('   ')).toBe('');
+  });
+});
+
+describe('phoneInputSchema', () => {
+  it('normalizes a local Israeli mobile before validating', () => {
+    expect(phoneInputSchema.parse('050-1234567')).toBe('+972501234567');
+  });
+
+  it('rejects a number that cannot be normalized to E.164', () => {
+    expect(phoneInputSchema.safeParse('12345').success).toBe(false);
+  });
+});
+
 describe('onboardingFormSchema', () => {
-  it('accepts required fields and optional blank email and birth date', () => {
+  it('accepts required fields and an optional blank birth date', () => {
     const parsed = onboardingFormSchema.parse({
       firstName: ' Noa ',
       lastName: 'Cohen',
-      phone: '+972501234567',
+      phone: '050-1234567',
       birthDate: '',
-      email: '',
       locale: 'he',
     });
 
     expect(parsed.firstName).toBe('Noa');
-    expect(parsed.email).toBe('');
+    expect(parsed.phone).toBe('+972501234567');
   });
 
   it('rejects a missing first name', () => {
@@ -57,29 +88,16 @@ describe('onboardingFormSchema', () => {
 
     expect(result.success).toBe(false);
   });
-
-  it('rejects an invalid email when one is provided', () => {
-    const result = onboardingFormSchema.safeParse({
-      firstName: 'Noa',
-      lastName: 'Cohen',
-      phone: '+972501234567',
-      email: 'not-an-email',
-      locale: 'he',
-    });
-
-    expect(result.success).toBe(false);
-  });
 });
 
 describe('toOnboardingRequest', () => {
-  it('omits blank optional fields and does not send email', () => {
+  it('omits blank optional fields and normalizes a local phone', () => {
     expect(
       toOnboardingRequest({
         firstName: 'Noa',
         lastName: 'Cohen',
-        phone: '+972501234567',
+        phone: '050-1234567',
         birthDate: '',
-        email: 'noa.cohen@example.test',
         locale: 'en',
       })
     ).toEqual({

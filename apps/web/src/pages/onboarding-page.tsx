@@ -27,12 +27,7 @@ import {
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 
-const VALIDATION_KEYS = [
-  'required',
-  'phone_e164',
-  'invalid_email',
-  'invalid_date',
-] as const;
+const VALIDATION_KEYS = ['required', 'phone_e164', 'invalid_date'] as const;
 
 type ValidationKey = (typeof VALIDATION_KEYS)[number];
 type OnboardingPhase = 'form' | 'install';
@@ -42,7 +37,6 @@ interface FormErrors {
   lastName?: string;
   phone?: string;
   birthDate?: string;
-  email?: string;
 }
 
 function isValidationKey(value: string): value is ValidationKey {
@@ -65,7 +59,6 @@ function emptyForm(locale: LanguageCode): OnboardingFormValues {
     lastName: '',
     phone: '',
     birthDate: '',
-    email: '',
     locale,
   };
 }
@@ -95,7 +88,6 @@ export function OnboardingPage(): JSX.Element {
       lastName: user.lastName ?? '',
       phone: user.phone ?? '',
       birthDate: birthDateInputValue(user.birthDate),
-      email: user.email ?? '',
       locale: user.locale,
     });
   }, [user]);
@@ -281,26 +273,16 @@ export function OnboardingPage(): JSX.Element {
             }
             autoComplete="bday"
           />
-          <TextInput
-            name="email"
-            type="email"
-            label={t('email')}
-            description={t('email_optional')}
-            value={values.email ?? ''}
-            onChange={(event) => {
-              const email = inputValue(event);
-              setValues((current) => ({
-                ...current,
-                email,
-              }));
-            }}
-            error={
-              errors.email === undefined
-                ? undefined
-                : validationMessage(tValidation, errors.email)
-            }
-            autoComplete="email"
-          />
+          {user?.email ? (
+            <TextInput
+              name="email"
+              type="email"
+              label={t('email')}
+              description={t('email_from_provider')}
+              value={user.email}
+              readOnly
+            />
+          ) : null}
           <NativeSelect
             name="locale"
             label={t('preferred_language')}
