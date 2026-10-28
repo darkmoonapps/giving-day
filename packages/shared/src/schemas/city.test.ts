@@ -71,6 +71,29 @@ describe('city schemas', () => {
     ).toEqual(status);
   });
 
+  it('accepts a null logoUrl and an absolute https logo URL', () => {
+    expect(
+      citySettingsSchema.parse({
+        ...settings,
+        logoUrl: 'https://example.com/logo.svg',
+      }).logoUrl
+    ).toBe('https://example.com/logo.svg');
+    expect(citySettingsSchema.parse(settings).logoUrl).toBeNull();
+  });
+
+  it('rejects javascript: and http: logo URLs', () => {
+    expect(
+      updateCitySettingsSchema.safeParse({
+        logoUrl: 'javascript:alert(1)',
+      }).success
+    ).toBe(false);
+    expect(
+      updateCitySettingsSchema.safeParse({
+        logoUrl: 'http://example.com/logo.svg',
+      }).success
+    ).toBe(false);
+  });
+
   it('requires userId or email when adding a coordinator', () => {
     expect(addCityCoordinatorSchema.safeParse({}).success).toBe(false);
     expect(

@@ -970,7 +970,7 @@ export function useAuthControllerGetCurrentUser<TData = Awaited<ReturnType<typeo
 /**
  * @summary Get settings for a city
  */
-export const getGetCitySettingsUrl = (cityId: unknown,) => {
+export const getGetCitySettingsUrl = (cityId: string,) => {
 
 
   
@@ -978,7 +978,7 @@ export const getGetCitySettingsUrl = (cityId: unknown,) => {
   return `/api/cities/${cityId}/settings`
 }
 
-export const getCitySettings = async (cityId: unknown, options?: RequestInit): Promise<CitySettingsResponseDto> => {
+export const getCitySettings = async (cityId: string, options?: RequestInit): Promise<CitySettingsResponseDto> => {
   
   return apiFetch<CitySettingsResponseDto>(getGetCitySettingsUrl(cityId),
   {      
@@ -993,14 +993,14 @@ export const getCitySettings = async (cityId: unknown, options?: RequestInit): P
 
 
 
-export const getGetCitySettingsQueryKey = (cityId?: unknown,) => {
+export const getGetCitySettingsQueryKey = (cityId?: string,) => {
     return [
     `/api/cities/${cityId}/settings`
     ] as const;
     }
 
     
-export const getGetCitySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+export const getGetCitySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1023,7 +1023,7 @@ export type GetCitySettingsQueryError = unknown
 
 
 export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(
- cityId: unknown, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>> & Pick<
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getCitySettings>>,
           TError,
@@ -1033,7 +1033,7 @@ export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySett
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>> & Pick<
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getCitySettings>>,
           TError,
@@ -1043,7 +1043,7 @@ export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySett
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -1051,7 +1051,7 @@ export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySett
  */
 
 export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySettings>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCitySettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -1071,7 +1071,7 @@ export function useGetCitySettings<TData = Awaited<ReturnType<typeof getCitySett
 /**
  * @summary Update settings for a city
  */
-export const getUpdateCitySettingsUrl = (cityId: unknown,) => {
+export const getUpdateCitySettingsUrl = (cityId: string,) => {
 
 
   
@@ -1079,7 +1079,7 @@ export const getUpdateCitySettingsUrl = (cityId: unknown,) => {
   return `/api/cities/${cityId}/settings`
 }
 
-export const updateCitySettings = async (cityId: unknown, options?: RequestInit): Promise<CitySettingsResponseDto> => {
+export const updateCitySettings = async (cityId: string, options?: RequestInit): Promise<CitySettingsResponseDto> => {
   
   return apiFetch<CitySettingsResponseDto>(getUpdateCitySettingsUrl(cityId),
   {      
@@ -1094,8 +1094,8 @@ export const updateCitySettings = async (cityId: unknown, options?: RequestInit)
 
 
 export const getUpdateCitySettingsMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: unknown}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext> => {
 
 const mutationKey = ['updateCitySettings'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1107,7 +1107,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCitySettings>>, {cityId: unknown}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCitySettings>>, {cityId: string}> = (props) => {
           const {cityId} = props ?? {};
 
           return  updateCitySettings(cityId,requestOptions)
@@ -1126,11 +1126,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Update settings for a city
  */
 export const useUpdateCitySettings = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateCitySettings>>,
         TError,
-        {cityId: unknown},
+        {cityId: string},
         TContext
       > => {
 
@@ -1142,7 +1142,7 @@ export const useUpdateCitySettings = <TError = unknown,
 /**
  * @summary Get active join-link status for a city (no secret token; regenerate to get a new URL)
  */
-export const getListCityJoinLinksUrl = (cityId: unknown,) => {
+export const getListCityJoinLinksUrl = (cityId: string,) => {
 
 
   
@@ -1150,7 +1150,7 @@ export const getListCityJoinLinksUrl = (cityId: unknown,) => {
   return `/api/cities/${cityId}/join-links`
 }
 
-export const listCityJoinLinks = async (cityId: unknown, options?: RequestInit): Promise<CityJoinLinksResponseDto> => {
+export const listCityJoinLinks = async (cityId: string, options?: RequestInit): Promise<CityJoinLinksResponseDto> => {
   
   return apiFetch<CityJoinLinksResponseDto>(getListCityJoinLinksUrl(cityId),
   {      
@@ -1165,14 +1165,14 @@ export const listCityJoinLinks = async (cityId: unknown, options?: RequestInit):
 
 
 
-export const getListCityJoinLinksQueryKey = (cityId?: unknown,) => {
+export const getListCityJoinLinksQueryKey = (cityId?: string,) => {
     return [
     `/api/cities/${cityId}/join-links`
     ] as const;
     }
 
     
-export const getListCityJoinLinksQueryOptions = <TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+export const getListCityJoinLinksQueryOptions = <TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1195,7 +1195,7 @@ export type ListCityJoinLinksQueryError = unknown
 
 
 export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(
- cityId: unknown, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>> & Pick<
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listCityJoinLinks>>,
           TError,
@@ -1205,7 +1205,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>> & Pick<
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listCityJoinLinks>>,
           TError,
@@ -1215,7 +1215,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -1223,7 +1223,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
  */
 
 export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJoinLinks>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityJoinLinks>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -1243,7 +1243,7 @@ export function useListCityJoinLinks<TData = Awaited<ReturnType<typeof listCityJ
 /**
  * @summary Revoke the current join link and return a new raw token once
  */
-export const getRegenerateCityJoinLinkUrl = (cityId: unknown,
+export const getRegenerateCityJoinLinkUrl = (cityId: string,
     role: 'coordinator' | 'volunteer',) => {
 
 
@@ -1252,7 +1252,7 @@ export const getRegenerateCityJoinLinkUrl = (cityId: unknown,
   return `/api/cities/${cityId}/join-links/${role}/regenerate`
 }
 
-export const regenerateCityJoinLink = async (cityId: unknown,
+export const regenerateCityJoinLink = async (cityId: string,
     role: 'coordinator' | 'volunteer', options?: RequestInit): Promise<CityJoinLinkCreatedDto> => {
   
   return apiFetch<CityJoinLinkCreatedDto>(getRegenerateCityJoinLinkUrl(cityId,role),
@@ -1268,8 +1268,8 @@ export const regenerateCityJoinLink = async (cityId: unknown,
 
 
 export const getRegenerateCityJoinLinkMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: unknown;role: 'coordinator' | 'volunteer'}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: unknown;role: 'coordinator' | 'volunteer'}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: string;role: 'coordinator' | 'volunteer'}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: string;role: 'coordinator' | 'volunteer'}, TContext> => {
 
 const mutationKey = ['regenerateCityJoinLink'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1281,7 +1281,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateCityJoinLink>>, {cityId: unknown;role: 'coordinator' | 'volunteer'}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateCityJoinLink>>, {cityId: string;role: 'coordinator' | 'volunteer'}> = (props) => {
           const {cityId,role} = props ?? {};
 
           return  regenerateCityJoinLink(cityId,role,requestOptions)
@@ -1300,11 +1300,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Revoke the current join link and return a new raw token once
  */
 export const useRegenerateCityJoinLink = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: unknown;role: 'coordinator' | 'volunteer'}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateCityJoinLink>>, TError,{cityId: string;role: 'coordinator' | 'volunteer'}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof regenerateCityJoinLink>>,
         TError,
-        {cityId: unknown;role: 'coordinator' | 'volunteer'},
+        {cityId: string;role: 'coordinator' | 'volunteer'},
         TContext
       > => {
 
@@ -1316,7 +1316,7 @@ export const useRegenerateCityJoinLink = <TError = unknown,
 /**
  * @summary List coordinators for a city
  */
-export const getListCityCoordinatorsUrl = (cityId: unknown,) => {
+export const getListCityCoordinatorsUrl = (cityId: string,) => {
 
 
   
@@ -1324,7 +1324,7 @@ export const getListCityCoordinatorsUrl = (cityId: unknown,) => {
   return `/api/cities/${cityId}/coordinators`
 }
 
-export const listCityCoordinators = async (cityId: unknown, options?: RequestInit): Promise<CityCoordinatorsResponseDto> => {
+export const listCityCoordinators = async (cityId: string, options?: RequestInit): Promise<CityCoordinatorsResponseDto> => {
   
   return apiFetch<CityCoordinatorsResponseDto>(getListCityCoordinatorsUrl(cityId),
   {      
@@ -1339,14 +1339,14 @@ export const listCityCoordinators = async (cityId: unknown, options?: RequestIni
 
 
 
-export const getListCityCoordinatorsQueryKey = (cityId?: unknown,) => {
+export const getListCityCoordinatorsQueryKey = (cityId?: string,) => {
     return [
     `/api/cities/${cityId}/coordinators`
     ] as const;
     }
 
     
-export const getListCityCoordinatorsQueryOptions = <TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+export const getListCityCoordinatorsQueryOptions = <TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1369,7 +1369,7 @@ export type ListCityCoordinatorsQueryError = unknown
 
 
 export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(
- cityId: unknown, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>> & Pick<
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listCityCoordinators>>,
           TError,
@@ -1379,7 +1379,7 @@ export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCi
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>> & Pick<
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listCityCoordinators>>,
           TError,
@@ -1389,7 +1389,7 @@ export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCi
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -1397,7 +1397,7 @@ export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCi
  */
 
 export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCityCoordinators>>, TError = unknown>(
- cityId: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityCoordinators>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -1417,7 +1417,7 @@ export function useListCityCoordinators<TData = Awaited<ReturnType<typeof listCi
 /**
  * @summary Add a coordinator to a city
  */
-export const getAddCityCoordinatorUrl = (cityId: unknown,) => {
+export const getAddCityCoordinatorUrl = (cityId: string,) => {
 
 
   
@@ -1425,7 +1425,7 @@ export const getAddCityCoordinatorUrl = (cityId: unknown,) => {
   return `/api/cities/${cityId}/coordinators`
 }
 
-export const addCityCoordinator = async (cityId: unknown, options?: RequestInit): Promise<CityCoordinatorDto> => {
+export const addCityCoordinator = async (cityId: string, options?: RequestInit): Promise<CityCoordinatorDto> => {
   
   return apiFetch<CityCoordinatorDto>(getAddCityCoordinatorUrl(cityId),
   {      
@@ -1440,8 +1440,8 @@ export const addCityCoordinator = async (cityId: unknown, options?: RequestInit)
 
 
 export const getAddCityCoordinatorMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: unknown}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: string}, TContext> => {
 
 const mutationKey = ['addCityCoordinator'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1453,7 +1453,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addCityCoordinator>>, {cityId: unknown}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addCityCoordinator>>, {cityId: string}> = (props) => {
           const {cityId} = props ?? {};
 
           return  addCityCoordinator(cityId,requestOptions)
@@ -1472,11 +1472,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Add a coordinator to a city
  */
 export const useAddCityCoordinator = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCityCoordinator>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof addCityCoordinator>>,
         TError,
-        {cityId: unknown},
+        {cityId: string},
         TContext
       > => {
 
@@ -1488,8 +1488,8 @@ export const useAddCityCoordinator = <TError = unknown,
 /**
  * @summary Remove a coordinator from a city
  */
-export const getRemoveCityCoordinatorUrl = (cityId: unknown,
-    userId: unknown,) => {
+export const getRemoveCityCoordinatorUrl = (cityId: string,
+    userId: string,) => {
 
 
   
@@ -1497,8 +1497,8 @@ export const getRemoveCityCoordinatorUrl = (cityId: unknown,
   return `/api/cities/${cityId}/coordinators/${userId}`
 }
 
-export const removeCityCoordinator = async (cityId: unknown,
-    userId: unknown, options?: RequestInit): Promise<void> => {
+export const removeCityCoordinator = async (cityId: string,
+    userId: string, options?: RequestInit): Promise<void> => {
   
   return apiFetch<void>(getRemoveCityCoordinatorUrl(cityId,userId),
   {      
@@ -1513,8 +1513,8 @@ export const removeCityCoordinator = async (cityId: unknown,
 
 
 export const getRemoveCityCoordinatorMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: unknown;userId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: unknown;userId: unknown}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: string;userId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: string;userId: string}, TContext> => {
 
 const mutationKey = ['removeCityCoordinator'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1526,7 +1526,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeCityCoordinator>>, {cityId: unknown;userId: unknown}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeCityCoordinator>>, {cityId: string;userId: string}> = (props) => {
           const {cityId,userId} = props ?? {};
 
           return  removeCityCoordinator(cityId,userId,requestOptions)
@@ -1545,11 +1545,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Remove a coordinator from a city
  */
 export const useRemoveCityCoordinator = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: unknown;userId: unknown}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeCityCoordinator>>, TError,{cityId: string;userId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof removeCityCoordinator>>,
         TError,
-        {cityId: unknown;userId: unknown},
+        {cityId: string;userId: string},
         TContext
       > => {
 

@@ -7,10 +7,12 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
@@ -96,7 +98,9 @@ export class UpdateCitySettingsDto {
     nullable: true,
   })
   @IsOptional()
-  @IsString()
+  @ValidateIf((_object, value) => value !== null)
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  @Matches(/^https:\/\//i, { message: 'validation.https_url_required' })
   @MaxLength(2048)
   logoUrl?: string | null;
 

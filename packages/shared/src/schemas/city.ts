@@ -17,6 +17,14 @@ export const timeOfDaySchema = z
 
 export const citySettingsExtraSchema = z.record(z.string(), z.unknown());
 
+export function isAbsoluteHttpsUrl(value: string): boolean {
+  return /^https:\/\/[^/\s]+(\/.*)?$/i.test(value);
+}
+
+export const httpsUrlSchema = z
+  .string()
+  .refine(isAbsoluteHttpsUrl, 'validation.https_url_required');
+
 export const citySettingsSchema = z.object({
   cityId: z.string().uuid(),
   centerAddress: z.string().min(1),
@@ -30,7 +38,7 @@ export const citySettingsSchema = z.object({
   defaultLocale: localeSchema,
   defaultTheme: z.string().min(1),
   orgName: z.string().nullable(),
-  logoUrl: z.string().nullable(),
+  logoUrl: httpsUrlSchema.nullable(),
   extra: citySettingsExtraSchema,
 });
 
@@ -95,3 +103,4 @@ export type CityCoordinatorsResponse = z.infer<
   typeof cityCoordinatorsResponseSchema
 >;
 export type AddCityCoordinator = z.infer<typeof addCityCoordinatorSchema>;
+export type HttpsUrl = z.infer<typeof httpsUrlSchema>;

@@ -101,6 +101,7 @@ describe('Cities HTTP authorization', () => {
       updateMany: vi.fn(),
     },
     $transaction: vi.fn(),
+    $queryRaw: vi.fn().mockResolvedValue([]),
     $connect: vi.fn(),
     $disconnect: vi.fn(),
   };
@@ -229,6 +230,20 @@ describe('Cities HTTP authorization', () => {
         .patch(`/api/cities/${CITY_B_ID}/settings`)
         .send({ defaultStartTime: '08:00' })
         .expect(404);
+    });
+
+    it('rejects javascript: and http: logo URLs', async () => {
+      currentUser = coordinatorA();
+
+      await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/settings`)
+        .send({ logoUrl: 'javascript:alert(1)' })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/settings`)
+        .send({ logoUrl: 'http://example.com/logo.svg' })
+        .expect(400);
     });
   });
 

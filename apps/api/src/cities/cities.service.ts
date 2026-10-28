@@ -10,6 +10,7 @@ import {
   cityJoinLinksResponseSchema,
   citySettingsExtraSchema,
   citySettingsSchema,
+  httpsUrlSchema,
   type CityCoordinator,
   type CityCoordinatorsResponse,
   type CityJoinLinkCreated,
@@ -115,6 +116,13 @@ export class CitiesService {
         throw new BadRequestException('cities.invalid_extra');
       }
       extra = parsedExtra.data;
+    }
+
+    if (dto.logoUrl) {
+      const parsedLogoUrl = httpsUrlSchema.safeParse(dto.logoUrl);
+      if (!parsedLogoUrl.success) {
+        throw new BadRequestException('cities.invalid_logo_url');
+      }
     }
 
     const data = {
@@ -392,36 +400,46 @@ export class CitiesService {
     assertCanOnCity(ability, 'delete', 'CityMembership', cityId);
     await this.requireCity(cityId);
 
-    const membership = await this.prisma.cityMembership.findUnique({
-      where: {
-        cityId_userId: { cityId, userId },
-      },
-    });
-
-    if (
-      !membership ||
-      membership.role !== 'coordinator' ||
-      membership.status === 'removed'
-    ) {
-      throw new NotFoundException('cities.not_found');
-    }
-
-    if (membership.status === 'active') {
-      const activeCount = await this.prisma.cityMembership.count({
+    await this.prisma.$transaction(async (tx) => {
+      const membership = await tx.cityMembership.findUnique({
         where: {
-          cityId,
-          role: 'coordinator',
-          status: 'active',
+          cityId_userId: { cityId, userId },
         },
       });
-      if (activeCount <= 1) {
-        throw new BadRequestException('cities.last_coordinator');
-      }
-    }
 
-    await this.prisma.cityMembership.update({
-      where: { id: membership.id },
-      data: { status: 'removed' },
+      if (
+        !membership ||
+        membership.role !== 'coordinator' ||
+        membership.status === 'removed'
+      ) {
+        throw new NotFoundException('cities.not_found');
+      }
+
+      if (membership.status === 'active') {
+        await tx.$queryRaw`
+          SELECT id FROM "city_memberships"
+          WHERE "cityId" = ${cityId}::uuid
+            AND role = CAST(${'coordinator'} AS "CityRole")
+            AND status = CAST(${'active'} AS "MembershipStatus")
+          FOR UPDATE
+        `;
+
+        const activeCount = await tx.cityMembership.count({
+          where: {
+            cityId,
+            role: 'coordinator',
+            status: 'active',
+          },
+        });
+        if (activeCount <= 1) {
+          throw new BadRequestException('cities.last_coordinator');
+        }
+      }
+
+      await tx.cityMembership.update({
+        where: { id: membership.id },
+        data: { status: 'removed' },
+      });
     });
 
     await this.authService.revokeAllUserSessions(userId);

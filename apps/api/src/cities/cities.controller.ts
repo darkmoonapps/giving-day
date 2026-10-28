@@ -60,7 +60,7 @@ export class CitiesController {
     operationId: 'getCitySettings',
     summary: 'Get settings for a city',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiOkResponse({ type: CitySettingsResponseDto })
   async getSettings(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -75,7 +75,7 @@ export class CitiesController {
     operationId: 'updateCitySettings',
     summary: 'Update settings for a city',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiOkResponse({ type: CitySettingsResponseDto })
   async updateSettings(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -92,7 +92,7 @@ export class CitiesController {
     summary:
       'Get active join-link status for a city (no secret token; regenerate to get a new URL)',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiOkResponse({ type: CityJoinLinksResponseDto })
   async listJoinLinks(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -107,8 +107,8 @@ export class CitiesController {
     operationId: 'regenerateCityJoinLink',
     summary: 'Revoke the current join link and return a new raw token once',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
-  @ApiParam({ name: 'role', enum: CityRole })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'role', type: String, enum: CityRole })
   @ApiCreatedResponse({ type: CityJoinLinkCreatedDto })
   async regenerateJoinLink(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -124,7 +124,7 @@ export class CitiesController {
     operationId: 'listCityCoordinators',
     summary: 'List coordinators for a city',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiOkResponse({ type: CityCoordinatorsResponseDto })
   async listCoordinators(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -143,7 +143,7 @@ export class CitiesController {
     operationId: 'addCityCoordinator',
     summary: 'Add a coordinator to a city',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiCreatedResponse({ type: CityCoordinatorDto })
   async addCoordinator(
     @Param('cityId', ParseUUIDPipe) cityId: string,
@@ -160,8 +160,8 @@ export class CitiesController {
     operationId: 'removeCityCoordinator',
     summary: 'Remove a coordinator from a city',
   })
-  @ApiParam({ name: 'cityId', format: 'uuid' })
-  @ApiParam({ name: 'userId', format: 'uuid' })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'userId', type: String, format: 'uuid' })
   @ApiNoContentResponse()
   async removeCoordinator(
     @Param('cityId', ParseUUIDPipe) cityId: string,

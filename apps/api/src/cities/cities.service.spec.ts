@@ -77,6 +77,7 @@ describe('CitiesService', () => {
       findFirst: vi.fn(),
     },
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   };
 
   const mockAuthService = {
@@ -173,6 +174,26 @@ describe('CitiesService', () => {
         service.updateSettings(
           CITY_A_ID,
           { defaultStartTime: '16:00', defaultEndTime: '09:00' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects javascript: and http: logo URLs', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.citySettings.findUnique.mockResolvedValue(settingsRow);
+
+      await expect(
+        service.updateSettings(
+          CITY_A_ID,
+          { logoUrl: 'javascript:alert(1)' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.updateSettings(
+          CITY_A_ID,
+          { logoUrl: 'http://example.com/logo.svg' },
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -420,10 +441,11 @@ describe('CitiesService', () => {
       await expect(
         service.removeCoordinator(CITY_A_ID, COORDINATOR_A_ID, coordinatorA())
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockAuthService.revokeAllUserSessions).not.toHaveBeenCalled();
     });
 
-    it('removes another coordinator and revokes their sessions', async () => {
+    it('removes another coordinator in a transaction then revokes sessions', async () => {
       mockPrisma.city.findUnique.mockResolvedValue(city);
       mockPrisma.cityMembership.findUnique.mockResolvedValue({
         id: 'membership-other',
@@ -432,7 +454,19 @@ describe('CitiesService', () => {
       });
       mockPrisma.cityMembership.count.mockResolvedValue(2);
       mockPrisma.cityMembership.update.mockResolvedValue({});
+      mockPrisma.$queryRaw.mockResolvedValue([]);
       mockAuthService.revokeAllUserSessions.mockResolvedValue(undefined);
+
+      const callOrder: string[] = [];
+      mockPrisma.$transaction.mockImplementation(
+        async (callback: (tx: typeof mockPrisma) => Promise<unknown>) => {
+          callOrder.push('transaction');
+          return callback(mockPrisma);
+        }
+      );
+      mockAuthService.revokeAllUserSessions.mockImplementation(async () => {
+        callOrder.push('revoke');
+      });
 
       await service.removeCoordinator(CITY_A_ID, otherUser.id, coordinatorA());
 
@@ -440,9 +474,11 @@ describe('CitiesService', () => {
         where: { id: 'membership-other' },
         data: { status: 'removed' },
       });
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
       expect(mockAuthService.revokeAllUserSessions).toHaveBeenCalledWith(
         otherUser.id
       );
+      expect(callOrder).toEqual(['transaction', 'revoke']);
     });
 
     it('forbids a volunteer from listing or adding coordinators', async () => {
