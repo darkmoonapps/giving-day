@@ -7,8 +7,9 @@ import { AuthService, type SocialProfile } from '../auth.service';
 export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.FACEBOOK_APP_ID || '',
-      clientSecret: process.env.FACEBOOK_APP_SECRET || '',
+      clientID: process.env.FACEBOOK_APP_ID || 'unconfigured-facebook-app-id',
+      clientSecret:
+        process.env.FACEBOOK_APP_SECRET || 'unconfigured-facebook-app-secret',
       callbackURL: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/facebook/callback`,
       scope: ['email'],
       profileFields: ['id', 'emails', 'name'],

@@ -7,8 +7,9 @@ import { AuthService, type SocialProfile } from '../auth.service';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientID: process.env.GOOGLE_CLIENT_ID || 'unconfigured-google-client-id',
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET || 'unconfigured-google-client-secret',
       callbackURL: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/google/callback`,
       scope: ['email', 'profile'],
     });
