@@ -2,6 +2,12 @@ import type { Page, Route } from '@playwright/test';
 
 const FAKE_USER_ID = '11111111-1111-4111-8111-111111111111';
 
+export interface StubMembership {
+  cityId: string;
+  role: 'volunteer' | 'coordinator';
+  status: 'pending' | 'active' | 'paused' | 'removed';
+}
+
 export interface StubUserOptions {
   onboarded: boolean;
   firstName?: string | null;
@@ -9,6 +15,7 @@ export interface StubUserOptions {
   phone?: string | null;
   email?: string | null;
   birthDate?: string | null;
+  memberships?: StubMembership[];
 }
 
 function fakeUserPayload(options: StubUserOptions): Record<string, unknown> {
@@ -23,6 +30,7 @@ function fakeUserPayload(options: StubUserOptions): Record<string, unknown> {
       options.birthDate === undefined ? '1990-03-15' : options.birthDate,
     locale: 'he',
     onboardedAt: options.onboarded ? '2026-10-28T08:00:00.000Z' : null,
+    memberships: options.memberships ?? [],
   };
 }
 
@@ -77,6 +85,91 @@ export async function stubOnboardingSubmit(
         onboardedAt: '2026-10-28T08:00:00.000Z',
       },
     });
+  });
+}
+
+const CITY_A_ID = '11111111-1111-4111-8111-111111111111';
+const DAY_ID = '33333333-3333-4333-8333-333333333333';
+
+export interface StubDayResponse {
+  volunteerId: string;
+  firstName: string | null;
+  lastName: string | null;
+  responseStatus: 'confirmed' | 'declined' | 'no_response';
+  cancelReason: string | null;
+  respondedAt: string | null;
+}
+
+export async function stubDistributionDayApi(
+  page: Page,
+  options: {
+    onRespond?: (body: Record<string, unknown>) => void;
+    responses?: StubDayResponse[];
+  } = {}
+): Promise<void> {
+  const openDay = {
+    id: DAY_ID,
+    cityId: CITY_A_ID,
+    date: '2026-11-15',
+    startTime: '09:00:00',
+    endTime: '14:00:00',
+    notesForVolunteers: 'Bring a folding cart',
+    addOns: ['holiday honey'],
+    status: 'published',
+    publishedAt: '2026-10-28T09:00:00.000Z',
+    closedAt: null,
+    myParticipation: null as Record<string, unknown> | null,
+  };
+
+  await page.route('**/api/cities/*/distribution-days/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const method = request.method();
+
+    if (method === 'POST' && url.pathname.endsWith('/participations')) {
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      if (options.onRespond !== undefined) {
+        options.onRespond(body);
+      }
+      const participation = {
+        id: '44444444-4444-4444-8444-444444444444',
+        cityId: CITY_A_ID,
+        dayId: DAY_ID,
+        volunteerId: FAKE_USER_ID,
+        status: body.status,
+        respondedAt: '2026-10-29T10:00:00.000Z',
+        cancelReason:
+          typeof body.cancelReason === 'string' ? body.cancelReason : null,
+      };
+      openDay.myParticipation = participation;
+      await jsonFulfill(route, participation);
+      return;
+    }
+
+    if (method === 'GET' && url.pathname.endsWith('/participations')) {
+      await jsonFulfill(route, {
+        dayId: DAY_ID,
+        cityId: CITY_A_ID,
+        responses: options.responses ?? [],
+      });
+      return;
+    }
+
+    if (method === 'GET') {
+      await jsonFulfill(route, openDay);
+    }
+  });
+
+  await page.route('**/api/cities/*/distribution-days', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await jsonFulfill(route, { days: [openDay] });
   });
 }
 

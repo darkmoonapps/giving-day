@@ -161,6 +161,17 @@ describe('AbilityFactory', () => {
       expect(ability.can('create', 'DistributionDay')).toBe(true);
       expect(ability.can('publish', 'DistributionDay')).toBe(true);
       expect(ability.can('close', 'DistributionDay')).toBe(true);
+      expect(ability.can('read', 'DayParticipation')).toBe(true);
+      expect(ability.can('read', subject('DayParticipation', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can(
+          'read',
+          subject('DayParticipation', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(ability.can('create', 'DayParticipation')).toBe(false);
     });
 
     it('should scope distribution day create and close to the city', () => {
@@ -259,6 +270,16 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('create', 'DayParticipation')).toBe(true);
       expect(ability.can('update', 'DayParticipation')).toBe(true);
+      expect(
+        ability.can('create', subject('DayParticipation', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can(
+          'create',
+          subject('DayParticipation', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(ability.can('read', 'DayParticipation')).toBe(false);
     });
 
     it('should allow volunteer to read assigned elders', () => {

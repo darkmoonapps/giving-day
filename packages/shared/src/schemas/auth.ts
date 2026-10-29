@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema } from './city';
+import { cityRoleSchema, localeSchema, membershipStatusSchema } from './city';
 
 export const e164PhoneSchema = z
   .string()
@@ -89,6 +89,14 @@ export const onboardingRequestSchema = z.object({
 
 export type OnboardingRequest = z.infer<typeof onboardingRequestSchema>;
 
+export const authMembershipSchema = z.object({
+  cityId: z.string().min(1),
+  role: cityRoleSchema,
+  status: membershipStatusSchema,
+});
+
+export type AuthMembership = z.infer<typeof authMembershipSchema>;
+
 export const authUserSchema = z.object({
   id: z.string().min(1),
   firstName: z.string().nullable(),
@@ -100,6 +108,7 @@ export const authUserSchema = z.object({
   themePref: z.enum(['system', 'light', 'dark']).optional(),
   isSuperAdmin: z.boolean().optional(),
   onboardedAt: z.string().nullable().optional(),
+  memberships: z.array(authMembershipSchema).optional().default([]),
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
@@ -126,6 +135,24 @@ export function getUserDisplayName(user: AuthUser): string {
       (part): part is string => typeof part === 'string' && part.length > 0
     )
     .join(' ');
+}
+
+export function getActiveMemberships(user: AuthUser): AuthMembership[] {
+  return user.memberships.filter(
+    (membership) => membership.status === 'active'
+  );
+}
+
+export function getActiveVolunteerCities(user: AuthUser): string[] {
+  return getActiveMemberships(user)
+    .filter((membership) => membership.role === 'volunteer')
+    .map((membership) => membership.cityId);
+}
+
+export function getActiveCoordinatorCities(user: AuthUser): string[] {
+  return getActiveMemberships(user)
+    .filter((membership) => membership.role === 'coordinator')
+    .map((membership) => membership.cityId);
 }
 
 export function toOnboardingRequest(

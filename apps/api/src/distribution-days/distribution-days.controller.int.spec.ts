@@ -14,6 +14,7 @@ import { NOTIFICATION_PROVIDER } from '../notifications/notification.provider';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CITY_A_ID,
+  CITY_B_ID,
   COORDINATOR_A_ID,
   coordinatorA,
   coordinatorB,
@@ -87,6 +88,15 @@ describe('Distribution days HTTP authorization', () => {
     cityMembership: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    dayParticipation: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn(),
+    },
+    delivery: {
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    $transaction: vi.fn(),
     notificationLog: {
       findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
@@ -146,6 +156,25 @@ describe('Distribution days HTTP authorization', () => {
     mockPrisma.distributionDay.findMany.mockResolvedValue([publishedDay]);
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+    mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+    mockPrisma.dayParticipation.upsert.mockResolvedValue({
+      id: '44444444-4444-4444-8444-444444444444',
+      createdAt: new Date('2026-10-29T10:00:00.000Z'),
+      updatedAt: new Date('2026-10-29T10:00:00.000Z'),
+      cityId: CITY_A_ID,
+      dayId: publishedDay.id,
+      volunteerId: volunteerA().id,
+      status: 'confirmed',
+      respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+      cancelReason: null,
+      finishedAt: null,
+    });
+    mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
   });
 
   it('rejects unauthenticated access', async () => {
@@ -274,6 +303,155 @@ describe('Distribution days HTTP authorization', () => {
       await request(app.getHttpServer())
         .post(
           `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/close`
+        )
+        .expect(404);
+    });
+  });
+
+  describe('POST /api/cities/:cityId/distribution-days/:dayId/participations', () => {
+    it('lets a volunteer confirm an open day', async () => {
+      currentUser = volunteerA();
+      const response = await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({ status: 'confirmed' })
+        .expect(200);
+
+      expect(response.body.status).toBe('confirmed');
+      expect(response.body.volunteerId).toBe(volunteerA().id);
+    });
+
+    it('lets a volunteer decline with a reason', async () => {
+      currentUser = volunteerA();
+      mockPrisma.dayParticipation.upsert.mockResolvedValue({
+        id: '44444444-4444-4444-8444-444444444444',
+        createdAt: new Date('2026-10-29T10:00:00.000Z'),
+        updatedAt: new Date('2026-10-29T10:00:00.000Z'),
+        cityId: CITY_A_ID,
+        dayId: publishedDay.id,
+        volunteerId: volunteerA().id,
+        status: 'declined',
+        respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+        cancelReason: 'Family event in Holon',
+        finishedAt: null,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({
+          status: 'declined',
+          cancelReason: 'Family event in Holon',
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('declined');
+      expect(response.body.cancelReason).toBe('Family event in Holon');
+    });
+
+    it('rejects a decline without a reason', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({ status: 'declined' })
+        .expect(400);
+    });
+
+    it('forbids a coordinator from responding', async () => {
+      currentUser = coordinatorA();
+      await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({ status: 'confirmed' })
+        .expect(403);
+    });
+
+    it('forbids a pending member', async () => {
+      currentUser = pendingVolunteer();
+      await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({ status: 'confirmed' })
+        .expect(403);
+    });
+
+    it('hides another city from a volunteer', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_B_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({ status: 'confirmed' })
+        .expect(404);
+    });
+  });
+
+  describe('GET /api/cities/:cityId/distribution-days/:dayId/participations', () => {
+    it('lets a coordinator list volunteer responses', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.cityMembership.findMany.mockResolvedValue([
+        {
+          userId: volunteerA().id,
+          user: {
+            id: volunteerA().id,
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+          },
+        },
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        {
+          id: '44444444-4444-4444-8444-444444444444',
+          createdAt: new Date('2026-10-29T10:00:00.000Z'),
+          updatedAt: new Date('2026-10-29T10:00:00.000Z'),
+          cityId: CITY_A_ID,
+          dayId: publishedDay.id,
+          volunteerId: volunteerA().id,
+          status: 'confirmed',
+          respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+          cancelReason: null,
+          finishedAt: null,
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .expect(200);
+
+      expect(response.body.responses).toEqual([
+        {
+          volunteerId: volunteerA().id,
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+          responseStatus: 'confirmed',
+          cancelReason: null,
+          respondedAt: '2026-10-29T10:00:00.000Z',
+        },
+      ]);
+    });
+
+    it('forbids a volunteer from listing city responses', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .expect(403);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      currentUser = coordinatorB();
+      await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
         )
         .expect(404);
     });

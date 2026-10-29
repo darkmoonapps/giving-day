@@ -1,3 +1,18 @@
 {
-  "dashboard": "לוח בקרה"
+  "dashboard": "לוח בקרה",
+  "open_days_title": "ימי חלוקה",
+  "no_days": "אין עדיין ימי חלוקה.",
+  "view_responses": "צפייה במענים",
+  "responses_title": "מעני המתנדבים",
+  "responses_subtitle": "מי אישר, מי סירב, ומי עדיין לא ענה.",
+  "volunteer_column": "מתנדב/ת",
+  "status_column": "סטטוס",
+  "reason_column": "סיבה",
+  "status_confirmed": "אישר",
+  "status_declined": "סירוב",
+  "status_no_response": "לא הגיב",
+  "no_volunteers": "אין עדיין מתנדבים פעילים בעיר הזו.",
+  "unnamed_volunteer": "מתנדב/ת",
+  "load_error": "לא הצלחנו לטעון את מעני המתנדבים. נסו שוב מאוחר יותר.",
+  "no_reason": "—"
 }

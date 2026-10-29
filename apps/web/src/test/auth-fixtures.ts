@@ -14,6 +14,7 @@ export function fakeUser(overrides: Partial<AuthUser> = {}): AuthUser {
     birthDate: '1990-03-15',
     locale: 'he',
     onboardedAt: null,
+    memberships: [],
     ...overrides,
   };
 }

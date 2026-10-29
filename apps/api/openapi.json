@@ -699,6 +699,106 @@
           "distribution-days"
         ]
       }
+    },
+    "/api/cities/{cityId}/distribution-days/{dayId}/participations": {
+      "get": {
+        "operationId": "listDayParticipations",
+        "parameters": [
+          {
+            "name": "dayId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayParticipationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List each active volunteer's response for a distribution day (coordinators)",
+        "tags": [
+          "distribution-days"
+        ]
+      },
+      "post": {
+        "operationId": "respondToDistributionDay",
+        "parameters": [
+          {
+            "name": "dayId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondToDistributionDayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnDayParticipationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm or decline own participation for an open distribution day",
+        "tags": [
+          "distribution-days"
+        ]
+      }
     }
   },
   "info": {
@@ -1080,6 +1180,59 @@
           "subscriptions"
         ]
       },
+      "OwnDayParticipationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "44444444-4444-4444-8444-444444444444"
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "dayId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "33333333-3333-4333-8333-333333333333"
+          },
+          "volunteerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "declined"
+            ],
+            "example": "confirmed"
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-10-29T10:00:00.000Z"
+          },
+          "cancelReason": {
+            "type": "string",
+            "example": "Family event in Holon",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "cityId",
+          "dayId",
+          "volunteerId",
+          "status",
+          "respondedAt",
+          "cancelReason"
+        ]
+      },
       "DistributionDayResponseDto": {
         "type": "object",
         "properties": {
@@ -1151,6 +1304,15 @@
             "type": "string",
             "format": "uuid",
             "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "myParticipation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OwnDayParticipationDto"
+              }
+            ]
           }
         },
         "required": [
@@ -1178,6 +1340,100 @@
         },
         "required": [
           "days"
+        ]
+      },
+      "DayParticipationCoordinatorRowDto": {
+        "type": "object",
+        "properties": {
+          "volunteerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Yonatan",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Bar",
+            "nullable": true
+          },
+          "responseStatus": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "declined",
+              "no_response"
+            ],
+            "example": "confirmed"
+          },
+          "cancelReason": {
+            "type": "string",
+            "example": "Family event in Holon",
+            "nullable": true
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-10-29T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "volunteerId",
+          "firstName",
+          "lastName",
+          "responseStatus",
+          "cancelReason",
+          "respondedAt"
+        ]
+      },
+      "DayParticipationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "dayId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "33333333-3333-4333-8333-333333333333"
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayParticipationCoordinatorRowDto"
+            }
+          }
+        },
+        "required": [
+          "dayId",
+          "cityId",
+          "responses"
+        ]
+      },
+      "RespondToDistributionDayDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "declined"
+            ],
+            "example": "confirmed"
+          },
+          "cancelReason": {
+            "type": "string",
+            "example": "Family event in Holon"
+          }
+        },
+        "required": [
+          "status"
         ]
       }
     }

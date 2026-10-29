@@ -1,3 +1,26 @@
 {
-  "confirm_participation": "אשר השתתפות"
+  "confirm_participation": "אשר השתתפות",
+  "open_days_title": "ימי חלוקה קרובים",
+  "no_open_days": "אין כרגע יום חלוקה פתוח.",
+  "respond_cta": "למענה",
+  "notes_label": "הערות למתנדבים",
+  "add_ons_label": "תוספות",
+  "confirm_button": "אישור",
+  "decline_button": "לא אוכל להגיע",
+  "decline_reason_label": "סיבה",
+  "decline_reason_placeholder": "ספרו לרכזת למה לא תוכלו להגיע",
+  "decline_submit": "שליחת סירוב",
+  "decline_cancel": "חזרה",
+  "thanks_title": "תודה רבה!",
+  "thanks_body": "אישרתם השתתפות ביום החלוקה.",
+  "declined_title": "סירבתם ליום הזה",
+  "declined_body": "הרכזת יכולה לראות את הסיבה.",
+  "your_reason": "הסיבה שלכם: {{reason}}",
+  "change_to_confirm": "אוכל להגיע בכל זאת",
+  "load_error": "לא הצלחנו לטעון את יום החלוקה. נסו שוב מאוחר יותר.",
+  "respond_error": "לא הצלחנו לשמור את המענה. נסו שוב.",
+  "closed_title": "יום החלוקה הזה אינו פתוח למענה.",
+  "status_confirmed": "אישר",
+  "status_declined": "סירוב",
+  "status_no_response": "לא הגיב"
 }
