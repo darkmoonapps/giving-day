@@ -272,6 +272,27 @@ export interface RespondToDistributionDayDto {
   cancelReason?: string;
 }
 
+export type DeliveryElderContactDtoRelation = typeof DeliveryElderContactDtoRelation[keyof typeof DeliveryElderContactDtoRelation];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DeliveryElderContactDtoRelation = {
+  child: 'child',
+  spouse: 'spouse',
+  sibling: 'sibling',
+  caregiver: 'caregiver',
+  social_worker: 'social_worker',
+  neighbor: 'neighbor',
+  other: 'other',
+} as const;
+
+export interface DeliveryElderContactDto {
+  name: string;
+  relation: DeliveryElderContactDtoRelation;
+  phone: string;
+  isPrimary: boolean;
+}
+
 export interface DeliveryElderDto {
   id: string;
   fullName: string;
@@ -287,6 +308,7 @@ export interface DeliveryElderDto {
   addressNotes: string | null;
   /** @nullable */
   notes: string | null;
+  contacts: DeliveryElderContactDto[];
 }
 
 export interface DeliveryVolunteerDto {

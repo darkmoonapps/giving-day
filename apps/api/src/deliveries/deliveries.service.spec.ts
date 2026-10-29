@@ -43,6 +43,13 @@ describe('DeliveriesService', () => {
     createdById: COORDINATOR_A_ID,
   };
 
+  const tamarContact = {
+    name: 'Tamar Levi',
+    relation: 'child' as const,
+    phone: '+972506666666',
+    isPrimary: true,
+  };
+
   const rivkahElder = {
     id: ELDER_RIVKAH_ID,
     fullName: 'Rivkah Levi',
@@ -53,6 +60,7 @@ describe('DeliveriesService', () => {
     apartment: '7',
     addressNotes: 'Knock loudly',
     notes: 'Entrance is around the back',
+    contacts: [tamarContact],
   };
 
   const yosefElder = {
@@ -65,6 +73,7 @@ describe('DeliveriesService', () => {
     apartment: null,
     addressNotes: null,
     notes: null,
+    contacts: [],
   };
 
   const assignedRivkah = {
@@ -114,6 +123,7 @@ describe('DeliveriesService', () => {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     deliveryEvent: {
       createMany: vi.fn(),
@@ -138,6 +148,7 @@ describe('DeliveriesService', () => {
     mockPrisma.delivery.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.delivery.findMany.mockResolvedValue([]);
     mockPrisma.delivery.findFirst.mockResolvedValue(null);
+    mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.deliveryEvent.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.deliveryEvent.create.mockResolvedValue({});
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
@@ -311,11 +322,15 @@ describe('DeliveriesService', () => {
       expect(result.deliveries).toHaveLength(1);
       expect(result.deliveries[0]).toMatchObject({
         id: DELIVERY_RIVKAH_ID,
-        elder: { fullName: 'Rivkah Levi' },
+        elder: {
+          fullName: 'Rivkah Levi',
+          contacts: [tamarContact],
+        },
       });
       expect(result.deliveries[0]).not.toHaveProperty('volunteerId');
       expect(JSON.stringify(result)).not.toContain('buildingCode');
-      expect(JSON.stringify(result)).not.toContain('+972');
+      expect(JSON.stringify(result)).toContain('+972506666666');
+      expect(JSON.stringify(result)).not.toContain('+972502222222');
     });
 
     it('hides another city from a coordinator', async () => {
@@ -327,13 +342,7 @@ describe('DeliveriesService', () => {
 
   describe('assign', () => {
     it('lets a coordinator move a delivery to another volunteer', async () => {
-      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'volunteer',
-        status: 'active',
-        user: { archivedAt: null },
-      });
-      mockPrisma.delivery.update.mockResolvedValue({
+      const reassigned = {
         ...assignedRivkah,
         volunteerId: VOLUNTEER_B_ID,
         volunteer: {
@@ -341,7 +350,16 @@ describe('DeliveriesService', () => {
           firstName: 'Dana',
           lastName: 'Levi',
         },
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(assignedRivkah)
+        .mockResolvedValueOnce(reassigned);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue({
+        role: 'volunteer',
+        status: 'active',
+        user: { archivedAt: null },
       });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.assign(
         CITY_A_ID,
@@ -352,26 +370,34 @@ describe('DeliveriesService', () => {
       );
 
       expect(result.volunteerId).toBe(VOLUNTEER_B_ID);
-      expect(mockPrisma.delivery.update).toHaveBeenCalledWith(
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: expect.objectContaining({
+            id: DELIVERY_RIVKAH_ID,
+            status: { in: ['unassigned', 'assigned'] },
+          }),
           data: expect.objectContaining({
             volunteerId: VOLUNTEER_B_ID,
             status: 'assigned',
           }),
         })
       );
+      expect(mockPrisma.delivery.update).not.toHaveBeenCalled();
       expect(mockPrisma.deliveryEvent.create).toHaveBeenCalled();
     });
 
     it('lets a coordinator unassign a delivery onto the needs-a-volunteer list', async () => {
-      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
-      mockPrisma.delivery.update.mockResolvedValue({
+      const unassigned = {
         ...assignedRivkah,
         volunteerId: null,
-        status: 'unassigned',
+        status: 'unassigned' as const,
         assignedAt: null,
         volunteer: null,
-      });
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(assignedRivkah)
+        .mockResolvedValueOnce(unassigned);
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.assign(
         CITY_A_ID,
@@ -403,7 +429,7 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(mockPrisma.delivery.update).not.toHaveBeenCalled();
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
     it('rejects reassignment after pickup', async () => {
@@ -411,6 +437,12 @@ describe('DeliveriesService', () => {
         ...assignedRivkah,
         status: 'picked',
       });
+      mockPrisma.cityMembership.findUnique.mockResolvedValue({
+        role: 'volunteer',
+        status: 'active',
+        user: { archivedAt: null },
+      });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
         service.assign(
@@ -421,6 +453,36 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { in: ['unassigned', 'assigned'] },
+          }),
+        })
+      );
+      expect(mockPrisma.deliveryEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('does not overwrite a concurrent pickup inside the transaction', async () => {
+      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue({
+        role: 'volunteer',
+        status: 'active',
+        user: { archivedAt: null },
+      });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.assign(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { volunteerId: VOLUNTEER_B_ID },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.delivery.update).not.toHaveBeenCalled();
+      expect(mockPrisma.deliveryEvent.create).not.toHaveBeenCalled();
     });
 
     it('hides assign from a volunteer', async () => {
@@ -436,18 +498,21 @@ describe('DeliveriesService', () => {
     });
 
     it('lets a super admin assign in any city', async () => {
-      mockPrisma.delivery.findFirst.mockResolvedValue(unassignedYosef);
+      const assignedYosef = {
+        ...unassignedYosef,
+        volunteerId: VOLUNTEER_A_ID,
+        status: 'assigned' as const,
+        volunteer: assignedRivkah.volunteer,
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(unassignedYosef)
+        .mockResolvedValueOnce(assignedYosef);
       mockPrisma.cityMembership.findUnique.mockResolvedValue({
         role: 'volunteer',
         status: 'active',
         user: { archivedAt: null },
       });
-      mockPrisma.delivery.update.mockResolvedValue({
-        ...unassignedYosef,
-        volunteerId: VOLUNTEER_A_ID,
-        status: 'assigned',
-        volunteer: assignedRivkah.volunteer,
-      });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.assign(
         CITY_A_ID,

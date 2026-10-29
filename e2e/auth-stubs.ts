@@ -110,6 +110,19 @@ export interface StubDeliveryElder {
   apartment: string | null;
   addressNotes: string | null;
   notes: string | null;
+  contacts: Array<{
+    name: string;
+    relation:
+      | 'child'
+      | 'spouse'
+      | 'sibling'
+      | 'caregiver'
+      | 'social_worker'
+      | 'neighbor'
+      | 'other';
+    phone: string;
+    isPrimary: boolean;
+  }>;
 }
 
 export interface StubCoordinatorDelivery {
@@ -227,6 +240,14 @@ export async function stubDistributionDayApi(
           apartment: '7',
           addressNotes: 'Knock loudly',
           notes: 'Entrance is around the back',
+          contacts: [
+            {
+              name: 'Tamar Levi',
+              relation: 'child',
+              phone: '+972506666666',
+              isPrimary: true,
+            },
+          ],
         },
       });
       return;

@@ -33,5 +33,13 @@
   "address_notes_label": "Address notes",
   "entrance_label": "Entrance",
   "floor_label": "Floor",
-  "apartment_label": "Apt"
+  "apartment_label": "Apt",
+  "next_of_kin_label": "Next of kin",
+  "contact_relation_child": "Child",
+  "contact_relation_spouse": "Spouse",
+  "contact_relation_sibling": "Sibling",
+  "contact_relation_caregiver": "Caregiver",
+  "contact_relation_social_worker": "Social worker",
+  "contact_relation_neighbor": "Neighbor",
+  "contact_relation_other": "Other"
 }

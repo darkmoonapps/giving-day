@@ -63,6 +63,14 @@ export const ELDER_RIVKAH = {
   apartment: '7',
   addressNotes: 'Knock loudly',
   notes: 'Entrance is around the back',
+  contacts: [
+    {
+      name: 'Tamar Levi',
+      relation: 'child' as const,
+      phone: '+972506666666',
+      isPrimary: true,
+    },
+  ],
 };
 
 export const DELIVERY_RIVKAH_ID = '16161616-1616-4161-8161-161616161616';
@@ -106,6 +114,7 @@ export const coordinatorDeliveryUnassigned = {
     apartment: null,
     addressNotes: null,
     notes: null,
+    contacts: [],
   },
 };
 

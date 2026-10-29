@@ -43,6 +43,14 @@ test.describe('Distribution day deliveries', () => {
             apartment: '7',
             addressNotes: 'Knock loudly',
             notes: 'Entrance is around the back',
+            contacts: [
+              {
+                name: 'Tamar Levi',
+                relation: 'child',
+                phone: '+972506666666',
+                isPrimary: true,
+              },
+            ],
           },
         },
       ],
@@ -52,6 +60,9 @@ test.describe('Distribution day deliveries', () => {
     await expect(page.getByTestId('volunteer-deliveries-page')).toBeVisible();
     await expect(page.getByText('Rivkah Levi')).toBeVisible();
     await expect(page.getByText('12 Example St 12')).toBeVisible();
+    await expect(page.getByTestId('elder-next-of-kin')).toBeVisible();
+    await expect(page.getByText('Tamar Levi')).toBeVisible();
+    await expect(page.getByText('+972506666666')).toBeVisible();
   });
 
   test('coordinator assigns an unassigned delivery', async ({ page }) => {
@@ -90,6 +101,7 @@ test.describe('Distribution day deliveries', () => {
             apartment: null,
             addressNotes: null,
             notes: null,
+            contacts: [],
           },
         },
       ],

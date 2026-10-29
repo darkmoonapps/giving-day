@@ -1,6 +1,7 @@
 import { NativeSelect, Stack, Table } from '@mantine/core';
 import {
   getActiveCoordinatorCities,
+  type ContactRelation,
   type DeliveryElder,
 } from '@giving-day/shared';
 import {
@@ -35,6 +36,25 @@ import { AppChrome } from '../layout/app-chrome';
 import { useSession } from '../auth/session-provider';
 
 const UNASSIGNED_VALUE = '';
+
+const CONTACT_RELATION_KEYS: Record<
+  ContactRelation,
+  | 'contact_relation_child'
+  | 'contact_relation_spouse'
+  | 'contact_relation_sibling'
+  | 'contact_relation_caregiver'
+  | 'contact_relation_social_worker'
+  | 'contact_relation_neighbor'
+  | 'contact_relation_other'
+> = {
+  child: 'contact_relation_child',
+  spouse: 'contact_relation_spouse',
+  sibling: 'contact_relation_sibling',
+  caregiver: 'contact_relation_caregiver',
+  social_worker: 'contact_relation_social_worker',
+  neighbor: 'contact_relation_neighbor',
+  other: 'contact_relation_other',
+};
 
 function isCoordinatorDeliveries(
   value: DayDeliveriesResponseDto
@@ -338,6 +358,24 @@ function VolunteerDeliveries({
                 >
                   <AppText fw={600}>{delivery.elder.fullName}</AppText>
                   <ElderAddress elder={delivery.elder} labels={labels} />
+                  {delivery.elder.contacts.length > 0 ? (
+                    <Stack gap={4} data-testid="elder-next-of-kin">
+                      <AppText size="sm" fw={500}>
+                        {t('next_of_kin_label')}
+                      </AppText>
+                      {delivery.elder.contacts.map((contact) => (
+                        <Stack gap={0} key={`${contact.phone}-${contact.name}`}>
+                          <AppText size="sm">
+                            {contact.name} (
+                            {t(CONTACT_RELATION_KEYS[contact.relation])})
+                          </AppText>
+                          <AppText size="sm">
+                            <a href={`tel:${contact.phone}`}>{contact.phone}</a>
+                          </AppText>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  ) : null}
                   {delivery.elder.addressNotes !== null &&
                   delivery.elder.addressNotes.length > 0 ? (
                     <AppText size="sm">

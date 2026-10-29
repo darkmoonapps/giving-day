@@ -58,6 +58,9 @@ describe('DayDeliveriesPage', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Rivkah Levi')).toBeInTheDocument();
       expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
+      expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
+      expect(screen.getByText(/Tamar Levi/)).toBeInTheDocument();
+      expect(screen.getByText('+972506666666')).toBeInTheDocument();
       expect(screen.queryByTestId('assign-delivery')).not.toBeInTheDocument();
     });
 

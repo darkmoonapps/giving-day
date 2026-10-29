@@ -33,5 +33,13 @@
   "address_notes_label": "הערות כתובת",
   "entrance_label": "כניסה",
   "floor_label": "קומה",
-  "apartment_label": "דירה"
+  "apartment_label": "דירה",
+  "next_of_kin_label": "קרוב משפחה",
+  "contact_relation_child": "בן/בת",
+  "contact_relation_spouse": "בן/בת זוג",
+  "contact_relation_sibling": "אח/ות",
+  "contact_relation_caregiver": "מטפל/ת",
+  "contact_relation_social_worker": "עובד/ת סוציאלי/ת",
+  "contact_relation_neighbor": "שכן/ה",
+  "contact_relation_other": "אחר"
 }

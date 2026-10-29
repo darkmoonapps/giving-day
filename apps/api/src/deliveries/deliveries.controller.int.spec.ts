@@ -60,6 +60,14 @@ describe('Deliveries HTTP authorization', () => {
     apartment: '7',
     addressNotes: 'Knock loudly',
     notes: 'Entrance is around the back',
+    contacts: [
+      {
+        name: 'Tamar Levi',
+        relation: 'child' as const,
+        phone: '+972506666666',
+        isPrimary: true,
+      },
+    ],
   };
 
   const assignedRivkah = {
@@ -113,7 +121,7 @@ describe('Deliveries HTTP authorization', () => {
       upsert: vi.fn(),
     },
     delivery: {
-      updateMany: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       createMany: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(assignedRivkah),
@@ -181,7 +189,23 @@ describe('Deliveries HTTP authorization', () => {
     });
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
     mockPrisma.delivery.findMany.mockResolvedValue([]);
-    mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
+    mockPrisma.delivery.findFirst.mockImplementation(
+      async (args?: { include?: unknown }) => {
+        if (args?.include !== undefined) {
+          return {
+            ...assignedRivkah,
+            volunteerId: VOLUNTEER_B_ID,
+            volunteer: {
+              id: VOLUNTEER_B_ID,
+              firstName: 'Dana',
+              lastName: 'Levi',
+            },
+          };
+        }
+        return assignedRivkah;
+      }
+    );
+    mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
     mockPrisma.cityMembership.findUnique.mockResolvedValue({
@@ -249,6 +273,14 @@ describe('Deliveries HTTP authorization', () => {
 
       expect(response.body.deliveries).toHaveLength(1);
       expect(response.body.deliveries[0].elder.fullName).toBe('Rivkah Levi');
+      expect(response.body.deliveries[0].elder.contacts).toEqual([
+        {
+          name: 'Tamar Levi',
+          relation: 'child',
+          phone: '+972506666666',
+          isPrimary: true,
+        },
+      ]);
       expect(response.body.deliveries[0].volunteerId).toBeUndefined();
       expect(response.body.assignableVolunteers).toBeUndefined();
     });
@@ -283,13 +315,20 @@ describe('Deliveries HTTP authorization', () => {
 
     it('lets a coordinator unassign a delivery', async () => {
       currentUser = coordinatorA();
-      mockPrisma.delivery.update.mockResolvedValue({
-        ...assignedRivkah,
-        volunteerId: null,
-        status: 'unassigned',
-        assignedAt: null,
-        volunteer: null,
-      });
+      mockPrisma.delivery.findFirst.mockImplementation(
+        async (args?: { include?: unknown }) => {
+          if (args?.include !== undefined) {
+            return {
+              ...assignedRivkah,
+              volunteerId: null,
+              status: 'unassigned' as const,
+              assignedAt: null,
+              volunteer: null,
+            };
+          }
+          return assignedRivkah;
+        }
+      );
 
       const response = await request(app.getHttpServer())
         .patch(

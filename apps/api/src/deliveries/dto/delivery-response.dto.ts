@@ -1,5 +1,38 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class DeliveryElderContactDto {
+  @ApiProperty({ type: String, example: 'Tamar Levi' })
+  name!: string;
+
+  @ApiProperty({
+    type: String,
+    enum: [
+      'child',
+      'spouse',
+      'sibling',
+      'caregiver',
+      'social_worker',
+      'neighbor',
+      'other',
+    ],
+    example: 'child',
+  })
+  relation!:
+    | 'child'
+    | 'spouse'
+    | 'sibling'
+    | 'caregiver'
+    | 'social_worker'
+    | 'neighbor'
+    | 'other';
+
+  @ApiProperty({ type: String, example: '+972506666666' })
+  phone!: string;
+
+  @ApiProperty({ type: Boolean, example: true })
+  isPrimary!: boolean;
+}
+
 export class DeliveryElderDto {
   @ApiProperty({
     type: String,
@@ -39,6 +72,9 @@ export class DeliveryElderDto {
     nullable: true,
   })
   notes!: string | null;
+
+  @ApiProperty({ type: [DeliveryElderContactDto] })
+  contacts!: DeliveryElderContactDto[];
 }
 
 export class DeliveryVolunteerDto {

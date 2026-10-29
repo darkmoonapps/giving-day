@@ -1547,6 +1547,42 @@
           "status"
         ]
       },
+      "DeliveryElderContactDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Tamar Levi"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "child",
+              "spouse",
+              "sibling",
+              "caregiver",
+              "social_worker",
+              "neighbor",
+              "other"
+            ],
+            "example": "child"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+972506666666"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "name",
+          "relation",
+          "phone",
+          "isPrimary"
+        ]
+      },
       "DeliveryElderDto": {
         "type": "object",
         "properties": {
@@ -1591,6 +1627,12 @@
             "type": "string",
             "example": "Entrance is around the back",
             "nullable": true
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryElderContactDto"
+            }
           }
         },
         "required": [
@@ -1602,7 +1644,8 @@
           "floor",
           "apartment",
           "addressNotes",
-          "notes"
+          "notes",
+          "contacts"
         ]
       },
       "DeliveryVolunteerDto": {

@@ -11,6 +11,7 @@ const elder = {
   apartment: '7',
   addressNotes: 'Knock loudly',
   notes: 'Entrance is around the back',
+  contacts: [],
 };
 
 describe('formatElderStreet', () => {

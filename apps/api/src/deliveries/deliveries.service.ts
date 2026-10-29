@@ -14,9 +14,13 @@ import {
   type CoordinatorDelivery,
   type DayDeliveriesResponse,
   type VolunteerDeliveriesResponse,
+  type VolunteerDelivery,
 } from '@giving-day/shared';
-import type { Prisma } from '@prisma/client';
-import type { DistributionDay as PrismaDistributionDay } from '@prisma/client';
+import type {
+  DeliveryStatus,
+  Prisma,
+  DistributionDay as PrismaDistributionDay,
+} from '@prisma/client';
 import {
   AbilityFactory,
   type UserWithMemberships,
@@ -24,7 +28,7 @@ import {
 import { assertCanOnCity } from '../cities/city-access';
 import { PrismaService } from '../prisma/prisma.service';
 
-const REASSIGNABLE_STATUSES = new Set(['unassigned', 'assigned']);
+const REASSIGNABLE_STATUSES: DeliveryStatus[] = ['unassigned', 'assigned'];
 
 const ELDER_SELECT = {
   id: true,
@@ -36,7 +40,16 @@ const ELDER_SELECT = {
   apartment: true,
   addressNotes: true,
   notes: true,
-} as const;
+  contacts: {
+    select: {
+      name: true,
+      relation: true,
+      phone: true,
+      isPrimary: true,
+    },
+    orderBy: [{ isPrimary: 'desc' as const }, { name: 'asc' as const }],
+  },
+} satisfies Prisma.ElderSelect;
 
 const VOLUNTEER_SELECT = {
   id: true,
@@ -176,16 +189,6 @@ export class DeliveriesService {
     }
 
     const payload = assignDeliverySchema.parse(dto);
-    const delivery = await this.prisma.delivery.findFirst({
-      where: { id: deliveryId, cityId, dayId },
-    });
-    if (delivery === null) {
-      throw new NotFoundException('deliveries.not_found');
-    }
-
-    if (!REASSIGNABLE_STATUSES.has(delivery.status)) {
-      throw new BadRequestException('deliveries.not_reassignable');
-    }
 
     if (payload.volunteerId !== null) {
       await this.requireAssignableVolunteer(cityId, payload.volunteerId);
@@ -195,25 +198,48 @@ export class DeliveriesService {
     const nextStatus = payload.volunteerId === null ? 'unassigned' : 'assigned';
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.delivery.update({
-        where: { id: delivery.id },
+      const current = await tx.delivery.findFirst({
+        where: { id: deliveryId, cityId, dayId },
+      });
+      if (current === null) {
+        throw new NotFoundException('deliveries.not_found');
+      }
+
+      const result = await tx.delivery.updateMany({
+        where: {
+          id: current.id,
+          cityId,
+          dayId,
+          status: { in: REASSIGNABLE_STATUSES },
+        },
         data: {
           volunteerId: payload.volunteerId,
           status: nextStatus,
           assignedAt,
         },
+      });
+
+      if (result.count === 0) {
+        throw new BadRequestException('deliveries.not_reassignable');
+      }
+
+      const row = await tx.delivery.findFirst({
+        where: { id: current.id, cityId, dayId },
         include: {
           elder: { select: ELDER_SELECT },
           volunteer: { select: VOLUNTEER_SELECT },
         },
       });
+      if (row === null) {
+        throw new NotFoundException('deliveries.not_found');
+      }
 
       await tx.deliveryEvent.create({
         data: {
           deliveryId: row.id,
-          fromStatus: delivery.status,
+          fromStatus: current.status,
           toStatus: row.status,
-          fromVolunteerId: delivery.volunteerId,
+          fromVolunteerId: current.volunteerId,
           toVolunteerId: row.volunteerId,
           actorId: actor.id,
           at: assignedAt ?? new Date(),
@@ -390,13 +416,7 @@ export class DeliveriesService {
     });
   }
 
-  private toVolunteerDelivery(row: DeliveryWithRelations): {
-    id: string;
-    cityId: string;
-    dayId: string;
-    status: DeliveryWithRelations['status'];
-    elder: DeliveryWithRelations['elder'];
-  } {
+  private toVolunteerDelivery(row: DeliveryWithRelations): VolunteerDelivery {
     return volunteerDeliverySchema.parse({
       id: row.id,
       cityId: row.cityId,

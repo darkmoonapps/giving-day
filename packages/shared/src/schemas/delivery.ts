@@ -9,6 +9,23 @@ export const deliveryStatusSchema = z.enum([
   'cancelled',
 ]);
 
+export const contactRelationSchema = z.enum([
+  'child',
+  'spouse',
+  'sibling',
+  'caregiver',
+  'social_worker',
+  'neighbor',
+  'other',
+]);
+
+export const deliveryElderContactSchema = z.object({
+  name: z.string(),
+  relation: contactRelationSchema,
+  phone: z.string(),
+  isPrimary: z.boolean(),
+});
+
 export const deliveryElderSchema = z.object({
   id: z.string().uuid(),
   fullName: z.string(),
@@ -19,6 +36,7 @@ export const deliveryElderSchema = z.object({
   apartment: z.string().nullable(),
   addressNotes: z.string().nullable(),
   notes: z.string().nullable(),
+  contacts: z.array(deliveryElderContactSchema),
 });
 
 export const deliveryVolunteerSchema = z.object({
@@ -65,6 +83,8 @@ export const assignDeliverySchema = z.object({
 });
 
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
+export type ContactRelation = z.infer<typeof contactRelationSchema>;
+export type DeliveryElderContact = z.infer<typeof deliveryElderContactSchema>;
 export type DeliveryElder = z.infer<typeof deliveryElderSchema>;
 export type DeliveryVolunteer = z.infer<typeof deliveryVolunteerSchema>;
 export type VolunteerDelivery = z.infer<typeof volunteerDeliverySchema>;

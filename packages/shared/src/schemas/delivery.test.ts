@@ -23,6 +23,14 @@ const elder = {
   apartment: '7',
   addressNotes: 'Knock loudly',
   notes: 'Entrance is around the back',
+  contacts: [
+    {
+      name: 'Tamar Levi',
+      relation: 'child' as const,
+      phone: '+972506666666',
+      isPrimary: true,
+    },
+  ],
 };
 
 describe('assignDeliverySchema', () => {
@@ -60,6 +68,7 @@ describe('volunteerDeliveriesResponseSchema', () => {
     };
 
     expect(volunteerDeliveriesResponseSchema.parse(payload)).toEqual(payload);
+    expect(payload.deliveries[0]?.elder.contacts[0]?.name).toBe('Tamar Levi');
   });
 });
 
