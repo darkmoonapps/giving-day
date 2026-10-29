@@ -111,6 +111,32 @@ describe('App routes', () => {
     renderApp('/auth/callback');
 
     expect(await screen.findByTestId('onboarding-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('finishes OAuth callback into home for an onboarded user', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({ onboardedAt: '2026-10-28T08:00:00.000Z' }),
+        })
+      )
+    );
+
+    renderApp('/auth/callback');
+
+    expect(await screen.findByTestId('home-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('returns to login when OAuth callback refresh is unauthorized', async () => {
+    renderApp('/auth/callback');
+
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('onboarding-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
   });
 
   it('logs out from the empty home back to login', async () => {
