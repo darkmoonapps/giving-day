@@ -193,7 +193,12 @@ export class DistributionDaysService {
       throw new BadRequestException('distribution_days.not_open');
     }
 
-    const payload = respondToDistributionDaySchema.parse(dto);
+    const parsed = respondToDistributionDaySchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('distribution_days.invalid_response');
+    }
+
+    const payload = parsed.data;
     const respondedAt = new Date();
     const cancelReason =
       payload.status === 'declined' ? payload.cancelReason : null;

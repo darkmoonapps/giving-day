@@ -369,7 +369,45 @@ describe('DistributionDaysService', () => {
           { status: 'declined' },
           volunteerA()
         )
-      ).rejects.toThrow();
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a whitespace-only decline reason', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          publishedDay.id,
+          { status: 'declined', cancelReason: '   ' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({
+        response: {
+          message: 'distribution_days.invalid_response',
+          statusCode: 400,
+        },
+      });
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a confirm payload that includes a cancelReason', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          publishedDay.id,
+          { status: 'confirmed', cancelReason: 'Family event in Holon' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({
+        response: {
+          message: 'distribution_days.invalid_response',
+          statusCode: 400,
+        },
+      });
       expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
     });
 

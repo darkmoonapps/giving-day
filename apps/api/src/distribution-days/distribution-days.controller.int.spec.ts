@@ -359,6 +359,39 @@ describe('Distribution days HTTP authorization', () => {
         )
         .send({ status: 'declined' })
         .expect(400);
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a decline with a whitespace-only reason', async () => {
+      currentUser = volunteerA();
+      const response = await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({
+          status: 'declined',
+          cancelReason: '   ',
+        })
+        .expect(400);
+
+      expect(response.body.statusCode).toBe(400);
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a confirm payload that includes a cancelReason', async () => {
+      currentUser = volunteerA();
+      const response = await request(app.getHttpServer())
+        .post(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/participations`
+        )
+        .send({
+          status: 'confirmed',
+          cancelReason: 'Family event in Holon',
+        })
+        .expect(400);
+
+      expect(response.body.message).toBe('distribution_days.invalid_response');
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
     });
 
     it('forbids a coordinator from responding', async () => {
