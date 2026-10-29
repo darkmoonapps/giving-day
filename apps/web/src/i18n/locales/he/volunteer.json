@@ -22,5 +22,16 @@
   "closed_title": "יום החלוקה הזה אינו פתוח למענה.",
   "status_confirmed": "אישר",
   "status_declined": "סירוב",
-  "status_no_response": "לא הגיב"
+  "status_no_response": "לא הגיב",
+  "view_deliveries": "המשלוחים שלי",
+  "deliveries_title": "המשלוחים שלי",
+  "deliveries_subtitle": "חבילות שמשויכות אליכם ליום החלוקה הזה.",
+  "deliveries_empty": "אין לכם חבילות משויכות ליום הזה.",
+  "deliveries_confirm_first": "אשרו השתתפות כדי לראות את המבוגרים שמשויכים אליכם.",
+  "deliveries_load_error": "לא הצלחנו לטעון את המשלוחים. נסו שוב מאוחר יותר.",
+  "elder_notes_label": "הערות",
+  "address_notes_label": "הערות כתובת",
+  "entrance_label": "כניסה",
+  "floor_label": "קומה",
+  "apartment_label": "דירה"
 }

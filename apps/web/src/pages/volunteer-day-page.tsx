@@ -180,6 +180,18 @@ export function VolunteerDayPage(): JSX.Element {
                 <AppText>{t('thanks_body')}</AppText>
                 <AppText aria-hidden="true">🎉</AppText>
                 <AppButton
+                  onClick={() => {
+                    if (cityId !== undefined && dayId !== undefined) {
+                      void navigate(
+                        `/cities/${cityId}/days/${dayId}/deliveries`
+                      );
+                    }
+                  }}
+                  data-testid="view-my-deliveries"
+                >
+                  {t('view_deliveries')}
+                </AppButton>
+                <AppButton
                   variant="light"
                   onClick={() => {
                     setViewOverride('decline');

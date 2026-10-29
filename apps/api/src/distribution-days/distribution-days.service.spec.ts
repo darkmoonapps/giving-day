@@ -7,6 +7,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { AbilityFactory } from '../abilities/ability.factory';
+import { DeliveriesService } from '../deliveries/deliveries.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -109,12 +110,24 @@ describe('DistributionDaysService', () => {
     },
     delivery: {
       updateMany: vi.fn(),
+      createMany: vi.fn(),
+      findMany: vi.fn(),
+    },
+    match: {
+      findMany: vi.fn(),
+    },
+    deliveryEvent: {
+      createMany: vi.fn(),
     },
     $transaction: vi.fn(),
   };
 
   const mockNotifications = {
     announceDistributionDay: vi.fn(),
+  };
+
+  const mockDeliveries = {
+    prefillFromPermanentMatches: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -125,6 +138,11 @@ describe('DistributionDaysService', () => {
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
     mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.delivery.createMany.mockResolvedValue({ count: 0 });
+    mockPrisma.delivery.findMany.mockResolvedValue([]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
+    mockPrisma.deliveryEvent.createMany.mockResolvedValue({ count: 0 });
+    mockDeliveries.prefillFromPermanentMatches.mockResolvedValue(0);
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
@@ -142,6 +160,7 @@ describe('DistributionDaysService', () => {
         AbilityFactory,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: DeliveriesService, useValue: mockDeliveries },
       ],
     }).compile();
 
@@ -171,6 +190,14 @@ describe('DistributionDaysService', () => {
       });
       expect(mockNotifications.announceDistributionDay).toHaveBeenCalledWith(
         publishedDay
+      );
+      expect(mockDeliveries.prefillFromPermanentMatches).toHaveBeenCalledWith(
+        mockPrisma,
+        {
+          cityId: CITY_A_ID,
+          dayId: publishedDay.id,
+          actorId: COORDINATOR_A_ID,
+        }
       );
     });
 

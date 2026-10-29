@@ -22,5 +22,16 @@
   "closed_title": "This distribution day is not open for responses.",
   "status_confirmed": "Confirmed",
   "status_declined": "Declined",
-  "status_no_response": "No response"
+  "status_no_response": "No response",
+  "view_deliveries": "View my deliveries",
+  "deliveries_title": "My deliveries",
+  "deliveries_subtitle": "Packages assigned to you for this distribution day.",
+  "deliveries_empty": "You have no assigned packages for this day.",
+  "deliveries_confirm_first": "Confirm participation to see the elders assigned to you.",
+  "deliveries_load_error": "We could not load your deliveries. Try again later.",
+  "elder_notes_label": "Notes",
+  "address_notes_label": "Address notes",
+  "entrance_label": "Entrance",
+  "floor_label": "Floor",
+  "apartment_label": "Apt"
 }

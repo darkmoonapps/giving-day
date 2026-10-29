@@ -94,6 +94,15 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
             >
               {t('view_responses')}
             </AppButton>
+            <AppButton
+              size="sm"
+              variant="light"
+              onClick={() => {
+                void navigate(`/cities/${cityId}/days/${day.id}/deliveries`);
+              }}
+            >
+              {t('view_deliveries')}
+            </AppButton>
           </Stack>
         ))
       )}

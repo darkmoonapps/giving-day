@@ -7,6 +7,7 @@ export const CITY_A_ID = '11111111-1111-4111-8111-111111111111';
 export const CITY_B_ID = '22222222-2222-4222-8222-222222222222';
 export const COORDINATOR_A_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 export const VOLUNTEER_A_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+export const VOLUNTEER_B_ID = '99999999-9999-4999-8999-999999999999';
 export const SUPER_ADMIN_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 export const COORDINATOR_B_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
@@ -81,6 +82,25 @@ export function volunteerA(): UserWithMemberships {
         userId: VOLUNTEER_A_ID,
         role: 'volunteer',
         homeArea: 'North',
+      }),
+    ],
+  });
+}
+
+export function volunteerB(): UserWithMemberships {
+  return user({
+    id: VOLUNTEER_B_ID,
+    firstName: 'Dana',
+    lastName: 'Levi',
+    email: 'dana.levi@example.com',
+    phone: '+972505555555',
+    memberships: [
+      membership({
+        id: 'membership-vol-b',
+        cityId: CITY_A_ID,
+        userId: VOLUNTEER_B_ID,
+        role: 'volunteer',
+        homeArea: 'South',
       }),
     ],
   });

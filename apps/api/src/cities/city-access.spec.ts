@@ -118,6 +118,41 @@ describe('assertCanOnCity', () => {
     }).toThrow(NotFoundException);
   });
 
+  it('allows a volunteer to read deliveries in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-2',
+            cityId,
+            userId: 'user-id',
+            role: 'volunteer',
+            status: 'active',
+            inviteId: null,
+            approvedById: 'coord-id',
+            approvedAt: new Date(),
+            homeArea: 'North',
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanOnCity(ability, 'read', 'Delivery', cityId);
+    }).not.toThrow();
+    expect(() => {
+      assertCanOnCity(
+        ability,
+        'read',
+        'Delivery',
+        '22222222-2222-4222-8222-222222222222'
+      );
+    }).toThrow(NotFoundException);
+  });
+
   it('allows an active volunteer to respond in their city', () => {
     expect(() => {
       assertActiveVolunteerInCity(

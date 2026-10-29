@@ -14,5 +14,22 @@
   "no_volunteers": "There are no active volunteers in this city yet.",
   "unnamed_volunteer": "Volunteer",
   "load_error": "We could not load volunteer responses. Try again later.",
-  "no_reason": "—"
+  "no_reason": "—",
+  "view_deliveries": "View deliveries",
+  "deliveries_title": "Day deliveries",
+  "deliveries_subtitle": "Prefill from permanent matches. Adjust assignments; one-off matches do not carry over.",
+  "deliveries_load_error": "We could not load deliveries. Try again later.",
+  "deliveries_empty": "No deliveries were prefilled for this day.",
+  "needs_volunteer": "Needs a volunteer",
+  "unassigned_count": "{{count}} need a volunteer",
+  "elder_column": "Elder",
+  "address_column": "Address",
+  "volunteer_assign_column": "Volunteer",
+  "unassigned": "Unassigned",
+  "assign_volunteer": "Assign volunteer",
+  "assign_error": "We could not save that assignment. Try again.",
+  "unnamed_elder": "Elder",
+  "entrance_label": "Entrance",
+  "floor_label": "Floor",
+  "apartment_label": "Apt"
 }

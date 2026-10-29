@@ -14,5 +14,22 @@
   "no_volunteers": "אין עדיין מתנדבים פעילים בעיר הזו.",
   "unnamed_volunteer": "מתנדב/ת",
   "load_error": "לא הצלחנו לטעון את מעני המתנדבים. נסו שוב מאוחר יותר.",
-  "no_reason": "—"
+  "no_reason": "—",
+  "view_deliveries": "צפייה במשלוחים",
+  "deliveries_title": "משלוחי היום",
+  "deliveries_subtitle": "מילוי מראש לפי שיבוצים קבועים. אפשר לעדכן שיבוצים; שיבוץ חד-פעמי לא עובר לחודש הבא.",
+  "deliveries_load_error": "לא הצלחנו לטעון את המשלוחים. נסו שוב מאוחר יותר.",
+  "deliveries_empty": "לא מולאו משלוחים מראש ליום הזה.",
+  "needs_volunteer": "צריך מתנדב/ת",
+  "unassigned_count": "{{count}} ממתינים למתנדב/ת",
+  "elder_column": "מבוגר/ת",
+  "address_column": "כתובת",
+  "volunteer_assign_column": "מתנדב/ת",
+  "unassigned": "ללא שיבוץ",
+  "assign_volunteer": "שיבוץ מתנדב/ת",
+  "assign_error": "לא הצלחנו לשמור את השיבוץ. נסו שוב.",
+  "unnamed_elder": "מבוגר/ת",
+  "entrance_label": "כניסה",
+  "floor_label": "קומה",
+  "apartment_label": "דירה"
 }

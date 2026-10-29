@@ -272,6 +272,81 @@ export interface RespondToDistributionDayDto {
   cancelReason?: string;
 }
 
+export interface DeliveryElderDto {
+  id: string;
+  fullName: string;
+  street: string;
+  houseNumber: string;
+  /** @nullable */
+  entrance: string | null;
+  /** @nullable */
+  floor: string | null;
+  /** @nullable */
+  apartment: string | null;
+  /** @nullable */
+  addressNotes: string | null;
+  /** @nullable */
+  notes: string | null;
+}
+
+export interface DeliveryVolunteerDto {
+  id: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+}
+
+export type DeliveryResponseDtoStatus = typeof DeliveryResponseDtoStatus[keyof typeof DeliveryResponseDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DeliveryResponseDtoStatus = {
+  unassigned: 'unassigned',
+  assigned: 'assigned',
+  picked: 'picked',
+  delivered: 'delivered',
+  not_delivered: 'not_delivered',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DeliveryResponseDtoVolunteer = DeliveryVolunteerDto | null;
+
+export interface DeliveryResponseDto {
+  id: string;
+  cityId: string;
+  dayId: string;
+  status: DeliveryResponseDtoStatus;
+  elder: DeliveryElderDto;
+  /** @nullable */
+  volunteerId?: string | null;
+  /** @nullable */
+  matchId?: string | null;
+  /** @nullable */
+  assignedAt?: string | null;
+  /** @nullable */
+  volunteer?: DeliveryResponseDtoVolunteer;
+}
+
+export interface DayDeliveriesResponseDto {
+  dayId: string;
+  cityId: string;
+  deliveries: DeliveryResponseDto[];
+  assignableVolunteers?: DeliveryVolunteerDto[];
+  unassignedCount?: number;
+}
+
+export interface AssignDeliveryDto {
+  /**
+   * Active city volunteer to assign, or null to put the delivery on the needs-a-volunteer list
+   * @nullable
+   */
+  volunteerId: string | null;
+}
+
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
@@ -2564,6 +2639,192 @@ export const useRespondToDistributionDay = <TError = unknown,
       > => {
 
       const mutationOptions = getRespondToDistributionDayMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List a day's deliveries (coordinators: all; volunteers: own assigned after confirm)
+ */
+export const getListDayDeliveriesUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/deliveries`
+}
+
+export const listDayDeliveries = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<DayDeliveriesResponseDto> => {
+  
+  return apiFetch<DayDeliveriesResponseDto>(getListDayDeliveriesUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListDayDeliveriesQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}/deliveries`
+    ] as const;
+    }
+
+    
+export const getListDayDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof listDayDeliveries>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDayDeliveriesQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDayDeliveries>>> = ({ signal }) => listDayDeliveries(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDayDeliveriesQueryResult = NonNullable<Awaited<ReturnType<typeof listDayDeliveries>>>
+export type ListDayDeliveriesQueryError = unknown
+
+
+export function useListDayDeliveries<TData = Awaited<ReturnType<typeof listDayDeliveries>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayDeliveries>>,
+          TError,
+          Awaited<ReturnType<typeof listDayDeliveries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayDeliveries<TData = Awaited<ReturnType<typeof listDayDeliveries>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayDeliveries>>,
+          TError,
+          Awaited<ReturnType<typeof listDayDeliveries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayDeliveries<TData = Awaited<ReturnType<typeof listDayDeliveries>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List a day's deliveries (coordinators: all; volunteers: own assigned after confirm)
+ */
+
+export function useListDayDeliveries<TData = Awaited<ReturnType<typeof listDayDeliveries>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDayDeliveriesQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Assign or unassign a volunteer on a delivery (coordinators; no auto-reassign)
+ */
+export const getAssignDayDeliveryUrl = (cityId: string,
+    dayId: string,
+    deliveryId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/deliveries/${deliveryId}`
+}
+
+export const assignDayDelivery = async (cityId: string,
+    dayId: string,
+    deliveryId: string,
+    assignDeliveryDto: AssignDeliveryDto, options?: RequestInit): Promise<DeliveryResponseDto> => {
+  
+  return apiFetch<DeliveryResponseDto>(getAssignDayDeliveryUrl(cityId,dayId,deliveryId),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assignDeliveryDto,)
+  }
+);}
+
+
+
+
+export const getAssignDayDeliveryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignDayDelivery>>, TError,{cityId: string;dayId: string;deliveryId: string;data: AssignDeliveryDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignDayDelivery>>, TError,{cityId: string;dayId: string;deliveryId: string;data: AssignDeliveryDto}, TContext> => {
+
+const mutationKey = ['assignDayDelivery'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignDayDelivery>>, {cityId: string;dayId: string;deliveryId: string;data: AssignDeliveryDto}> = (props) => {
+          const {cityId,dayId,deliveryId,data} = props ?? {};
+
+          return  assignDayDelivery(cityId,dayId,deliveryId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignDayDeliveryMutationResult = NonNullable<Awaited<ReturnType<typeof assignDayDelivery>>>
+    export type AssignDayDeliveryMutationBody = AssignDeliveryDto
+    export type AssignDayDeliveryMutationError = unknown
+
+    /**
+ * @summary Assign or unassign a volunteer on a delivery (coordinators; no auto-reassign)
+ */
+export const useAssignDayDelivery = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignDayDelivery>>, TError,{cityId: string;dayId: string;deliveryId: string;data: AssignDeliveryDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assignDayDelivery>>,
+        TError,
+        {cityId: string;dayId: string;deliveryId: string;data: AssignDeliveryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAssignDayDeliveryMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
