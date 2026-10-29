@@ -42,13 +42,38 @@ export const phoneInputSchema = z
   .transform(normalizePhoneToE164)
   .pipe(e164PhoneSchema);
 
+export const dateOnlySchema = z.string().date('invalid_date');
+
+export function omitBlankDateOnly(value: unknown): unknown {
+  if (value === '' || value === null) {
+    return undefined;
+  }
+  return value;
+}
+
+export const optionalDateOnlySchema = z.preprocess(
+  omitBlankDateOnly,
+  dateOnlySchema.optional()
+);
+
+/**
+ * Converts a calendar date (`YYYY-MM-DD`) to a UTC Date at midnight.
+ * Prisma DateTime rejects date-only strings ("premature end of input").
+ */
+export function parseDateOnly(value: string): Date {
+  const parsed = dateOnlySchema.safeParse(value);
+  if (!parsed.success) {
+    throw new RangeError('invalid_date');
+  }
+
+  return new Date(`${parsed.data}T00:00:00.000Z`);
+}
+
 export const onboardingFormSchema = z.object({
   firstName: z.string().trim().min(1, 'required'),
   lastName: z.string().trim().min(1, 'required'),
   phone: phoneInputSchema,
-  birthDate: z
-    .union([z.literal(''), z.string().date('invalid_date')])
-    .optional(),
+  birthDate: z.union([z.literal(''), dateOnlySchema]).optional(),
   locale: localeSchema,
 });
 
@@ -58,7 +83,7 @@ export const onboardingRequestSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
   phone: e164PhoneSchema,
-  birthDate: z.string().date().optional(),
+  birthDate: optionalDateOnlySchema,
   locale: localeSchema.optional(),
 });
 

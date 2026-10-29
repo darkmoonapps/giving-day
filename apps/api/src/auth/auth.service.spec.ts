@@ -422,10 +422,81 @@ describe('AuthService', () => {
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: userId },
         data: {
-          ...onboardingData,
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          locale: 'he',
           onboardedAt: expect.any(Date),
         },
       });
+    });
+
+    it('converts a date-only birthDate into a Date for Prisma', async () => {
+      const userId = 'user-id';
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        onboardedAt: null,
+      });
+      mockPrismaService.user.update.mockResolvedValue({ id: userId });
+
+      await service.completeOnboarding(userId, {
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '+972501234567',
+        birthDate: '2026-09-30',
+        locale: 'he',
+      });
+
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: {
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          locale: 'he',
+          onboardedAt: expect.any(Date),
+          birthDate: new Date('2026-09-30T00:00:00.000Z'),
+        },
+      });
+    });
+
+    it('omits an empty birthDate so Prisma does not receive a date-only string', async () => {
+      const userId = 'user-id';
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        onboardedAt: null,
+      });
+      mockPrismaService.user.update.mockResolvedValue({ id: userId });
+
+      await service.completeOnboarding(userId, {
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '+972501234567',
+        birthDate: '',
+      });
+
+      const updateArg = mockPrismaService.user.update.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(updateArg.data).not.toHaveProperty('birthDate');
+    });
+
+    it('rejects an invalid birthDate before calling Prisma', async () => {
+      const userId = 'user-id';
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: userId,
+        onboardedAt: null,
+      });
+
+      await expect(
+        service.completeOnboarding(userId, {
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          birthDate: 'not-a-date',
+        })
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaService.user.update).not.toHaveBeenCalled();
     });
 
     it('should throw if user already onboarded', async () => {

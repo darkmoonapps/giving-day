@@ -8,6 +8,8 @@ import {
   meResponseSchema,
   normalizePhoneToE164,
   onboardingFormSchema,
+  onboardingRequestSchema,
+  parseDateOnly,
   phoneInputSchema,
   refreshTokenResponseSchema,
   toOnboardingRequest,
@@ -118,6 +120,47 @@ describe('toOnboardingRequest', () => {
         locale: 'he',
       }).birthDate
     ).toBe('1990-03-15');
+  });
+});
+
+describe('onboardingRequestSchema', () => {
+  const requiredFields = {
+    firstName: 'Noa',
+    lastName: 'Cohen',
+    phone: '+972501234567',
+    locale: 'he' as const,
+  };
+
+  it('omits a blank optional birth date', () => {
+    const parsed = onboardingRequestSchema.parse({
+      ...requiredFields,
+      birthDate: '',
+    });
+
+    expect(parsed.birthDate).toBeUndefined();
+    expect(parsed).toMatchObject(requiredFields);
+  });
+
+  it('rejects a datetime string that is not a calendar date', () => {
+    expect(
+      onboardingRequestSchema.safeParse({
+        ...requiredFields,
+        birthDate: '1990-03-15T00:00:00.000Z',
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe('parseDateOnly', () => {
+  it('converts YYYY-MM-DD to a UTC midnight Date for Prisma DateTime', () => {
+    expect(parseDateOnly('2026-09-30').toISOString()).toBe(
+      '2026-09-30T00:00:00.000Z'
+    );
+  });
+
+  it('rejects values Prisma would also reject as incomplete DateTime', () => {
+    expect(() => parseDateOnly('2026-02-31')).toThrow(RangeError);
+    expect(() => parseDateOnly('1990-03-15T00:00:00.000Z')).toThrow(RangeError);
   });
 });
 

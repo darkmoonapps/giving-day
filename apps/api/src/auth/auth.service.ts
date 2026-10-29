@@ -13,6 +13,7 @@ import type {
   Session,
   CityMembership,
 } from '@prisma/client';
+import { toOnboardingBirthDate } from './onboarding-birth-date';
 
 export interface JwtPayload {
   sub: string;
@@ -278,7 +279,7 @@ export class AuthService {
       firstName: string;
       lastName: string;
       phone: string;
-      birthDate?: Date;
+      birthDate?: string | Date | null;
       locale?: 'he' | 'en';
     }
   ): Promise<User> {
@@ -294,11 +295,17 @@ export class AuthService {
       throw new BadRequestException('auth.already_onboarded');
     }
 
+    const birthDate = toOnboardingBirthDate(data.birthDate);
+
     return await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...data,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        locale: data.locale,
         onboardedAt: new Date(),
+        ...(birthDate === undefined ? {} : { birthDate }),
       },
     });
   }
