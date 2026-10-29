@@ -1,3 +1,26 @@
 {
-  "confirm_participation": "Confirm participation"
+  "confirm_participation": "Confirm participation",
+  "open_days_title": "Upcoming distribution days",
+  "no_open_days": "There is no open distribution day right now.",
+  "respond_cta": "Respond",
+  "notes_label": "Notes for volunteers",
+  "add_ons_label": "Add-ons",
+  "confirm_button": "Confirm",
+  "decline_button": "Can't make it",
+  "decline_reason_label": "Reason",
+  "decline_reason_placeholder": "Let the coordinator know why you cannot come",
+  "decline_submit": "Send decline",
+  "decline_cancel": "Back",
+  "thanks_title": "Thank you!",
+  "thanks_body": "You are confirmed for this distribution day.",
+  "declined_title": "You declined this day",
+  "declined_body": "The coordinator can see your reason.",
+  "your_reason": "Your reason: {{reason}}",
+  "change_to_confirm": "I can come after all",
+  "load_error": "We could not load this distribution day. Try again later.",
+  "respond_error": "We could not save your response. Try again.",
+  "closed_title": "This distribution day is not open for responses.",
+  "status_confirmed": "Confirmed",
+  "status_declined": "Declined",
+  "status_no_response": "No response"
 }

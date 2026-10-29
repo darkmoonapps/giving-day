@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { timeOfDaySchema } from './city';
+import { ownDayParticipationSchema } from './participation';
 
 export const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -35,6 +36,7 @@ export const distributionDayVolunteerSchema = z.object({
   status: dayStatusSchema,
   publishedAt: z.string().datetime().nullable(),
   closedAt: z.string().datetime().nullable(),
+  myParticipation: ownDayParticipationSchema.nullable().optional(),
 });
 
 export const distributionDayCoordinatorSchema =

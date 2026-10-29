@@ -49,10 +49,14 @@ export {
   type UpdateCitySettings,
 } from './schemas/city';
 export {
+  authMembershipSchema,
   authUserSchema,
   birthDateInputValue,
   dateOnlySchema,
   e164PhoneSchema,
+  getActiveCoordinatorCities,
+  getActiveMemberships,
+  getActiveVolunteerCities,
   getUserDisplayName,
   isUserOnboarded,
   meResponseSchema,
@@ -65,6 +69,7 @@ export {
   phoneInputSchema,
   refreshTokenResponseSchema,
   toOnboardingRequest,
+  type AuthMembership,
   type AuthUser,
   type MeResponse,
   type OnboardingFormValues,
@@ -87,6 +92,21 @@ export {
   type OpenDayStatus,
   type OpenDistributionDay,
 } from './schemas/distribution-day';
+export {
+  CANCEL_REASON_MAX_LENGTH,
+  dayParticipationCoordinatorRowSchema,
+  dayParticipationsResponseSchema,
+  ownDayParticipationSchema,
+  participationStatusSchema,
+  respondToDistributionDaySchema,
+  volunteerResponseStatusSchema,
+  type DayParticipationCoordinatorRow,
+  type DayParticipationsResponse,
+  type OwnDayParticipation,
+  type ParticipationStatus,
+  type RespondToDistributionDay,
+  type VolunteerResponseStatus,
+} from './schemas/participation';
 export {
   announceDistributionDayResultSchema,
   notificationChannelSchema,

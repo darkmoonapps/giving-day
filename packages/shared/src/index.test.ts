@@ -11,6 +11,7 @@ import {
   normalizePhoneToE164,
   openDistributionDaySchema,
   parseDateOnly,
+  respondToDistributionDaySchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
 } from './index';
@@ -38,6 +39,12 @@ describe('shared public exports', () => {
     expect(openDistributionDaySchema.parse({ date: '2026-11-15' }).date).toBe(
       '2026-11-15'
     );
+    expect(
+      respondToDistributionDaySchema.parse({
+        status: 'declined',
+        cancelReason: 'Family event in Holon',
+      }).status
+    ).toBe('declined');
     expect(templateKeySchema.parse('day_invite')).toBe('day_invite');
     expect(
       createSentryInitConfig(

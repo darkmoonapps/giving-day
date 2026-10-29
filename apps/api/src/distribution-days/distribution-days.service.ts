@@ -5,20 +5,33 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  dayParticipationsResponseSchema,
   distributionDayCoordinatorSchema,
   distributionDaysResponseSchema,
   distributionDayVolunteerSchema,
   openDayStatusSchema,
+  ownDayParticipationSchema,
+  respondToDistributionDaySchema,
+  type DayParticipationsResponse,
   type DistributionDay as DistributionDayDto,
   type DistributionDaysResponse,
+  type OwnDayParticipation,
+  type VolunteerResponseStatus,
 } from '@giving-day/shared';
 import { Prisma } from '@prisma/client';
-import type { DistributionDay as PrismaDistributionDay } from '@prisma/client';
+import type {
+  DayParticipation as PrismaDayParticipation,
+  DistributionDay as PrismaDistributionDay,
+  ParticipationStatus,
+} from '@prisma/client';
 import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
-import { assertCanOnCity } from '../cities/city-access';
+import {
+  assertActiveVolunteerInCity,
+  assertCanOnCity,
+} from '../cities/city-access';
 import {
   formatDateOnly,
   formatTime,
@@ -30,6 +43,7 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
+import type { RespondToDistributionDayDto } from './dto/respond-to-distribution-day.dto';
 
 const OPEN_STATUSES = openDayStatusSchema.options;
 const CLOSEABLE_STATUSES = new Set(['published', 'in_progress']);
@@ -119,8 +133,22 @@ export class DistributionDaysService {
       orderBy: { date: 'desc' },
     });
 
+    const myParticipationByDayId = includeInternal
+      ? new Map<string, OwnDayParticipation>()
+      : await this.loadOwnParticipations(
+          cityId,
+          actor.id,
+          days.map((day) => day.id)
+        );
+
     return distributionDaysResponseSchema.parse({
-      days: days.map((day) => this.toDto(day, includeInternal)),
+      days: days.map((day) =>
+        this.toDto(
+          day,
+          includeInternal,
+          myParticipationByDayId.get(day.id) ?? null
+        )
+      ),
     });
   }
 
@@ -140,7 +168,150 @@ export class DistributionDaysService {
       throw new NotFoundException('distribution_days.not_found');
     }
 
-    return this.toDto(day, includeInternal);
+    return this.toDto(
+      day,
+      includeInternal,
+      includeInternal
+        ? null
+        : await this.loadOwnParticipation(cityId, day.id, actor.id)
+    );
+  }
+
+  async respond(
+    cityId: string,
+    dayId: string,
+    dto: RespondToDistributionDayDto,
+    actor: UserWithMemberships
+  ): Promise<OwnDayParticipation> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'create', 'DayParticipation', cityId);
+    assertActiveVolunteerInCity(actor, cityId);
+    await this.requireCity(cityId);
+
+    const day = await this.requireDay(cityId, dayId);
+    if (!this.isOpen(day.status)) {
+      throw new BadRequestException('distribution_days.not_open');
+    }
+
+    const payload = respondToDistributionDaySchema.parse(dto);
+    const respondedAt = new Date();
+    const cancelReason =
+      payload.status === 'declined' ? payload.cancelReason : null;
+
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const participation = await tx.dayParticipation.upsert({
+        where: {
+          dayId_volunteerId: {
+            dayId: day.id,
+            volunteerId: actor.id,
+          },
+        },
+        create: {
+          cityId,
+          dayId: day.id,
+          volunteerId: actor.id,
+          status: payload.status,
+          respondedAt,
+          cancelReason,
+        },
+        update: {
+          status: payload.status,
+          respondedAt,
+          cancelReason,
+        },
+      });
+
+      if (payload.status === 'declined') {
+        await tx.delivery.updateMany({
+          where: {
+            cityId,
+            dayId: day.id,
+            volunteerId: actor.id,
+            status: { in: ['assigned', 'picked'] },
+          },
+          data: {
+            volunteerId: null,
+            status: 'unassigned',
+            assignedAt: null,
+          },
+        });
+      }
+
+      return participation;
+    });
+
+    return this.toOwnParticipation(saved);
+  }
+
+  async listParticipations(
+    cityId: string,
+    dayId: string,
+    actor: UserWithMemberships
+  ): Promise<DayParticipationsResponse> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'read', 'DayParticipation', cityId);
+    await this.requireCity(cityId);
+    await this.requireDay(cityId, dayId);
+
+    const [volunteers, participations] = await Promise.all([
+      this.prisma.cityMembership.findMany({
+        where: {
+          cityId,
+          role: 'volunteer',
+          status: 'active',
+          user: { archivedAt: null },
+        },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: [
+          { user: { lastName: 'asc' } },
+          { user: { firstName: 'asc' } },
+        ],
+      }),
+      this.prisma.dayParticipation.findMany({
+        where: { cityId, dayId },
+      }),
+    ]);
+
+    const participationByVolunteerId = new Map(
+      participations.map((participation) => [
+        participation.volunteerId,
+        participation,
+      ])
+    );
+
+    return dayParticipationsResponseSchema.parse({
+      dayId,
+      cityId,
+      responses: volunteers.map((membership) => {
+        const participation = participationByVolunteerId.get(membership.userId);
+        const responseStatus = this.toCoordinatorResponseStatus(
+          participation?.status
+        );
+
+        return {
+          volunteerId: membership.userId,
+          firstName: membership.user.firstName,
+          lastName: membership.user.lastName,
+          responseStatus,
+          cancelReason:
+            responseStatus === 'declined'
+              ? (participation?.cancelReason ?? null)
+              : null,
+          respondedAt: participation?.respondedAt
+            ? participation.respondedAt.toISOString()
+            : null,
+        };
+      }),
+    });
   }
 
   async close(
@@ -212,9 +383,94 @@ export class DistributionDaysService {
     return status === 'published' || status === 'in_progress';
   }
 
+  private async loadOwnParticipation(
+    cityId: string,
+    dayId: string,
+    volunteerId: string
+  ): Promise<OwnDayParticipation | null> {
+    const row = await this.prisma.dayParticipation.findUnique({
+      where: {
+        dayId_volunteerId: { dayId, volunteerId },
+      },
+    });
+
+    if (!row || row.cityId !== cityId) {
+      return null;
+    }
+
+    return this.toOwnParticipationOrNull(row);
+  }
+
+  private async loadOwnParticipations(
+    cityId: string,
+    volunteerId: string,
+    dayIds: string[]
+  ): Promise<Map<string, OwnDayParticipation>> {
+    const byDayId = new Map<string, OwnDayParticipation>();
+    if (dayIds.length === 0) {
+      return byDayId;
+    }
+
+    const rows = await this.prisma.dayParticipation.findMany({
+      where: {
+        cityId,
+        volunteerId,
+        dayId: { in: dayIds },
+      },
+    });
+
+    for (const row of rows) {
+      const own = this.toOwnParticipationOrNull(row);
+      if (own !== null) {
+        byDayId.set(row.dayId, own);
+      }
+    }
+
+    return byDayId;
+  }
+
+  private toCoordinatorResponseStatus(
+    status: ParticipationStatus | undefined
+  ): VolunteerResponseStatus {
+    if (status === 'confirmed') {
+      return 'confirmed';
+    }
+    if (status === 'declined' || status === 'cancelled') {
+      return 'declined';
+    }
+    return 'no_response';
+  }
+
+  private toOwnParticipation(row: PrismaDayParticipation): OwnDayParticipation {
+    const own = this.toOwnParticipationOrNull(row);
+    if (own === null) {
+      throw new BadRequestException('distribution_days.invalid_participation');
+    }
+    return own;
+  }
+
+  private toOwnParticipationOrNull(
+    row: PrismaDayParticipation
+  ): OwnDayParticipation | null {
+    if (row.status !== 'confirmed' && row.status !== 'declined') {
+      return null;
+    }
+
+    return ownDayParticipationSchema.parse({
+      id: row.id,
+      cityId: row.cityId,
+      dayId: row.dayId,
+      volunteerId: row.volunteerId,
+      status: row.status,
+      respondedAt: row.respondedAt ? row.respondedAt.toISOString() : null,
+      cancelReason: row.cancelReason,
+    });
+  }
+
   private toDto(
     day: PrismaDistributionDay,
-    includeInternal: boolean
+    includeInternal: boolean,
+    myParticipation: OwnDayParticipation | null = null
   ): DistributionDayDto {
     const base = {
       id: day.id,
@@ -237,6 +493,9 @@ export class DistributionDaysService {
       });
     }
 
-    return distributionDayVolunteerSchema.parse(base);
+    return distributionDayVolunteerSchema.parse({
+      ...base,
+      myParticipation,
+    });
   }
 }

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -18,8 +19,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type {
+  DayParticipationsResponse,
   DistributionDay,
   DistributionDaysResponse,
+  OwnDayParticipation,
 } from '@giving-day/shared';
 import type { UserWithMemberships } from '../abilities/ability.factory';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -28,10 +31,15 @@ import { AbilitiesGuard } from '../auth/guards/abilities.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DistributionDaysService } from './distribution-days.service';
 import {
+  DayParticipationsResponseDto,
+  OwnDayParticipationDto,
+} from './dto/day-participation-response.dto';
+import {
   DistributionDayResponseDto,
   DistributionDaysResponseDto,
 } from './dto/distribution-day-response.dto';
 import { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
+import { RespondToDistributionDayDto } from './dto/respond-to-distribution-day.dto';
 
 @ApiTags('distribution-days')
 @ApiBearerAuth()
@@ -109,5 +117,44 @@ export class DistributionDaysController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<DistributionDay> {
     return this.distributionDaysService.close(cityId, dayId, user);
+  }
+
+  @Get(':dayId/participations')
+  @RequireAbilities({ action: 'read', subject: 'DayParticipation' })
+  @ApiOperation({
+    operationId: 'listDayParticipations',
+    summary:
+      "List each active volunteer's response for a distribution day (coordinators)",
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'dayId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: DayParticipationsResponseDto })
+  async listParticipations(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('dayId', ParseUUIDPipe) dayId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<DayParticipationsResponse> {
+    return this.distributionDaysService.listParticipations(cityId, dayId, user);
+  }
+
+  @Post(':dayId/participations')
+  @HttpCode(HttpStatus.OK)
+  @RequireAbilities({ action: 'create', subject: 'DayParticipation' })
+  @ApiBody({ type: RespondToDistributionDayDto })
+  @ApiOperation({
+    operationId: 'respondToDistributionDay',
+    summary:
+      'Confirm or decline own participation for an open distribution day',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'dayId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: OwnDayParticipationDto })
+  async respond(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('dayId', ParseUUIDPipe) dayId: string,
+    @Body() dto: RespondToDistributionDayDto,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<OwnDayParticipation> {
+    return this.distributionDaysService.respond(cityId, dayId, dto, user);
   }
 }

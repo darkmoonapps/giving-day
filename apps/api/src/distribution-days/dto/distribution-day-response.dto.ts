@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { OwnDayParticipationDto } from './day-participation-response.dto';
 
 export class DistributionDayResponseDto {
   @ApiProperty({
@@ -70,6 +71,12 @@ export class DistributionDayResponseDto {
     example: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   })
   createdById?: string;
+
+  @ApiPropertyOptional({
+    type: OwnDayParticipationDto,
+    nullable: true,
+  })
+  myParticipation?: OwnDayParticipationDto | null;
 }
 
 export class DistributionDaysResponseDto {

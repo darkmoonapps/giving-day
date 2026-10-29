@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -15,6 +16,7 @@ import {
   coordinatorA,
   coordinatorB,
   superAdmin,
+  VOLUNTEER_A_ID,
   volunteerA,
 } from '../test/fake-users';
 import { DistributionDaysService } from './distribution-days.service';
@@ -75,6 +77,19 @@ describe('DistributionDaysService', () => {
     closedAt: new Date('2026-10-15T16:00:00.000Z'),
   };
 
+  const confirmedParticipation = {
+    id: '44444444-4444-4444-8444-444444444444',
+    createdAt: new Date('2026-10-29T10:00:00.000Z'),
+    updatedAt: new Date('2026-10-29T10:00:00.000Z'),
+    cityId: CITY_A_ID,
+    dayId: publishedDay.id,
+    volunteerId: VOLUNTEER_A_ID,
+    status: 'confirmed' as const,
+    respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+    cancelReason: null,
+    finishedAt: null,
+  };
+
   const mockPrisma = {
     city: { findUnique: vi.fn() },
     citySettings: { findUnique: vi.fn() },
@@ -84,6 +99,18 @@ describe('DistributionDaysService', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    dayParticipation: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+    },
+    cityMembership: {
+      findMany: vi.fn(),
+    },
+    delivery: {
+      updateMany: vi.fn(),
+    },
+    $transaction: vi.fn(),
   };
 
   const mockNotifications = {
@@ -94,6 +121,14 @@ describe('DistributionDaysService', () => {
     vi.clearAllMocks();
     mockPrisma.city.findUnique.mockResolvedValue(city);
     mockPrisma.citySettings.findUnique.mockResolvedValue(settingsRow);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+    mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+    mockPrisma.cityMembership.findMany.mockResolvedValue([]);
+    mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
     mockNotifications.announceDistributionDay.mockResolvedValue({
       attempted: 1,
       sent: 1,
@@ -242,6 +277,234 @@ describe('DistributionDaysService', () => {
       expect(result.date).toBe('2026-11-15');
       expect(result.notesForVolunteers).toBe('Bring a folding cart');
       expect(result).not.toHaveProperty('internalNotes');
+      expect(result).toMatchObject({ myParticipation: null });
+    });
+
+    it('includes the volunteer own response on an open day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(
+        confirmedParticipation
+      );
+
+      const result = await service.get(
+        CITY_A_ID,
+        publishedDay.id,
+        volunteerA()
+      );
+
+      expect(result.myParticipation).toMatchObject({
+        volunteerId: VOLUNTEER_A_ID,
+        status: 'confirmed',
+      });
+    });
+  });
+
+  describe('respond', () => {
+    it('lets a volunteer confirm an open day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.dayParticipation.upsert.mockResolvedValue(
+        confirmedParticipation
+      );
+
+      const result = await service.respond(
+        CITY_A_ID,
+        publishedDay.id,
+        { status: 'confirmed' },
+        volunteerA()
+      );
+
+      expect(result.status).toBe('confirmed');
+      expect(result.cancelReason).toBeNull();
+      expect(mockPrisma.dayParticipation.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            volunteerId: VOLUNTEER_A_ID,
+            status: 'confirmed',
+            cancelReason: null,
+          }),
+        })
+      );
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('requires a reason and unassigns deliveries when declining', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.dayParticipation.upsert.mockResolvedValue({
+        ...confirmedParticipation,
+        status: 'declined',
+        cancelReason: 'Family event in Holon',
+      });
+
+      const result = await service.respond(
+        CITY_A_ID,
+        publishedDay.id,
+        { status: 'declined', cancelReason: 'Family event in Holon' },
+        volunteerA()
+      );
+
+      expect(result.status).toBe('declined');
+      expect(result.cancelReason).toBe('Family event in Holon');
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith({
+        where: {
+          cityId: CITY_A_ID,
+          dayId: publishedDay.id,
+          volunteerId: VOLUNTEER_A_ID,
+          status: { in: ['assigned', 'picked'] },
+        },
+        data: {
+          volunteerId: null,
+          status: 'unassigned',
+          assignedAt: null,
+        },
+      });
+    });
+
+    it('rejects a missing decline reason', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          publishedDay.id,
+          { status: 'declined' },
+          volunteerA()
+        )
+      ).rejects.toThrow();
+      expect(mockPrisma.dayParticipation.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects responding to a closed day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(closedDay);
+
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          closedDay.id,
+          { status: 'confirmed' },
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('hides respond from a coordinator at the city-scoped check', async () => {
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          publishedDay.id,
+          { status: 'confirmed' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('forbids a super admin who is not a volunteer in the city', async () => {
+      await expect(
+        service.respond(
+          CITY_A_ID,
+          publishedDay.id,
+          { status: 'confirmed' },
+          superAdmin()
+        )
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('hides another city from a volunteer', async () => {
+      await expect(
+        service.respond(
+          CITY_B_ID,
+          publishedDay.id,
+          { status: 'confirmed' },
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('listParticipations', () => {
+    it('returns confirmed, declined with reason, and no-response rows', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.cityMembership.findMany.mockResolvedValue([
+        {
+          userId: VOLUNTEER_A_ID,
+          user: {
+            id: VOLUNTEER_A_ID,
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+          },
+        },
+        {
+          userId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          user: {
+            id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+            firstName: 'Maya',
+            lastName: 'Cohen',
+          },
+        },
+        {
+          userId: '99999999-9999-4999-8999-999999999999',
+          user: {
+            id: '99999999-9999-4999-8999-999999999999',
+            firstName: 'Dana',
+            lastName: 'Levi',
+          },
+        },
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        confirmedParticipation,
+        {
+          ...confirmedParticipation,
+          id: '66666666-6666-4666-8666-666666666666',
+          volunteerId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          status: 'declined',
+          cancelReason: 'Out of town',
+          respondedAt: new Date('2026-10-29T11:00:00.000Z'),
+        },
+      ]);
+
+      const result = await service.listParticipations(
+        CITY_A_ID,
+        publishedDay.id,
+        coordinatorA()
+      );
+
+      expect(result.responses).toEqual([
+        {
+          volunteerId: VOLUNTEER_A_ID,
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+          responseStatus: 'confirmed',
+          cancelReason: null,
+          respondedAt: '2026-10-29T10:00:00.000Z',
+        },
+        {
+          volunteerId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          firstName: 'Maya',
+          lastName: 'Cohen',
+          responseStatus: 'declined',
+          cancelReason: 'Out of town',
+          respondedAt: '2026-10-29T11:00:00.000Z',
+        },
+        {
+          volunteerId: '99999999-9999-4999-8999-999999999999',
+          firstName: 'Dana',
+          lastName: 'Levi',
+          responseStatus: 'no_response',
+          cancelReason: null,
+          respondedAt: null,
+        },
+      ]);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      await expect(
+        service.listParticipations(CITY_A_ID, publishedDay.id, coordinatorB())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('hides the coordinator list from a volunteer', async () => {
+      await expect(
+        service.listParticipations(CITY_A_ID, publishedDay.id, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

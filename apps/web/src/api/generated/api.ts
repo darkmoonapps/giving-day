@@ -166,6 +166,27 @@ export interface PushSubscriptionsResponseDto {
   subscriptions: PushSubscriptionResponseDto[];
 }
 
+export type OwnDayParticipationDtoStatus = typeof OwnDayParticipationDtoStatus[keyof typeof OwnDayParticipationDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const OwnDayParticipationDtoStatus = {
+  confirmed: 'confirmed',
+  declined: 'declined',
+} as const;
+
+export interface OwnDayParticipationDto {
+  id: string;
+  cityId: string;
+  dayId: string;
+  volunteerId: string;
+  status: OwnDayParticipationDtoStatus;
+  /** @nullable */
+  respondedAt: string | null;
+  /** @nullable */
+  cancelReason: string | null;
+}
+
 export type DistributionDayResponseDtoStatus = typeof DistributionDayResponseDtoStatus[keyof typeof DistributionDayResponseDtoStatus];
 
 
@@ -177,6 +198,11 @@ export const DistributionDayResponseDtoStatus = {
   closed: 'closed',
   cancelled: 'cancelled',
 } as const;
+
+/**
+ * @nullable
+ */
+export type DistributionDayResponseDtoMyParticipation = OwnDayParticipationDto | null;
 
 export interface DistributionDayResponseDto {
   id: string;
@@ -195,10 +221,55 @@ export interface DistributionDayResponseDto {
   /** @nullable */
   internalNotes?: string | null;
   createdById?: string;
+  /** @nullable */
+  myParticipation?: DistributionDayResponseDtoMyParticipation;
 }
 
 export interface DistributionDaysResponseDto {
   days: DistributionDayResponseDto[];
+}
+
+export type DayParticipationCoordinatorRowDtoResponseStatus = typeof DayParticipationCoordinatorRowDtoResponseStatus[keyof typeof DayParticipationCoordinatorRowDtoResponseStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DayParticipationCoordinatorRowDtoResponseStatus = {
+  confirmed: 'confirmed',
+  declined: 'declined',
+  no_response: 'no_response',
+} as const;
+
+export interface DayParticipationCoordinatorRowDto {
+  volunteerId: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  responseStatus: DayParticipationCoordinatorRowDtoResponseStatus;
+  /** @nullable */
+  cancelReason: string | null;
+  /** @nullable */
+  respondedAt: string | null;
+}
+
+export interface DayParticipationsResponseDto {
+  dayId: string;
+  cityId: string;
+  responses: DayParticipationCoordinatorRowDto[];
+}
+
+export type RespondToDistributionDayDtoStatus = typeof RespondToDistributionDayDtoStatus[keyof typeof RespondToDistributionDayDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const RespondToDistributionDayDtoStatus = {
+  confirmed: 'confirmed',
+  declined: 'declined',
+} as const;
+
+export interface RespondToDistributionDayDto {
+  status: RespondToDistributionDayDtoStatus;
+  cancelReason?: string;
 }
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -2309,6 +2380,190 @@ export const useCloseDistributionDay = <TError = unknown,
       > => {
 
       const mutationOptions = getCloseDistributionDayMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List each active volunteer's response for a distribution day (coordinators)
+ */
+export const getListDayParticipationsUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/participations`
+}
+
+export const listDayParticipations = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<DayParticipationsResponseDto> => {
+  
+  return apiFetch<DayParticipationsResponseDto>(getListDayParticipationsUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListDayParticipationsQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}/participations`
+    ] as const;
+    }
+
+    
+export const getListDayParticipationsQueryOptions = <TData = Awaited<ReturnType<typeof listDayParticipations>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDayParticipationsQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDayParticipations>>> = ({ signal }) => listDayParticipations(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDayParticipationsQueryResult = NonNullable<Awaited<ReturnType<typeof listDayParticipations>>>
+export type ListDayParticipationsQueryError = unknown
+
+
+export function useListDayParticipations<TData = Awaited<ReturnType<typeof listDayParticipations>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayParticipations>>,
+          TError,
+          Awaited<ReturnType<typeof listDayParticipations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayParticipations<TData = Awaited<ReturnType<typeof listDayParticipations>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayParticipations>>,
+          TError,
+          Awaited<ReturnType<typeof listDayParticipations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayParticipations<TData = Awaited<ReturnType<typeof listDayParticipations>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List each active volunteer's response for a distribution day (coordinators)
+ */
+
+export function useListDayParticipations<TData = Awaited<ReturnType<typeof listDayParticipations>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayParticipations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDayParticipationsQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Confirm or decline own participation for an open distribution day
+ */
+export const getRespondToDistributionDayUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/participations`
+}
+
+export const respondToDistributionDay = async (cityId: string,
+    dayId: string,
+    respondToDistributionDayDto: RespondToDistributionDayDto, options?: RequestInit): Promise<OwnDayParticipationDto> => {
+  
+  return apiFetch<OwnDayParticipationDto>(getRespondToDistributionDayUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      respondToDistributionDayDto,)
+  }
+);}
+
+
+
+
+export const getRespondToDistributionDayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondToDistributionDay>>, TError,{cityId: string;dayId: string;data: RespondToDistributionDayDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof respondToDistributionDay>>, TError,{cityId: string;dayId: string;data: RespondToDistributionDayDto}, TContext> => {
+
+const mutationKey = ['respondToDistributionDay'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof respondToDistributionDay>>, {cityId: string;dayId: string;data: RespondToDistributionDayDto}> = (props) => {
+          const {cityId,dayId,data} = props ?? {};
+
+          return  respondToDistributionDay(cityId,dayId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RespondToDistributionDayMutationResult = NonNullable<Awaited<ReturnType<typeof respondToDistributionDay>>>
+    export type RespondToDistributionDayMutationBody = RespondToDistributionDayDto
+    export type RespondToDistributionDayMutationError = unknown
+
+    /**
+ * @summary Confirm or decline own participation for an open distribution day
+ */
+export const useRespondToDistributionDay = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondToDistributionDay>>, TError,{cityId: string;dayId: string;data: RespondToDistributionDayDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof respondToDistributionDay>>,
+        TError,
+        {cityId: string;dayId: string;data: RespondToDistributionDayDto},
+        TContext
+      > => {
+
+      const mutationOptions = getRespondToDistributionDayMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

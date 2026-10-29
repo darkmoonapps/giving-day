@@ -1,8 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { HomePage } from '../pages/home-page';
 import { LoginPage } from '../pages/login-page';
 import { OAuthCallbackPage } from '../pages/oauth-callback-page';
 import { OnboardingPage } from '../pages/onboarding-page';
+import { VolunteerDayPage } from '../pages/volunteer-day-page';
 import { GuestRoute, OnboardingRoute, ProtectedRoute } from './guards';
 
 export function AppRoutes(): JSX.Element {
@@ -30,6 +32,22 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/days/:dayId"
+        element={
+          <ProtectedRoute>
+            <VolunteerDayPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/days/:dayId/responses"
+        element={
+          <ProtectedRoute>
+            <CoordinatorDayResponsesPage />
           </ProtectedRoute>
         }
       />

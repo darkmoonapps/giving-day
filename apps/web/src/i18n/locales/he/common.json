@@ -33,6 +33,7 @@
     "hide_details": "הסתר פרטים"
   },
   "loading": "טוען...",
+  "back": "חזרה",
   "error": {
     "unexpected_title": "משהו השתבש",
     "unexpected_body": "אירעה שגיאה לא צפויה. נסו לטעון מחדש את העמוד.",

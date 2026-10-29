@@ -1,3 +1,18 @@
 {
-  "dashboard": "Dashboard"
+  "dashboard": "Dashboard",
+  "open_days_title": "Distribution days",
+  "no_days": "No distribution days yet.",
+  "view_responses": "View responses",
+  "responses_title": "Volunteer responses",
+  "responses_subtitle": "Who confirmed, who declined, and who has not answered yet.",
+  "volunteer_column": "Volunteer",
+  "status_column": "Status",
+  "reason_column": "Reason",
+  "status_confirmed": "Confirmed",
+  "status_declined": "Declined",
+  "status_no_response": "No response",
+  "no_volunteers": "There are no active volunteers in this city yet.",
+  "unnamed_volunteer": "Volunteer",
+  "load_error": "We could not load volunteer responses. Try again later.",
+  "no_reason": "—"
 }

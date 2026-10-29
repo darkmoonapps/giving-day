@@ -3,6 +3,8 @@ import {
   authUserSchema,
   birthDateInputValue,
   e164PhoneSchema,
+  getActiveCoordinatorCities,
+  getActiveVolunteerCities,
   getUserDisplayName,
   isUserOnboarded,
   meResponseSchema,
@@ -168,9 +170,32 @@ describe('auth user helpers', () => {
   it('parses a /me payload with fake demo data', () => {
     const parsed = meResponseSchema.parse({ user: fakeUser });
     expect(parsed.user.email).toBe('noa.cohen@example.test');
+    expect(parsed.user.memberships).toEqual([]);
     expect(isUserOnboarded(parsed.user)).toBe(true);
     expect(getUserDisplayName(parsed.user)).toBe('Noa Cohen');
     expect(birthDateInputValue(parsed.user.birthDate)).toBe('1990-03-15');
+  });
+
+  it('keeps active city memberships from /me and strips extra fields', () => {
+    const parsed = authUserSchema.parse({
+      ...fakeUser,
+      memberships: [
+        {
+          cityId: '11111111-1111-4111-8111-111111111111',
+          role: 'volunteer',
+          status: 'active',
+          homeArea: 'North',
+        },
+      ],
+    });
+
+    expect(parsed.memberships).toEqual([
+      {
+        cityId: '11111111-1111-4111-8111-111111111111',
+        role: 'volunteer',
+        status: 'active',
+      },
+    ]);
   });
 
   it('treats a null onboardedAt as not onboarded', () => {
@@ -186,5 +211,35 @@ describe('auth user helpers', () => {
       refreshTokenResponseSchema.parse({ accessToken: 'header.payload.sig' })
         .accessToken
     ).toBe('header.payload.sig');
+  });
+
+  it('lists volunteer and coordinator cities from active memberships', () => {
+    const user = authUserSchema.parse({
+      ...fakeUser,
+      memberships: [
+        {
+          cityId: '11111111-1111-4111-8111-111111111111',
+          role: 'volunteer',
+          status: 'active',
+        },
+        {
+          cityId: '22222222-2222-4222-8222-222222222222',
+          role: 'coordinator',
+          status: 'active',
+        },
+        {
+          cityId: '33333333-3333-4333-8333-333333333333',
+          role: 'volunteer',
+          status: 'pending',
+        },
+      ],
+    });
+
+    expect(getActiveVolunteerCities(user)).toEqual([
+      '11111111-1111-4111-8111-111111111111',
+    ]);
+    expect(getActiveCoordinatorCities(user)).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+    ]);
   });
 });

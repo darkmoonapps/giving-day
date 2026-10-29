@@ -158,10 +158,12 @@ export class AbilityFactory {
       can('read', 'DistributionDay', { cityId: { in: volunteerCities } });
 
       can('create', 'DayParticipation', {
+        cityId: { in: volunteerCities },
+      });
+      can('update', 'DayParticipation', {
         volunteerId: user.id,
         cityId: { in: volunteerCities },
       });
-      can('update', 'DayParticipation', { volunteerId: user.id });
 
       can('read', 'Delivery', { volunteerId: user.id });
       can('update', 'Delivery', { volunteerId: user.id });
