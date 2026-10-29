@@ -23,6 +23,13 @@ import { OnboardingDto } from './dto/onboarding.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { User } from '@prisma/client';
+import {
+  REFRESH_TOKEN_COOKIE_NAME,
+  buildRefreshTokenCookieValue,
+  getRefreshTokenClearCookieOptions,
+  getRefreshTokenCookieOptions,
+  parseRefreshTokenCookie,
+} from './refresh-token-cookie';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -113,8 +120,7 @@ export class AuthController {
     @Res() res: Response
   ): Promise<void> {
     const cookieValue = dto.refreshToken || this.getRefreshTokenFromCookie(req);
-    const { sessionId, refreshToken } =
-      this.parseRefreshTokenCookie(cookieValue);
+    const { sessionId, refreshToken } = parseRefreshTokenCookie(cookieValue);
 
     const tokens = await this.authService.refreshAccessToken(
       sessionId,
@@ -134,12 +140,14 @@ export class AuthController {
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
     const cookieValue = this.getRefreshTokenFromCookie(req);
     if (cookieValue) {
-      const { sessionId, refreshToken } =
-        this.parseRefreshTokenCookie(cookieValue);
+      const { sessionId, refreshToken } = parseRefreshTokenCookie(cookieValue);
       await this.authService.revokeSession(sessionId, refreshToken);
     }
 
-    res.clearCookie('refreshToken');
+    res.clearCookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      getRefreshTokenClearCookieOptions()
+    );
     res.status(HttpStatus.NO_CONTENT).send();
   }
 
@@ -163,29 +171,18 @@ export class AuthController {
     sessionId: string,
     refreshToken: string
   ): void {
-    const cookieValue = `${sessionId}.${refreshToken}`;
-    res.cookie('refreshToken', cookieValue, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 90 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      buildRefreshTokenCookieValue(sessionId, refreshToken),
+      getRefreshTokenCookieOptions()
+    );
   }
 
   private getRefreshTokenFromCookie(req: Request): string {
-    return (req.cookies as Record<string, string>)?.refreshToken || '';
-  }
-
-  private parseRefreshTokenCookie(cookieValue: string): {
-    sessionId: string;
-    refreshToken: string;
-  } {
-    const parts = cookieValue.split('.');
-    if (parts.length < 2) {
-      return { sessionId: '', refreshToken: '' };
-    }
-    const sessionId = parts[0];
-    const refreshToken = parts.slice(1).join('.');
-    return { sessionId, refreshToken };
+    return (
+      (req.cookies as Record<string, string> | undefined)?.[
+        REFRESH_TOKEN_COOKIE_NAME
+      ] || ''
+    );
   }
 }
