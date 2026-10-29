@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { i18n } from './i18n';
 import { clearAccessToken } from './auth/access-token';
@@ -221,6 +221,7 @@ describe('onboarding form', () => {
           lastName: null,
           phone: null,
           email: 'noa.cohen@example.test',
+          birthDate: null,
           onboardedAt: null,
         }),
       })
@@ -259,6 +260,93 @@ describe('onboarding form', () => {
       locale: 'he',
     });
     expect(body).not.toHaveProperty('email');
+    expect(body).not.toHaveProperty('birthDate');
+  });
+
+  it('submits an optional birth date then opens the empty home', async () => {
+    const fetchMock = vi.fn(
+      createAuthFetchMock({
+        refresh: 'ok',
+        user: fakeUser({
+          firstName: null,
+          lastName: null,
+          phone: null,
+          email: null,
+          birthDate: null,
+          onboardedAt: null,
+        }),
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('Notification', {
+      requestPermission: vi.fn().mockResolvedValue('granted'),
+    });
+    const user = userEvent.setup();
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+
+    await user.type(screen.getByLabelText(/שם פרטי/), 'Noa');
+    await user.type(screen.getByLabelText(/שם משפחה/), 'Cohen');
+    await user.type(screen.getByLabelText(/מספר טלפון/), '050-1234567');
+    fireEvent.change(screen.getByLabelText(/תאריך לידה/), {
+      target: { value: '1990-03-15' },
+    });
+    await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
+    });
+
+    const onboardingCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).includes('/api/auth/onboarding')
+    );
+    expect(onboardingCall).toBeDefined();
+    const body = JSON.parse(String(onboardingCall?.[1]?.body)) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toMatchObject({
+      firstName: 'Noa',
+      lastName: 'Cohen',
+      phone: '+972501234567',
+      birthDate: '1990-03-15',
+      locale: 'he',
+    });
+  });
+
+  it('shows an onboarding error when the API rejects the save', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: fakeUser({
+            firstName: null,
+            lastName: null,
+            phone: null,
+            onboardedAt: null,
+          }),
+          onboardingUser: 'error',
+        })
+      )
+    );
+    vi.stubGlobal('Notification', {
+      requestPermission: vi.fn().mockResolvedValue('granted'),
+    });
+    const user = userEvent.setup();
+
+    renderApp('/onboarding');
+    await screen.findByTestId('onboarding-page');
+
+    await user.type(screen.getByLabelText(/שם פרטי/), 'Noa');
+    await user.type(screen.getByLabelText(/שם משפחה/), 'Cohen');
+    await user.type(screen.getByLabelText(/מספר טלפון/), '050-1234567');
+    await user.click(screen.getByRole('button', { name: 'שמירה והמשך' }));
+
+    expect(await screen.findByTestId('onboarding-error')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
   });
 
   it('hides email when the OAuth profile did not provide one', async () => {

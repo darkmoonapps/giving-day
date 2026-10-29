@@ -186,7 +186,11 @@ export function OnboardingPage(): JSX.Element {
           </div>
 
           {submitError ? (
-            <AppAlert color="red" title={tCommon('error.unexpected_title')}>
+            <AppAlert
+              color="red"
+              title={tCommon('error.unexpected_title')}
+              data-testid="onboarding-error"
+            >
               {t('onboarding_error')}
             </AppAlert>
           ) : null}

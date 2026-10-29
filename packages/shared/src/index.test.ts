@@ -9,6 +9,7 @@ import {
   healthResponseSchema,
   languageCodeSchema,
   normalizePhoneToE164,
+  parseDateOnly,
   SENTRY_SEND_DEFAULT_PII,
 } from './index';
 
@@ -29,6 +30,9 @@ describe('shared public exports', () => {
     expect(citySettingsSchema.shape.defaultTheme).toBeDefined();
     expect(e164PhoneSchema.parse('+972501234567')).toBe('+972501234567');
     expect(normalizePhoneToE164('050-1234567')).toBe('+972501234567');
+    expect(parseDateOnly('1990-03-15').toISOString()).toBe(
+      '1990-03-15T00:00:00.000Z'
+    );
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'

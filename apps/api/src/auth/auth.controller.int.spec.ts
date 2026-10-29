@@ -1,13 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ExecutionContext,
+  INestApplication,
+  UnauthorizedException,
+  ValidationPipe,
+} from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import cookieParser from 'cookie-parser';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 describe('Auth Integration Tests', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let currentUser: { id: string; onboardedAt: Date | null } | null = null;
+
+  const notOnboardedUser = {
+    id: 'user-123',
+    email: 'test@example.com',
+    firstName: null,
+    lastName: null,
+    phone: null,
+    birthDate: null,
+    onboardedAt: null,
+    locale: 'he' as const,
+    themePref: 'system',
+    isSuperAdmin: false,
+    memberships: [],
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -28,6 +49,16 @@ describe('Auth Integration Tests', () => {
           findUnique: vi.fn(),
           update: vi.fn(),
           updateMany: vi.fn(),
+        },
+      })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        canActivate: (context: ExecutionContext): boolean => {
+          if (currentUser === null) {
+            throw new UnauthorizedException('auth.unauthenticated');
+          }
+          context.switchToHttp().getRequest().user = currentUser;
+          return true;
         },
       })
       .compile();
@@ -53,39 +84,25 @@ describe('Auth Integration Tests', () => {
   });
 
   beforeEach(() => {
+    currentUser = null;
     vi.clearAllMocks();
   });
 
   describe('POST /api/auth/onboarding', () => {
-    it('should complete onboarding with valid data', async () => {
-      const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        firstName: null,
-        lastName: null,
-        phone: null,
-        onboardedAt: null,
-        locale: 'he',
-        themePref: 'system',
-        isSuperAdmin: false,
-        memberships: [],
-      };
-
-      const updatedUser = {
-        ...mockUser,
-        firstName: 'John',
-        lastName: 'Doe',
-        phone: '+972501234567',
-        onboardedAt: new Date(),
-      };
-
-      vi.spyOn(prisma.user, 'update').mockResolvedValue(updatedUser as never);
-
-      const mockToken = 'mock-jwt-token';
+    it('should complete onboarding without a birth date', async () => {
+      currentUser = { id: notOnboardedUser.id, onboardedAt: null };
+      vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(
+        notOnboardedUser as never
+      );
+      vi.spyOn(prisma.user, 'update').mockImplementation(({ data }) =>
+        Promise.resolve({
+          ...notOnboardedUser,
+          ...data,
+        } as never)
+      );
 
       const response = await request(app.getHttpServer())
         .post('/api/auth/onboarding')
-        .set('Authorization', `Bearer ${mockToken}`)
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -93,7 +110,98 @@ describe('Auth Integration Tests', () => {
           locale: 'he',
         });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(201);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: notOnboardedUser.id },
+        data: expect.objectContaining({
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          locale: 'he',
+          onboardedAt: expect.any(Date),
+        }),
+      });
+      const updateArg = vi.mocked(prisma.user.update).mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(updateArg.data).not.toHaveProperty('birthDate');
+    });
+
+    it('should convert a date-only birthDate to a Date for Prisma', async () => {
+      currentUser = { id: notOnboardedUser.id, onboardedAt: null };
+      vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(
+        notOnboardedUser as never
+      );
+      vi.spyOn(prisma.user, 'update').mockImplementation(({ data }) =>
+        Promise.resolve({
+          ...notOnboardedUser,
+          ...data,
+        } as never)
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/onboarding')
+        .send({
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          birthDate: '2026-09-30',
+          locale: 'he',
+        });
+
+      expect(response.status).toBe(201);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: notOnboardedUser.id },
+        data: expect.objectContaining({
+          birthDate: new Date('2026-09-30T00:00:00.000Z'),
+        }),
+      });
+    });
+
+    it('should omit an empty birthDate', async () => {
+      currentUser = { id: notOnboardedUser.id, onboardedAt: null };
+      vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(
+        notOnboardedUser as never
+      );
+      vi.spyOn(prisma.user, 'update').mockImplementation(({ data }) =>
+        Promise.resolve({
+          ...notOnboardedUser,
+          ...data,
+        } as never)
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/onboarding')
+        .send({
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          birthDate: '',
+          locale: 'he',
+        });
+
+      expect(response.status).toBe(201);
+      const updateArg = vi.mocked(prisma.user.update).mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(updateArg.data).not.toHaveProperty('birthDate');
+    });
+
+    it('should reject an invalid birthDate with 400', async () => {
+      currentUser = { id: notOnboardedUser.id, onboardedAt: null };
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/onboarding')
+        .send({
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '+972501234567',
+          birthDate: 'not-a-date',
+          locale: 'he',
+        });
+
+      expect(response.status).toBe(400);
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
     it('should reject onboarding with invalid phone format', async () => {
@@ -111,14 +219,15 @@ describe('Auth Integration Tests', () => {
     });
 
     it('should reject onboarding with missing required fields', async () => {
+      currentUser = { id: notOnboardedUser.id, onboardedAt: null };
+
       const response = await request(app.getHttpServer())
         .post('/api/auth/onboarding')
-        .set('Authorization', 'Bearer mock-token')
         .send({
           firstName: 'John',
         });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(400);
     });
   });
 

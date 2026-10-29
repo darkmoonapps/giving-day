@@ -124,3 +124,4 @@ social login; OAuth plus a WhatsApp-shared invite is simpler.
 - This is documentation only. No auth code ships in this change.
 - Apple Sign In is later.
 - Refresh-token storage is hashed (`Session.refreshTokenHash`).
+- Optional `birthDate` is a calendar date (`@db.Date`); onboarding accepts `YYYY-MM-DD` and converts it to a UTC DateTime before Prisma.
