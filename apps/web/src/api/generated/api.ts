@@ -144,6 +144,63 @@ export interface CityCoordinatorsResponseDto {
   coordinators: CityCoordinatorDto[];
 }
 
+export interface VapidPublicKeyDto {
+  /** @nullable */
+  publicKey: string | null;
+  configured: boolean;
+}
+
+export interface PushSubscriptionResponseDto {
+  id: string;
+  endpoint: string;
+  userAgent: string;
+  createdAt: string;
+  /** @nullable */
+  lastSuccessAt: string | null;
+  failedCount: number;
+  /** @nullable */
+  disabledAt: string | null;
+}
+
+export interface PushSubscriptionsResponseDto {
+  subscriptions: PushSubscriptionResponseDto[];
+}
+
+export type DistributionDayResponseDtoStatus = typeof DistributionDayResponseDtoStatus[keyof typeof DistributionDayResponseDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DistributionDayResponseDtoStatus = {
+  draft: 'draft',
+  published: 'published',
+  in_progress: 'in_progress',
+  closed: 'closed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface DistributionDayResponseDto {
+  id: string;
+  cityId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  /** @nullable */
+  notesForVolunteers: string | null;
+  addOns: string[];
+  status: DistributionDayResponseDtoStatus;
+  /** @nullable */
+  publishedAt: string | null;
+  /** @nullable */
+  closedAt: string | null;
+  /** @nullable */
+  internalNotes?: string | null;
+  createdById?: string;
+}
+
+export interface DistributionDaysResponseDto {
+  days: DistributionDayResponseDto[];
+}
+
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
@@ -1554,6 +1611,704 @@ export const useRemoveCityCoordinator = <TError = unknown,
       > => {
 
       const mutationOptions = getRemoveCityCoordinatorMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get the Web Push VAPID public key when configured
+ */
+export const getGetVapidPublicKeyUrl = () => {
+
+
+  
+
+  return `/api/push-subscriptions/vapid-public-key`
+}
+
+export const getVapidPublicKey = async ( options?: RequestInit): Promise<VapidPublicKeyDto> => {
+  
+  return apiFetch<VapidPublicKeyDto>(getGetVapidPublicKeyUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetVapidPublicKeyQueryKey = () => {
+    return [
+    `/api/push-subscriptions/vapid-public-key`
+    ] as const;
+    }
+
+    
+export const getGetVapidPublicKeyQueryOptions = <TData = Awaited<ReturnType<typeof getVapidPublicKey>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVapidPublicKeyQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVapidPublicKey>>> = ({ signal }) => getVapidPublicKey({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetVapidPublicKeyQueryResult = NonNullable<Awaited<ReturnType<typeof getVapidPublicKey>>>
+export type GetVapidPublicKeyQueryError = unknown
+
+
+export function useGetVapidPublicKey<TData = Awaited<ReturnType<typeof getVapidPublicKey>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVapidPublicKey>>,
+          TError,
+          Awaited<ReturnType<typeof getVapidPublicKey>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVapidPublicKey<TData = Awaited<ReturnType<typeof getVapidPublicKey>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVapidPublicKey>>,
+          TError,
+          Awaited<ReturnType<typeof getVapidPublicKey>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVapidPublicKey<TData = Awaited<ReturnType<typeof getVapidPublicKey>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the Web Push VAPID public key when configured
+ */
+
+export function useGetVapidPublicKey<TData = Awaited<ReturnType<typeof getVapidPublicKey>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVapidPublicKey>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetVapidPublicKeyQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary List the signed-in user push subscriptions
+ */
+export const getListPushSubscriptionsUrl = () => {
+
+
+  
+
+  return `/api/push-subscriptions`
+}
+
+export const listPushSubscriptions = async ( options?: RequestInit): Promise<PushSubscriptionsResponseDto> => {
+  
+  return apiFetch<PushSubscriptionsResponseDto>(getListPushSubscriptionsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListPushSubscriptionsQueryKey = () => {
+    return [
+    `/api/push-subscriptions`
+    ] as const;
+    }
+
+    
+export const getListPushSubscriptionsQueryOptions = <TData = Awaited<ReturnType<typeof listPushSubscriptions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPushSubscriptionsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPushSubscriptions>>> = ({ signal }) => listPushSubscriptions({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPushSubscriptionsQueryResult = NonNullable<Awaited<ReturnType<typeof listPushSubscriptions>>>
+export type ListPushSubscriptionsQueryError = unknown
+
+
+export function useListPushSubscriptions<TData = Awaited<ReturnType<typeof listPushSubscriptions>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPushSubscriptions>>,
+          TError,
+          Awaited<ReturnType<typeof listPushSubscriptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPushSubscriptions<TData = Awaited<ReturnType<typeof listPushSubscriptions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPushSubscriptions>>,
+          TError,
+          Awaited<ReturnType<typeof listPushSubscriptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPushSubscriptions<TData = Awaited<ReturnType<typeof listPushSubscriptions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List the signed-in user push subscriptions
+ */
+
+export function useListPushSubscriptions<TData = Awaited<ReturnType<typeof listPushSubscriptions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPushSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListPushSubscriptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create or refresh a Web Push subscription for the signed-in user
+ */
+export const getUpsertPushSubscriptionUrl = () => {
+
+
+  
+
+  return `/api/push-subscriptions`
+}
+
+export const upsertPushSubscription = async ( options?: RequestInit): Promise<PushSubscriptionResponseDto> => {
+  
+  return apiFetch<PushSubscriptionResponseDto>(getUpsertPushSubscriptionUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getUpsertPushSubscriptionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertPushSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertPushSubscription>>, TError,void, TContext> => {
+
+const mutationKey = ['upsertPushSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertPushSubscription>>, void> = () => {
+          
+
+          return  upsertPushSubscription(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertPushSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertPushSubscription>>>
+    
+    export type UpsertPushSubscriptionMutationError = unknown
+
+    /**
+ * @summary Create or refresh a Web Push subscription for the signed-in user
+ */
+export const useUpsertPushSubscription = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertPushSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertPushSubscription>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getUpsertPushSubscriptionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete one of the signed-in user push subscriptions
+ */
+export const getDeletePushSubscriptionUrl = (subscriptionId: string,) => {
+
+
+  
+
+  return `/api/push-subscriptions/${subscriptionId}`
+}
+
+export const deletePushSubscription = async (subscriptionId: string, options?: RequestInit): Promise<void> => {
+  
+  return apiFetch<void>(getDeletePushSubscriptionUrl(subscriptionId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeletePushSubscriptionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePushSubscription>>, TError,{subscriptionId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePushSubscription>>, TError,{subscriptionId: string}, TContext> => {
+
+const mutationKey = ['deletePushSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePushSubscription>>, {subscriptionId: string}> = (props) => {
+          const {subscriptionId} = props ?? {};
+
+          return  deletePushSubscription(subscriptionId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePushSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof deletePushSubscription>>>
+    
+    export type DeletePushSubscriptionMutationError = unknown
+
+    /**
+ * @summary Delete one of the signed-in user push subscriptions
+ */
+export const useDeletePushSubscription = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePushSubscription>>, TError,{subscriptionId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePushSubscription>>,
+        TError,
+        {subscriptionId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeletePushSubscriptionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List distribution days for a city (volunteers see published and in-progress only)
+ */
+export const getListDistributionDaysUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days`
+}
+
+export const listDistributionDays = async (cityId: string, options?: RequestInit): Promise<DistributionDaysResponseDto> => {
+  
+  return apiFetch<DistributionDaysResponseDto>(getListDistributionDaysUrl(cityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListDistributionDaysQueryKey = (cityId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days`
+    ] as const;
+    }
+
+    
+export const getListDistributionDaysQueryOptions = <TData = Awaited<ReturnType<typeof listDistributionDays>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDistributionDaysQueryKey(cityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDistributionDays>>> = ({ signal }) => listDistributionDays(cityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDistributionDaysQueryResult = NonNullable<Awaited<ReturnType<typeof listDistributionDays>>>
+export type ListDistributionDaysQueryError = unknown
+
+
+export function useListDistributionDays<TData = Awaited<ReturnType<typeof listDistributionDays>>, TError = unknown>(
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDistributionDays>>,
+          TError,
+          Awaited<ReturnType<typeof listDistributionDays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDistributionDays<TData = Awaited<ReturnType<typeof listDistributionDays>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDistributionDays>>,
+          TError,
+          Awaited<ReturnType<typeof listDistributionDays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDistributionDays<TData = Awaited<ReturnType<typeof listDistributionDays>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List distribution days for a city (volunteers see published and in-progress only)
+ */
+
+export function useListDistributionDays<TData = Awaited<ReturnType<typeof listDistributionDays>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDistributionDays>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDistributionDaysQueryOptions(cityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Open a published distribution day using city-settings hours and announce it to volunteers
+ */
+export const getOpenDistributionDayUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days`
+}
+
+export const openDistributionDay = async (cityId: string, options?: RequestInit): Promise<DistributionDayResponseDto> => {
+  
+  return apiFetch<DistributionDayResponseDto>(getOpenDistributionDayUrl(cityId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getOpenDistributionDayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext> => {
+
+const mutationKey = ['openDistributionDay'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openDistributionDay>>, {cityId: string}> = (props) => {
+          const {cityId} = props ?? {};
+
+          return  openDistributionDay(cityId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenDistributionDayMutationResult = NonNullable<Awaited<ReturnType<typeof openDistributionDay>>>
+    
+    export type OpenDistributionDayMutationError = unknown
+
+    /**
+ * @summary Open a published distribution day using city-settings hours and announce it to volunteers
+ */
+export const useOpenDistributionDay = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof openDistributionDay>>,
+        TError,
+        {cityId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getOpenDistributionDayMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get one distribution day (volunteers: Flow 2 fields on open days)
+ */
+export const getGetDistributionDayUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}`
+}
+
+export const getDistributionDay = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<DistributionDayResponseDto> => {
+  
+  return apiFetch<DistributionDayResponseDto>(getGetDistributionDayUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetDistributionDayQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}`
+    ] as const;
+    }
+
+    
+export const getGetDistributionDayQueryOptions = <TData = Awaited<ReturnType<typeof getDistributionDay>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDistributionDayQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDistributionDay>>> = ({ signal }) => getDistributionDay(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDistributionDayQueryResult = NonNullable<Awaited<ReturnType<typeof getDistributionDay>>>
+export type GetDistributionDayQueryError = unknown
+
+
+export function useGetDistributionDay<TData = Awaited<ReturnType<typeof getDistributionDay>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDistributionDay>>,
+          TError,
+          Awaited<ReturnType<typeof getDistributionDay>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDistributionDay<TData = Awaited<ReturnType<typeof getDistributionDay>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDistributionDay>>,
+          TError,
+          Awaited<ReturnType<typeof getDistributionDay>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDistributionDay<TData = Awaited<ReturnType<typeof getDistributionDay>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get one distribution day (volunteers: Flow 2 fields on open days)
+ */
+
+export function useGetDistributionDay<TData = Awaited<ReturnType<typeof getDistributionDay>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDay>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDistributionDayQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Close a published or in-progress distribution day
+ */
+export const getCloseDistributionDayUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/close`
+}
+
+export const closeDistributionDay = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<DistributionDayResponseDto> => {
+  
+  return apiFetch<DistributionDayResponseDto>(getCloseDistributionDayUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getCloseDistributionDayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeDistributionDay>>, TError,{cityId: string;dayId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof closeDistributionDay>>, TError,{cityId: string;dayId: string}, TContext> => {
+
+const mutationKey = ['closeDistributionDay'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeDistributionDay>>, {cityId: string;dayId: string}> = (props) => {
+          const {cityId,dayId} = props ?? {};
+
+          return  closeDistributionDay(cityId,dayId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CloseDistributionDayMutationResult = NonNullable<Awaited<ReturnType<typeof closeDistributionDay>>>
+    
+    export type CloseDistributionDayMutationError = unknown
+
+    /**
+ * @summary Close a published or in-progress distribution day
+ */
+export const useCloseDistributionDay = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeDistributionDay>>, TError,{cityId: string;dayId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof closeDistributionDay>>,
+        TError,
+        {cityId: string;dayId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getCloseDistributionDayMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

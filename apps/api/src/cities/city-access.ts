@@ -6,7 +6,8 @@ import type {
   AppSubjects,
 } from '../abilities/ability.factory';
 
-export type CityOwnedSubject = 'CitySettings' | 'CityInvite' | 'CityMembership';
+export type CityOwnedSubject =
+  'CitySettings' | 'CityInvite' | 'CityMembership' | 'DistributionDay';
 
 export function assertCanOnCity(
   ability: AppAbility,

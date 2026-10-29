@@ -163,6 +163,29 @@ describe('AbilityFactory', () => {
       expect(ability.can('close', 'DistributionDay')).toBe(true);
     });
 
+    it('should scope distribution day create and close to the city', () => {
+      const ability = factory.createForUser(coordinatorUser);
+
+      expect(
+        ability.can('create', subject('DistributionDay', { cityId }))
+      ).toBe(true);
+      expect(ability.can('close', subject('DistributionDay', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can(
+          'create',
+          subject('DistributionDay', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can(
+          'close',
+          subject('DistributionDay', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+    });
+
     it('should allow coordinator to reassign deliveries', () => {
       const ability = factory.createForUser(coordinatorUser);
 
@@ -263,6 +286,24 @@ describe('AbilityFactory', () => {
       const ability = factory.createForUser(volunteerUser);
 
       expect(ability.can('reassign', 'Delivery')).toBe(false);
+    });
+
+    it('should allow volunteer to read distribution days in their city only', () => {
+      const ability = factory.createForUser(volunteerUser);
+
+      expect(ability.can('read', 'DistributionDay')).toBe(true);
+      expect(ability.can('read', subject('DistributionDay', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can(
+          'read',
+          subject('DistributionDay', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(ability.can('create', 'DistributionDay')).toBe(false);
+      expect(ability.can('publish', 'DistributionDay')).toBe(false);
+      expect(ability.can('close', 'DistributionDay')).toBe(false);
     });
 
     it('should not allow volunteer to manage city settings', () => {
@@ -401,6 +442,7 @@ describe('AbilityFactory', () => {
       expect(ability.can('read', 'City')).toBe(false);
       expect(ability.can('read', 'Elder')).toBe(false);
       expect(ability.can('read', 'Delivery')).toBe(false);
+      expect(ability.can('read', 'DistributionDay')).toBe(false);
     });
 
     it('should still allow managing own profile', () => {

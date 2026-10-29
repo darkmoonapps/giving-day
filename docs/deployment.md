@@ -179,11 +179,14 @@ never values.
 
 Set these on the `giving-day-api` service (`sync: false` in `render.yaml`):
 
-| Variable       | Purpose                                                                     |
-| -------------- | --------------------------------------------------------------------------- |
-| `DATABASE_URL` | Same Neon direct URL as the GitHub secret                                   |
-| `CORS_ORIGINS` | Cloudflare Pages origin (and custom domain if you add one), comma-separated |
-| `SENTRY_DSN`   | API EU DSN. Empty disables Sentry                                           |
+| Variable            | Purpose                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`      | Same Neon direct URL as the GitHub secret                                                  |
+| `CORS_ORIGINS`      | Cloudflare Pages origin (and custom domain if you add one), comma-separated                |
+| `SENTRY_DSN`        | API EU DSN. Empty disables Sentry                                                          |
+| `VAPID_PUBLIC_KEY`  | Web Push VAPID public key. Empty uses the log/no-op provider                               |
+| `VAPID_PRIVATE_KEY` | Web Push VAPID private key. Never commit. Generate with `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT`     | `mailto:` or `https:` contact URI for VAPID (example: `mailto:noreply@example.com`)        |
 
 `NODE_VERSION=22`, `NODE_ENV=production`, and `SENTRY_ENVIRONMENT=production`
 are already in `render.yaml`. Render injects `PORT`.
@@ -249,10 +252,10 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-| File                    | Variables                                                                  |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `apps/api/.env.example` | `DATABASE_URL`, `PORT`, `CORS_ORIGINS`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT` |
-| `apps/web/.env.example` | `VITE_API_URL`, `VITE_SENTRY_DSN`                                          |
+| File                    | Variables                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `apps/api/.env.example` | `DATABASE_URL`, `PORT`, `CORS_ORIGINS`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, OAuth/JWT, `VAPID_*` |
+| `apps/web/.env.example` | `VITE_API_URL`, `VITE_SENTRY_DSN`                                                                |
 
 In development the web app still uses relative `/api` URLs through the Vite
 proxy when `VITE_API_URL` is the local API. Production builds prefix fetches

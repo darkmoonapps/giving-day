@@ -9,8 +9,10 @@ import {
   healthResponseSchema,
   languageCodeSchema,
   normalizePhoneToE164,
+  openDistributionDaySchema,
   parseDateOnly,
   SENTRY_SEND_DEFAULT_PII,
+  templateKeySchema,
 } from './index';
 
 describe('shared public exports', () => {
@@ -33,6 +35,10 @@ describe('shared public exports', () => {
     expect(parseDateOnly('1990-03-15').toISOString()).toBe(
       '1990-03-15T00:00:00.000Z'
     );
+    expect(openDistributionDaySchema.parse({ date: '2026-11-15' }).date).toBe(
+      '2026-11-15'
+    );
+    expect(templateKeySchema.parse('day_invite')).toBe('day_invite');
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'
