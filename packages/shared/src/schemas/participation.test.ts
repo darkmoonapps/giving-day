@@ -22,6 +22,15 @@ describe('respondToDistributionDaySchema', () => {
     ).toEqual({ status: 'confirmed' });
   });
 
+  it('rejects a confirm payload that includes a cancelReason', () => {
+    expect(
+      respondToDistributionDaySchema.safeParse({
+        status: 'confirmed',
+        cancelReason: 'Family event in Holon',
+      }).success
+    ).toBe(false);
+  });
+
   it('requires a trimmed reason when declining', () => {
     expect(
       respondToDistributionDaySchema.parse({
