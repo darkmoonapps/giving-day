@@ -95,6 +95,17 @@ describe('Distribution days HTTP authorization', () => {
     },
     delivery: {
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+    match: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    deliveryEvent: {
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      create: vi.fn(),
     },
     $transaction: vi.fn(),
     notificationLog: {
@@ -171,6 +182,10 @@ describe('Distribution days HTTP authorization', () => {
       finishedAt: null,
     });
     mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.delivery.createMany.mockResolvedValue({ count: 0 });
+    mockPrisma.delivery.findMany.mockResolvedValue([]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
+    mockPrisma.deliveryEvent.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)

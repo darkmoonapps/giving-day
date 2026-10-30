@@ -165,7 +165,7 @@ export class AbilityFactory {
         cityId: { in: volunteerCities },
       });
 
-      can('read', 'Delivery', { volunteerId: user.id });
+      can('read', 'Delivery', { cityId: { in: volunteerCities } });
       can('update', 'Delivery', { volunteerId: user.id });
     }
 

@@ -202,6 +202,13 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('reassign', 'Delivery')).toBe(true);
       expect(ability.can('update', 'Delivery')).toBe(true);
+      expect(ability.can('reassign', subject('Delivery', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can('reassign', subject('Delivery', { cityId: 'city-other' }))
+      ).toBe(false);
+      expect(ability.can('read', subject('Delivery', { cityId }))).toBe(true);
     });
 
     it('should allow coordinator to manage message templates', () => {
@@ -256,6 +263,10 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('read', 'Delivery')).toBe(true);
       expect(ability.can('update', 'Delivery')).toBe(true);
+      expect(ability.can('read', subject('Delivery', { cityId }))).toBe(true);
+      expect(
+        ability.can('read', subject('Delivery', { cityId: 'city-other' }))
+      ).toBe(false);
     });
 
     it('should allow volunteer to create change requests', () => {

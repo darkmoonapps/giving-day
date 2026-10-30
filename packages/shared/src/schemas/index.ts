@@ -114,6 +114,32 @@ export {
 } from './participation';
 
 export {
+  assignDeliverySchema,
+  contactRelationSchema,
+  coordinatorDeliveriesResponseSchema,
+  coordinatorDeliverySchema,
+  dayDeliveriesResponseSchema,
+  deliveryElderContactSchema,
+  deliveryElderSchema,
+  deliveryStatusSchema,
+  deliveryVolunteerSchema,
+  volunteerDeliveriesResponseSchema,
+  volunteerDeliverySchema,
+  isCoordinatorDeliveriesResponse,
+  type AssignDelivery,
+  type ContactRelation,
+  type CoordinatorDeliveriesResponse,
+  type CoordinatorDelivery,
+  type DayDeliveriesResponse,
+  type DeliveryElder,
+  type DeliveryElderContact,
+  type DeliveryStatus,
+  type DeliveryVolunteer,
+  type VolunteerDeliveriesResponse,
+  type VolunteerDelivery,
+} from './delivery';
+
+export {
   announceDistributionDayResultSchema,
   notificationChannelSchema,
   notificationStatusSchema,

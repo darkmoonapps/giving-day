@@ -40,6 +40,7 @@ import {
   parseTime,
   timeToSeconds,
 } from '../common/time-of-day';
+import { DeliveriesService } from '../deliveries/deliveries.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
@@ -53,7 +54,8 @@ export class DistributionDaysService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly abilityFactory: AbilityFactory,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly deliveriesService: DeliveriesService
   ) {}
 
   async open(
@@ -88,19 +90,29 @@ export class DistributionDaysService {
 
     let created: PrismaDistributionDay;
     try {
-      created = await this.prisma.distributionDay.create({
-        data: {
+      created = await this.prisma.$transaction(async (tx) => {
+        const day = await tx.distributionDay.create({
+          data: {
+            cityId,
+            date,
+            startTime: parseTime(startTime),
+            endTime: parseTime(endTime),
+            notesForVolunteers: dto.notesForVolunteers ?? null,
+            internalNotes: dto.internalNotes ?? null,
+            addOns: dto.addOns ?? [],
+            status: 'published',
+            publishedAt,
+            createdById: actor.id,
+          },
+        });
+
+        await this.deliveriesService.prefillFromPermanentMatches(tx, {
           cityId,
-          date,
-          startTime: parseTime(startTime),
-          endTime: parseTime(endTime),
-          notesForVolunteers: dto.notesForVolunteers ?? null,
-          internalNotes: dto.internalNotes ?? null,
-          addOns: dto.addOns ?? [],
-          status: 'published',
-          publishedAt,
-          createdById: actor.id,
-        },
+          dayId: day.id,
+          actorId: actor.id,
+        });
+
+        return day;
       });
     } catch (error: unknown) {
       if (

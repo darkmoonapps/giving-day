@@ -100,11 +100,62 @@ export interface StubDayResponse {
   respondedAt: string | null;
 }
 
+export interface StubDeliveryElder {
+  id: string;
+  fullName: string;
+  street: string;
+  houseNumber: string;
+  entrance: string | null;
+  floor: string | null;
+  apartment: string | null;
+  addressNotes: string | null;
+  notes: string | null;
+  contacts: Array<{
+    name: string;
+    relation:
+      | 'child'
+      | 'spouse'
+      | 'sibling'
+      | 'caregiver'
+      | 'social_worker'
+      | 'neighbor'
+      | 'other';
+    phone: string;
+    isPrimary: boolean;
+  }>;
+}
+
+export interface StubCoordinatorDelivery {
+  id: string;
+  cityId: string;
+  dayId: string;
+  status: 'unassigned' | 'assigned';
+  volunteerId: string | null;
+  matchId: string | null;
+  assignedAt: string | null;
+  volunteer: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+  elder: StubDeliveryElder;
+}
+
 export async function stubDistributionDayApi(
   page: Page,
   options: {
     onRespond?: (body: Record<string, unknown>) => void;
     responses?: StubDayResponse[];
+    coordinatorDeliveries?: StubCoordinatorDelivery[];
+    volunteerDeliveries?: Array<{
+      id: string;
+      cityId: string;
+      dayId: string;
+      status: 'assigned';
+      elder: StubDeliveryElder;
+    }>;
+    onAssign?: (body: Record<string, unknown>) => void;
+    myParticipation?: Record<string, unknown> | null;
   } = {}
 ): Promise<void> {
   const openDay = {
@@ -118,7 +169,8 @@ export async function stubDistributionDayApi(
     status: 'published',
     publishedAt: '2026-10-28T09:00:00.000Z',
     closedAt: null,
-    myParticipation: null as Record<string, unknown> | null,
+    myParticipation:
+      options.myParticipation === undefined ? null : options.myParticipation,
   };
 
   await page.route('**/api/cities/*/distribution-days/**', async (route) => {
@@ -155,6 +207,80 @@ export async function stubDistributionDayApi(
         dayId: DAY_ID,
         cityId: CITY_A_ID,
         responses: options.responses ?? [],
+      });
+      return;
+    }
+
+    if (method === 'PATCH' && url.pathname.includes('/deliveries/')) {
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      if (options.onAssign !== undefined) {
+        options.onAssign(body);
+      }
+      await jsonFulfill(route, {
+        id: '16161616-1616-4161-8161-161616161616',
+        cityId: CITY_A_ID,
+        dayId: DAY_ID,
+        status: body.volunteerId === null ? 'unassigned' : 'assigned',
+        volunteerId: body.volunteerId ?? null,
+        matchId: '14141414-1414-4141-8141-141414141414',
+        assignedAt:
+          body.volunteerId === null ? null : '2026-10-29T12:00:00.000Z',
+        volunteer: null,
+        elder: {
+          id: '12121212-1212-4121-8121-121212121212',
+          fullName: 'Rivkah Levi',
+          street: '12 Example St',
+          houseNumber: '12',
+          entrance: 'B',
+          floor: '3',
+          apartment: '7',
+          addressNotes: 'Knock loudly',
+          notes: 'Entrance is around the back',
+          contacts: [
+            {
+              name: 'Tamar Levi',
+              relation: 'child',
+              phone: '+972506666666',
+              isPrimary: true,
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    if (method === 'GET' && url.pathname.endsWith('/deliveries')) {
+      if (options.coordinatorDeliveries !== undefined) {
+        await jsonFulfill(route, {
+          dayId: DAY_ID,
+          cityId: CITY_A_ID,
+          unassignedCount: options.coordinatorDeliveries.filter(
+            (delivery) => delivery.volunteerId === null
+          ).length,
+          assignableVolunteers: [
+            {
+              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              firstName: 'Yonatan',
+              lastName: 'Bar',
+            },
+            {
+              id: '99999999-9999-4999-8999-999999999999',
+              firstName: 'Dana',
+              lastName: 'Levi',
+            },
+          ],
+          deliveries: options.coordinatorDeliveries,
+        });
+        return;
+      }
+      await jsonFulfill(route, {
+        dayId: DAY_ID,
+        cityId: CITY_A_ID,
+        deliveries: options.volunteerDeliveries ?? [],
       });
       return;
     }

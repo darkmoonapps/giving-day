@@ -12,6 +12,7 @@ import {
   openDistributionDaySchema,
   parseDateOnly,
   respondToDistributionDaySchema,
+  assignDeliverySchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
 } from './index';
@@ -46,6 +47,9 @@ describe('shared public exports', () => {
       }).status
     ).toBe('declined');
     expect(templateKeySchema.parse('day_invite')).toBe('day_invite');
+    expect(assignDeliverySchema.parse({ volunteerId: null }).volunteerId).toBe(
+      null
+    );
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'
