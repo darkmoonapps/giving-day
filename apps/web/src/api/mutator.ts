@@ -9,11 +9,13 @@ const REFRESH_PATH = '/api/auth/refresh';
 
 export class ApiError extends Error {
   public readonly status: number;
+  public readonly code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -85,6 +87,25 @@ export async function refreshAccessTokenFromCookie(): Promise<string | null> {
   return refreshInFlight;
 }
 
+function isErrorMessageBody(value: unknown): value is { message: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'message' in value &&
+    typeof value.message === 'string' &&
+    value.message.length > 0
+  );
+}
+
+async function readApiErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body: unknown = await response.json();
+    return isErrorMessageBody(body) ? body.message : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch<T>(
   url: string,
   options?: ApiRequestInit
@@ -108,7 +129,12 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, `HTTP ${response.status}`);
+    const code = await readApiErrorCode(response);
+    throw new ApiError(
+      response.status,
+      code ?? `HTTP ${response.status}`,
+      code
+    );
   }
 
   if (response.status === 204) {

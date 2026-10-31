@@ -454,6 +454,38 @@ describe('Cities HTTP authorization', () => {
       nameEn: 'Holon',
     };
 
+    it('lets anyone preview a valid join token without authenticating', async () => {
+      currentUser = null;
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/join/fake-join-token')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        cityId: CITY_A_ID,
+        citySlug: 'holon',
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        role: 'volunteer',
+      });
+      expect(JSON.stringify(response.body)).not.toContain('fake-join-token');
+      expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 for a revoked join-token preview', async () => {
+      currentUser = null;
+      mockPrisma.cityInvite.findUnique.mockResolvedValue({
+        ...volunteerInvite,
+        revokedAt: new Date('2026-10-02T09:00:00.000Z'),
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/join/fake-join-token')
+        .expect(404);
+    });
+
     it('lets an onboarded user redeem a valid token as pending', async () => {
       currentUser = onboardedApplicant();
       mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
@@ -487,7 +519,7 @@ describe('Cities HTTP authorization', () => {
         .send({ token: 'fake-join-token' })
         .expect(200);
 
-      expect(response.body.result).toBe('pending');
+      expect(response.body.result).toBe('already_pending');
       expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
     });
 

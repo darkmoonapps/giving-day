@@ -304,6 +304,83 @@ export async function stubDistributionDayApi(
   });
 }
 
+export async function stubJoinLinkApi(
+  page: Page,
+  options: {
+    preview?: Record<string, unknown> | 'not_found';
+    redeem?: Record<string, unknown> | 'invalid' | 'paused';
+  } = {}
+): Promise<void> {
+  await page.route('**/api/join**', async (route) => {
+    const request = route.request();
+    const method = request.method();
+
+    if (method === 'GET') {
+      if (options.preview === 'not_found') {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            statusCode: 404,
+            message: 'cities.invalid_join_token',
+          }),
+        });
+        return;
+      }
+      await jsonFulfill(route, {
+        cityId: '11111111-1111-4111-8111-111111111111',
+        citySlug: 'holon',
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        role: 'volunteer',
+        ...options.preview,
+      });
+      return;
+    }
+
+    if (method === 'POST') {
+      if (options.redeem === 'invalid') {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            statusCode: 404,
+            message: 'cities.invalid_join_token',
+          }),
+        });
+        return;
+      }
+      if (options.redeem === 'paused') {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            statusCode: 409,
+            message: 'cities.membership_paused',
+          }),
+        });
+        return;
+      }
+      await jsonFulfill(route, {
+        result: 'pending',
+        membership: {
+          membershipId: '99999999-9999-4999-8999-999999999999',
+          cityId: '11111111-1111-4111-8111-111111111111',
+          citySlug: 'holon',
+          cityNameHe: 'חולון',
+          cityNameEn: 'Holon',
+          role: 'volunteer',
+          status: 'pending',
+        },
+        ...options.redeem,
+      });
+      return;
+    }
+
+    await route.fallback();
+  });
+}
+
 export async function stubGoogleOAuthRedirect(
   page: Page,
   redirectPath: '/auth/callback' | '/onboarding'

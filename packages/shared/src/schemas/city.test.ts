@@ -6,6 +6,7 @@ import {
   cityMembershipRecordSchema,
   cityPendingMembershipsResponseSchema,
   citySettingsSchema,
+  joinLinkPreviewSchema,
   redeemJoinLinkRequestSchema,
   redeemJoinLinkResponseSchema,
   timeOfDaySchema,
@@ -135,6 +136,36 @@ describe('city schemas', () => {
         membership: { ...redeemed.membership, status: 'active' },
       }).result
     ).toBe('already_active');
+    expect(
+      redeemJoinLinkResponseSchema.parse({
+        ...redeemed,
+        result: 'already_pending',
+      }).result
+    ).toBe('already_pending');
+    expect(
+      redeemJoinLinkResponseSchema.parse({
+        ...redeemed,
+        result: 'rejected',
+      }).result
+    ).toBe('rejected');
+  });
+
+  it('accepts a public join-link preview without a secret token', () => {
+    const preview = {
+      cityId: '11111111-1111-4111-8111-111111111111',
+      citySlug: 'holon',
+      cityNameHe: 'חולון',
+      cityNameEn: 'Holon',
+      role: 'volunteer' as const,
+    };
+
+    expect(joinLinkPreviewSchema.parse(preview)).toEqual(preview);
+    expect(
+      joinLinkPreviewSchema.parse({
+        ...preview,
+        token: 'fake-join-token',
+      })
+    ).toEqual(preview);
   });
 
   it('lists pending memberships without a join token', () => {

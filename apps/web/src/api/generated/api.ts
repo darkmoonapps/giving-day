@@ -186,6 +186,23 @@ export interface CityPendingMembershipsResponseDto {
   memberships: CityMembershipRecordDto[];
 }
 
+export type JoinLinkPreviewDtoRole = typeof JoinLinkPreviewDtoRole[keyof typeof JoinLinkPreviewDtoRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const JoinLinkPreviewDtoRole = {
+  coordinator: 'coordinator',
+  volunteer: 'volunteer',
+} as const;
+
+export interface JoinLinkPreviewDto {
+  cityId: string;
+  citySlug: string;
+  cityNameHe: string;
+  cityNameEn: string;
+  role: JoinLinkPreviewDtoRole;
+}
+
 export interface RedeemJoinLinkDto {
   /**
    * @minLength 1
@@ -230,7 +247,9 @@ export type RedeemJoinLinkResponseDtoResult = typeof RedeemJoinLinkResponseDtoRe
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RedeemJoinLinkResponseDtoResult = {
   pending: 'pending',
+  already_pending: 'already_pending',
   already_active: 'already_active',
+  rejected: 'rejected',
 } as const;
 
 export interface RedeemJoinLinkResponseDto {
@@ -2460,6 +2479,107 @@ export const useRejectCityMembership = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary Preview which city and role a join token belongs to without creating a membership
+ */
+export const getPreviewCityJoinLinkUrl = (token: unknown,) => {
+
+
+  
+
+  return `/api/join/${token}`
+}
+
+export const previewCityJoinLink = async (token: unknown, options?: RequestInit): Promise<JoinLinkPreviewDto> => {
+  
+  return apiFetch<JoinLinkPreviewDto>(getPreviewCityJoinLinkUrl(token),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPreviewCityJoinLinkQueryKey = (token?: unknown,) => {
+    return [
+    `/api/join/${token}`
+    ] as const;
+    }
+
+    
+export const getPreviewCityJoinLinkQueryOptions = <TData = Awaited<ReturnType<typeof previewCityJoinLink>>, TError = unknown>(token: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewCityJoinLinkQueryKey(token);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewCityJoinLink>>> = ({ signal }) => previewCityJoinLink(token, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PreviewCityJoinLinkQueryResult = NonNullable<Awaited<ReturnType<typeof previewCityJoinLink>>>
+export type PreviewCityJoinLinkQueryError = unknown
+
+
+export function usePreviewCityJoinLink<TData = Awaited<ReturnType<typeof previewCityJoinLink>>, TError = unknown>(
+ token: unknown, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewCityJoinLink>>,
+          TError,
+          Awaited<ReturnType<typeof previewCityJoinLink>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreviewCityJoinLink<TData = Awaited<ReturnType<typeof previewCityJoinLink>>, TError = unknown>(
+ token: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewCityJoinLink>>,
+          TError,
+          Awaited<ReturnType<typeof previewCityJoinLink>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreviewCityJoinLink<TData = Awaited<ReturnType<typeof previewCityJoinLink>>, TError = unknown>(
+ token: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Preview which city and role a join token belongs to without creating a membership
+ */
+
+export function usePreviewCityJoinLink<TData = Awaited<ReturnType<typeof previewCityJoinLink>>, TError = unknown>(
+ token: unknown, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewCityJoinLink>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPreviewCityJoinLinkQueryOptions(token,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary Redeem a city join token as a pending membership (coordinator approval is still required)
  */

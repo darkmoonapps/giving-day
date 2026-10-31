@@ -57,10 +57,35 @@ export class RedeemJoinLinkResponseDto {
   @ApiProperty({
     type: String,
     example: 'pending',
-    enum: ['pending', 'already_active'],
+    enum: ['pending', 'already_pending', 'already_active', 'rejected'],
   })
-  result!: 'pending' | 'already_active';
+  result!: 'pending' | 'already_pending' | 'already_active' | 'rejected';
 
   @ApiProperty({ type: () => RedeemedCityMembershipDto })
   membership!: RedeemedCityMembershipDto;
+}
+
+export class JoinLinkPreviewDto {
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    example: '11111111-1111-4111-8111-111111111111',
+  })
+  cityId!: string;
+
+  @ApiProperty({ type: String, example: 'holon' })
+  citySlug!: string;
+
+  @ApiProperty({ type: String, example: 'חולון' })
+  cityNameHe!: string;
+
+  @ApiProperty({ type: String, example: 'Holon' })
+  cityNameEn!: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'volunteer',
+    enum: ['coordinator', 'volunteer'],
+  })
+  role!: 'coordinator' | 'volunteer';
 }

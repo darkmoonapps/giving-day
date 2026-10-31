@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
 import { useSession } from '../auth/session-provider';
+import { postAuthPath } from '../join/join-token-storage';
 import { AppChrome } from '../layout/app-chrome';
 
 function SessionLoading(): JSX.Element {
@@ -26,7 +27,7 @@ export function GuestRoute({ children }: { children: ReactNode }): JSX.Element {
   }
 
   if (status === 'ready') {
-    return <Navigate to="/" replace />;
+    return <Navigate to={postAuthPath()} replace />;
   }
 
   return <>{children}</>;
@@ -48,7 +49,7 @@ export function OnboardingRoute({
   }
 
   if (status === 'ready') {
-    return <Navigate to="/" replace />;
+    return <Navigate to={postAuthPath()} replace />;
   }
 
   return <>{children}</>;

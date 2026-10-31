@@ -18,6 +18,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/session-provider';
+import { postAuthPath } from '../join/join-token-storage';
 import {
   canPromptInstall,
   promptInstall,
@@ -94,7 +95,7 @@ export function OnboardingPage(): JSX.Element {
 
   const finishAndGoHome = (): void => {
     markReady();
-    void navigate('/', { replace: true });
+    void navigate(postAuthPath(), { replace: true });
   };
 
   const runPostOnboardingPrompts = async (): Promise<void> => {
