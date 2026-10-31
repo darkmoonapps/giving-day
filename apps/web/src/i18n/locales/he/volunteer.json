@@ -82,5 +82,12 @@
   "next_of_kin_name": "שם איש הקשר",
   "next_of_kin_relation": "קרבה",
   "next_of_kin_phone": "טלפון איש הקשר",
-  "next_of_kin_primary": "איש קשר ראשי"
+  "next_of_kin_primary": "איש קשר ראשי",
+  "navigate_menu": "ניווט",
+  "navigate_center_menu": "ניווט למרכז החלוקה",
+  "navigate_google": "Google Maps",
+  "navigate_apple": "Apple Maps",
+  "navigate_waze": "Waze",
+  "navigate_to_elder": "ניווט אל {{name}}",
+  "building_code_label": "קוד"
 }

@@ -160,6 +160,9 @@ export async function stubDistributionDayApi(
     }>;
     onAssign?: (body: Record<string, unknown>) => void;
     onUpdateStatus?: (body: Record<string, unknown>) => void;
+    cityNameHe?: string;
+    cityNameEn?: string;
+    centerAddress?: string;
     dashboard?: {
       dayId: string;
       cityId: string;
@@ -384,10 +387,16 @@ export async function stubDistributionDayApi(
     }
 
     if (method === 'GET' && url.pathname.endsWith('/deliveries')) {
+      const navigation = {
+        cityNameHe: options.cityNameHe ?? 'חולון',
+        cityNameEn: options.cityNameEn ?? 'Holon',
+        centerAddress: options.centerAddress ?? '10 Warehouse Rd, Holon',
+      };
       if (options.coordinatorDeliveries !== undefined) {
         await jsonFulfill(route, {
           dayId: DAY_ID,
           cityId: CITY_A_ID,
+          ...navigation,
           unassignedCount: options.coordinatorDeliveries.filter(
             (delivery) => delivery.volunteerId === null
           ).length,
@@ -410,6 +419,7 @@ export async function stubDistributionDayApi(
       await jsonFulfill(route, {
         dayId: DAY_ID,
         cityId: CITY_A_ID,
+        ...navigation,
         deliveries: volunteerDeliveries,
       });
       return;

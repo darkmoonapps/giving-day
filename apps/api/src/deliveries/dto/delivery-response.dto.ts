@@ -211,6 +211,20 @@ export class DayDeliveriesResponseDto {
   })
   cityId!: string;
 
+  @ApiProperty({ type: String, example: 'חולון' })
+  cityNameHe!: string;
+
+  @ApiProperty({ type: String, example: 'Holon' })
+  cityNameEn!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '10 Warehouse Rd, Holon',
+    description:
+      'Distribution center address from city settings; empty when not configured',
+  })
+  centerAddress!: string;
+
   @ApiProperty({ type: [DeliveryResponseDto] })
   deliveries!: DeliveryResponseDto[];
 

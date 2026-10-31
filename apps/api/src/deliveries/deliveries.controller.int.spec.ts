@@ -102,6 +102,9 @@ describe('Deliveries HTTP authorization', () => {
       findUnique: vi.fn().mockResolvedValue({
         id: CITY_A_ID,
         archivedAt: null,
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+        settings: { centerAddress: '10 Warehouse Rd, Holon' },
       }),
     },
     citySettings: { findUnique: vi.fn() },
@@ -188,6 +191,9 @@ describe('Deliveries HTTP authorization', () => {
     mockPrisma.city.findUnique.mockResolvedValue({
       id: CITY_A_ID,
       archivedAt: null,
+      nameHe: 'חולון',
+      nameEn: 'Holon',
+      settings: { centerAddress: '10 Warehouse Rd, Holon' },
     });
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
     mockPrisma.delivery.findMany.mockResolvedValue([]);
@@ -346,6 +352,9 @@ describe('Deliveries HTTP authorization', () => {
       ]);
       expect(response.body.deliveries[0].volunteerId).toBeUndefined();
       expect(response.body.assignableVolunteers).toBeUndefined();
+      expect(response.body.cityNameHe).toBe('חולון');
+      expect(response.body.cityNameEn).toBe('Holon');
+      expect(response.body.centerAddress).toBe('10 Warehouse Rd, Holon');
     });
 
     it('hides another city from a coordinator', async () => {

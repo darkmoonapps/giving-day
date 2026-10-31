@@ -11,6 +11,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { volunteerDeliveryStatusColor } from '../theme/status-colors';
 import { ElderAddress } from './elder-address';
+import { NavigateMenu } from './navigate-menu';
+import {
+  elderMapsSearchQuery,
+  locationHintsText,
+  mapsQueryFromFreeText,
+} from './navigation-links';
 
 const CONTACT_RELATION_KEYS: Record<
   ContactRelation,
@@ -77,6 +83,8 @@ export function VolunteerDeliveriesList({
   deliveries,
   pending,
   error,
+  cityName,
+  centerAddress,
   pendingElderIds = new Set<string>(),
   onSuggestCorrection,
   onUpdateStatus,
@@ -84,6 +92,8 @@ export function VolunteerDeliveriesList({
   deliveries: VolunteerDelivery[];
   pending: boolean;
   error: boolean;
+  cityName: string;
+  centerAddress: string;
   pendingElderIds?: ReadonlySet<string>;
   onSuggestCorrection?: (elderId: string) => void;
   onUpdateStatus: (deliveryId: string, data: UpdateDeliveryStatus) => void;
@@ -100,6 +110,11 @@ export function VolunteerDeliveriesList({
     floor: t('floor_label'),
     apartment: t('apartment_label'),
   };
+  const hintLabels = {
+    entrance: t('entrance_label'),
+    buildingCode: t('building_code_label'),
+  };
+  const centerQuery = mapsQueryFromFreeText(centerAddress);
 
   const closeNoteModal = (): void => {
     setNoteDeliveryId(null);
@@ -145,6 +160,15 @@ export function VolunteerDeliveriesList({
         </AppAlert>
       ) : null}
 
+      {centerQuery !== null ? (
+        <NavigateMenu
+          query={centerQuery}
+          label={t('navigate_center_menu')}
+          ariaLabel={t('navigate_center_menu')}
+          testId="navigate-center-menu"
+        />
+      ) : null}
+
       {deliveries.length === 0 ? (
         <AppText data-testid="volunteer-deliveries-empty">
           {t('deliveries_empty')}
@@ -164,6 +188,15 @@ export function VolunteerDeliveriesList({
                 <DeliveryStatusBadge status={delivery.status} />
               </Group>
               <ElderAddress elder={delivery.elder} labels={labels} />
+              <NavigateMenu
+                query={elderMapsSearchQuery(delivery.elder, cityName)}
+                visibleHints={locationHintsText(delivery.elder, hintLabels)}
+                label={t('navigate_menu')}
+                ariaLabel={t('navigate_to_elder', {
+                  name: delivery.elder.fullName,
+                })}
+                testId="navigate-menu"
+              />
               {delivery.elder.contacts.length > 0 ? (
                 <Stack gap={4} data-testid="elder-next-of-kin">
                   <AppText size="sm" fw={500}>

@@ -147,6 +147,9 @@ describe('DeliveriesService', () => {
     mockPrisma.city.findUnique.mockResolvedValue({
       id: CITY_A_ID,
       archivedAt: null,
+      nameHe: 'חולון',
+      nameEn: 'Holon',
+      settings: { centerAddress: '10 Warehouse Rd, Holon' },
     });
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
     mockPrisma.elder.findMany.mockResolvedValue([]);
@@ -457,6 +460,9 @@ describe('DeliveriesService', () => {
       expect(result).toEqual({
         dayId: DAY_ID,
         cityId: CITY_A_ID,
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        centerAddress: '10 Warehouse Rd, Holon',
         deliveries: [],
       });
       expect(result).not.toHaveProperty('assignableVolunteers');
@@ -496,9 +502,40 @@ describe('DeliveriesService', () => {
         },
       });
       expect(result.deliveries[0]).not.toHaveProperty('volunteerId');
+      expect(result).toMatchObject({
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        centerAddress: '10 Warehouse Rd, Holon',
+      });
       expect(JSON.stringify(result)).not.toContain('buildingCode');
       expect(JSON.stringify(result)).toContain('+972506666666');
       expect(JSON.stringify(result)).not.toContain('+972502222222');
+    });
+
+    it('returns an empty center address when city settings omit one', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue({
+        id: CITY_A_ID,
+        archivedAt: null,
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+        settings: null,
+      });
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue({
+        id: '44444444-4444-4444-8444-444444444444',
+        cityId: CITY_A_ID,
+        dayId: DAY_ID,
+        volunteerId: VOLUNTEER_A_ID,
+        status: 'confirmed',
+        respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+        cancelReason: null,
+        finishedAt: null,
+      });
+      mockPrisma.delivery.findMany.mockResolvedValue([assignedRivkah]);
+
+      const result = await service.list(CITY_A_ID, DAY_ID, volunteerA());
+
+      expect(result.centerAddress).toBe('');
+      expect(result.cityNameEn).toBe('Holon');
     });
 
     it('hides another city from a coordinator', async () => {

@@ -9,6 +9,12 @@ import {
 export const CITY_A_ID = '11111111-1111-4111-8111-111111111111';
 export const DAY_ID = '33333333-3333-4333-8333-333333333333';
 
+export const HOLON_NAVIGATION = {
+  cityNameHe: 'חולון',
+  cityNameEn: 'Holon',
+  centerAddress: '10 Warehouse Rd, Holon',
+};
+
 export function volunteerUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return fakeUser({
     onboardedAt: '2026-10-28T08:00:00.000Z',
@@ -330,6 +336,7 @@ export function createDayFetchMock(
         return mockJsonResponse({
           dayId: DAY_ID,
           cityId: CITY_A_ID,
+          ...HOLON_NAVIGATION,
           unassignedCount: options.coordinatorDeliveries.filter(
             (delivery) => delivery.volunteerId === null
           ).length,
@@ -351,6 +358,7 @@ export function createDayFetchMock(
       return mockJsonResponse({
         dayId: DAY_ID,
         cityId: CITY_A_ID,
+        ...HOLON_NAVIGATION,
         deliveries: volunteerRows,
       });
     }
