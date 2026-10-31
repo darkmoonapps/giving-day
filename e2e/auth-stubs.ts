@@ -160,6 +160,29 @@ export async function stubDistributionDayApi(
     }>;
     onAssign?: (body: Record<string, unknown>) => void;
     onUpdateStatus?: (body: Record<string, unknown>) => void;
+    dashboard?: {
+      dayId: string;
+      cityId: string;
+      date: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      volunteers: {
+        total: number;
+        confirmed: number;
+        pending: number;
+        declined: number;
+      };
+      deliveries: {
+        unassigned: number;
+        assigned: number;
+        picked: number;
+        delivered: number;
+        notDelivered: number;
+        cancelled: number;
+      };
+      unassignedElders: Array<{ elderId: string; fullName: string }>;
+    };
     myParticipation?: Record<string, unknown> | null;
     assignableVolunteers?: Array<{
       id: string;
@@ -210,6 +233,41 @@ export async function stubDistributionDayApi(
       };
       openDay.myParticipation = participation;
       await jsonFulfill(route, participation);
+      return;
+    }
+
+    if (method === 'GET' && url.pathname.endsWith('/dashboard')) {
+      await jsonFulfill(
+        route,
+        options.dashboard ?? {
+          dayId: DAY_ID,
+          cityId: CITY_A_ID,
+          date: '2026-11-15',
+          startTime: '09:00:00',
+          endTime: '14:00:00',
+          status: 'published',
+          volunteers: {
+            total: 3,
+            confirmed: 1,
+            pending: 1,
+            declined: 1,
+          },
+          deliveries: {
+            unassigned: 1,
+            assigned: 1,
+            picked: 1,
+            delivered: 1,
+            notDelivered: 1,
+            cancelled: 0,
+          },
+          unassignedElders: [
+            {
+              elderId: '13131313-1313-4131-8131-131313131313',
+              fullName: 'Yosef Abraham',
+            },
+          ],
+        }
+      );
       return;
     }
 

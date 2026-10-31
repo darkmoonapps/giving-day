@@ -7,6 +7,7 @@ import {
 import {
   dayParticipationsResponseSchema,
   distributionDayCoordinatorSchema,
+  distributionDayDashboardSchema,
   distributionDaysResponseSchema,
   distributionDayVolunteerSchema,
   openDayStatusSchema,
@@ -14,10 +15,12 @@ import {
   respondToDistributionDaySchema,
   type DayParticipationsResponse,
   type DistributionDay as DistributionDayDto,
+  type DistributionDayDashboard,
   type DistributionDaysResponse,
   type OwnDayParticipation,
   type VolunteerResponseStatus,
 } from '@giving-day/shared';
+import type { DeliveryStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type {
   DayParticipation as PrismaDayParticipation,
@@ -48,6 +51,45 @@ import type { RespondToDistributionDayDto } from './dto/respond-to-distribution-
 
 const OPEN_STATUSES = openDayStatusSchema.options;
 const CLOSEABLE_STATUSES = new Set(['published', 'in_progress']);
+
+interface DeliveryCountTotals {
+  unassigned: number;
+  assigned: number;
+  picked: number;
+  delivered: number;
+  notDelivered: number;
+  cancelled: number;
+}
+
+function incrementDeliveryCount(
+  counts: DeliveryCountTotals,
+  status: DeliveryStatus
+): void {
+  switch (status) {
+    case 'unassigned':
+      counts.unassigned += 1;
+      return;
+    case 'assigned':
+      counts.assigned += 1;
+      return;
+    case 'picked':
+      counts.picked += 1;
+      return;
+    case 'delivered':
+      counts.delivered += 1;
+      return;
+    case 'not_delivered':
+      counts.notDelivered += 1;
+      return;
+    case 'cancelled':
+      counts.cancelled += 1;
+      return;
+    default: {
+      const unexpected: never = status;
+      throw new Error(`Unexpected delivery status: ${unexpected}`);
+    }
+  }
+}
 
 @Injectable()
 export class DistributionDaysService {
@@ -328,6 +370,115 @@ export class DistributionDaysService {
             : null,
         };
       }),
+    });
+  }
+
+  async getDashboard(
+    cityId: string,
+    dayId: string,
+    actor: UserWithMemberships
+  ): Promise<DistributionDayDashboard> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'read', 'DayParticipation', cityId);
+    assertCanOnCity(ability, 'read', 'Delivery', cityId);
+    await this.requireCity(cityId);
+    const day = await this.requireDay(cityId, dayId);
+
+    const [volunteers, participations, deliveries] = await Promise.all([
+      this.prisma.cityMembership.findMany({
+        where: {
+          cityId,
+          role: 'volunteer',
+          status: 'active',
+          user: { archivedAt: null },
+        },
+        select: {
+          userId: true,
+        },
+      }),
+      this.prisma.dayParticipation.findMany({
+        where: { cityId, dayId },
+        select: {
+          volunteerId: true,
+          status: true,
+        },
+      }),
+      this.prisma.delivery.findMany({
+        where: { cityId, dayId },
+        select: {
+          status: true,
+          volunteerId: true,
+          elder: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const participationByVolunteerId = new Map(
+      participations.map((participation) => [
+        participation.volunteerId,
+        participation.status,
+      ])
+    );
+
+    const volunteerCounts = {
+      total: volunteers.length,
+      confirmed: 0,
+      pending: 0,
+      declined: 0,
+    };
+
+    for (const membership of volunteers) {
+      const responseStatus = this.toCoordinatorResponseStatus(
+        participationByVolunteerId.get(membership.userId)
+      );
+      if (responseStatus === 'confirmed') {
+        volunteerCounts.confirmed += 1;
+      } else if (responseStatus === 'declined') {
+        volunteerCounts.declined += 1;
+      } else {
+        volunteerCounts.pending += 1;
+      }
+    }
+
+    const deliveryCounts = {
+      unassigned: 0,
+      assigned: 0,
+      picked: 0,
+      delivered: 0,
+      notDelivered: 0,
+      cancelled: 0,
+    };
+    const unassignedElders: Array<{ elderId: string; fullName: string }> = [];
+
+    for (const row of deliveries) {
+      incrementDeliveryCount(deliveryCounts, row.status);
+      if (row.volunteerId === null) {
+        unassignedElders.push({
+          elderId: row.elder.id,
+          fullName: row.elder.fullName,
+        });
+      }
+    }
+
+    unassignedElders.sort((left, right) =>
+      left.fullName.localeCompare(right.fullName, 'he')
+    );
+
+    return distributionDayDashboardSchema.parse({
+      dayId: day.id,
+      cityId,
+      date: formatDateOnly(day.date),
+      startTime: formatTime(day.startTime),
+      endTime: formatTime(day.endTime),
+      status: day.status,
+      volunteers: volunteerCounts,
+      deliveries: deliveryCounts,
+      unassignedElders,
     });
   }
 

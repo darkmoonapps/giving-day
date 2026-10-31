@@ -83,6 +83,18 @@ describe('CoordinatorEldersPage', () => {
     });
   }, 15_000);
 
+  it('opens an elder for details from the dashboard query', async () => {
+    vi.stubGlobal('fetch', vi.fn(createElderFetchMock()));
+
+    renderApp(`/cities/${CITY_A_ID}/elders?elderId=${ELDER_RIVKAH_ID}`);
+
+    expect(await screen.findByTestId('elder-form')).toHaveAttribute(
+      'data-mode',
+      'edit'
+    );
+    expect(screen.getByDisplayValue('Rivkah Levi')).toBeInTheDocument();
+  });
+
   it('edits notes and next of kin', async () => {
     const fetchMock = vi.fn(createElderFetchMock());
     vi.stubGlobal('fetch', fetchMock);

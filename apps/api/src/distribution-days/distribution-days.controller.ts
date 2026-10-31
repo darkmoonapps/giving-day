@@ -21,6 +21,7 @@ import {
 import type {
   DayParticipationsResponse,
   DistributionDay,
+  DistributionDayDashboard,
   DistributionDaysResponse,
   OwnDayParticipation,
 } from '@giving-day/shared';
@@ -38,6 +39,7 @@ import {
   DistributionDayResponseDto,
   DistributionDaysResponseDto,
 } from './dto/distribution-day-response.dto';
+import { DistributionDayDashboardDto } from './dto/distribution-day-dashboard-response.dto';
 import { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
 import { RespondToDistributionDayDto } from './dto/respond-to-distribution-day.dto';
 
@@ -117,6 +119,24 @@ export class DistributionDaysController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<DistributionDay> {
     return this.distributionDaysService.close(cityId, dayId, user);
+  }
+
+  @Get(':dayId/dashboard')
+  @RequireAbilities({ action: 'read', subject: 'DayParticipation' })
+  @ApiOperation({
+    operationId: 'getDistributionDayDashboard',
+    summary:
+      'Read-only coordinator overview for a distribution day (counts, coverage, delivery progress)',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'dayId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: DistributionDayDashboardDto })
+  async getDashboard(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('dayId', ParseUUIDPipe) dayId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<DistributionDayDashboard> {
+    return this.distributionDaysService.getDashboard(cityId, dayId, user);
   }
 
   @Get(':dayId/participations')

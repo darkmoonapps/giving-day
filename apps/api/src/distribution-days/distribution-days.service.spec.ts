@@ -573,6 +573,113 @@ describe('DistributionDaysService', () => {
     });
   });
 
+  describe('getDashboard', () => {
+    it('aggregates volunteer responses and delivery progress for a coordinator', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.cityMembership.findMany.mockResolvedValue([
+        { userId: VOLUNTEER_A_ID },
+        { userId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+        { userId: '99999999-9999-4999-8999-999999999999' },
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        { volunteerId: VOLUNTEER_A_ID, status: 'confirmed' },
+        {
+          volunteerId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          status: 'declined',
+        },
+      ]);
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        {
+          status: 'assigned',
+          volunteerId: VOLUNTEER_A_ID,
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+          },
+        },
+        {
+          status: 'unassigned',
+          volunteerId: null,
+          elder: {
+            id: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+          },
+        },
+        {
+          status: 'picked',
+          volunteerId: VOLUNTEER_A_ID,
+          elder: {
+            id: '19191919-1919-4191-8191-191919191919',
+            fullName: 'Miriam Cohen',
+          },
+        },
+        {
+          status: 'delivered',
+          volunteerId: VOLUNTEER_A_ID,
+          elder: {
+            id: '20202020-2020-4202-8202-202020202020',
+            fullName: 'Sarah Mizrahi',
+          },
+        },
+        {
+          status: 'not_delivered',
+          volunteerId: VOLUNTEER_A_ID,
+          elder: {
+            id: '21212121-2121-4212-8212-212121212121',
+            fullName: 'David Cohen',
+          },
+        },
+      ]);
+
+      const result = await service.getDashboard(
+        CITY_A_ID,
+        publishedDay.id,
+        coordinatorA()
+      );
+
+      expect(result).toMatchObject({
+        dayId: publishedDay.id,
+        cityId: CITY_A_ID,
+        date: '2026-11-15',
+        startTime: '09:00:00',
+        endTime: '14:00:00',
+        status: 'published',
+        volunteers: {
+          total: 3,
+          confirmed: 1,
+          pending: 1,
+          declined: 1,
+        },
+        deliveries: {
+          unassigned: 1,
+          assigned: 1,
+          picked: 1,
+          delivered: 1,
+          notDelivered: 1,
+          cancelled: 0,
+        },
+      });
+      expect(result.unassignedElders).toEqual([
+        {
+          elderId: '13131313-1313-4131-8131-131313131313',
+          fullName: 'Yosef Abraham',
+        },
+      ]);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      await expect(
+        service.getDashboard(CITY_A_ID, publishedDay.id, coordinatorB())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('hides the dashboard from a volunteer', async () => {
+      await expect(
+        service.getDashboard(CITY_A_ID, publishedDay.id, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
   describe('close', () => {
     it('closes a published day', async () => {
       mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
