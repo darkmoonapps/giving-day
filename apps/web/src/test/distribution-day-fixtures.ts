@@ -167,6 +167,20 @@ export const coordinatorDeliveryUnassigned = {
     notes: null,
     contacts: [],
   },
+  replacementSuggestions: [
+    {
+      id: '99999999-9999-4999-8999-999999999999',
+      firstName: 'Dana',
+      lastName: 'Levi',
+      homeArea: 'Park',
+    },
+    {
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      firstName: 'Yonatan',
+      lastName: 'Bar',
+      homeArea: 'Neve Erez',
+    },
+  ],
 };
 
 export const coordinatorDeliveryUnmatched = {
@@ -185,6 +199,20 @@ export const coordinatorDeliveryUnmatched = {
     notes: null,
     contacts: [],
   },
+  replacementSuggestions: [
+    {
+      id: '99999999-9999-4999-8999-999999999999',
+      firstName: 'Dana',
+      lastName: 'Levi',
+      homeArea: 'Weizmann',
+    },
+    {
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      firstName: 'Yonatan',
+      lastName: 'Bar',
+      homeArea: 'Neve Erez',
+    },
+  ],
 };
 
 export const holonDayDashboard = {

@@ -264,6 +264,46 @@ describe('DayDeliveriesPage', () => {
       ]);
     });
 
+    it('lets the coordinator assign a nearby suggested volunteer in one click', async () => {
+      const fetchMock = vi.fn(
+        createDayFetchMock({
+          refresh: 'ok',
+          user: coordinatorUser(),
+          coordinatorDeliveries: [coordinatorDeliveryUnassigned],
+        })
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      const suggestions = await screen.findByTestId(
+        `replacement-suggestions-${coordinatorDeliveryUnassigned.id}`
+      );
+      expect(suggestions).toBeInTheDocument();
+      expect(
+        within(suggestions).getAllByRole('button')[0]
+      ).toHaveAccessibleName('שיבוץ של Dana Levi (Park)');
+
+      await user.click(
+        screen.getByTestId(
+          `suggest-assign-${coordinatorDeliveryUnassigned.id}-99999999-9999-4999-8999-999999999999`
+        )
+      );
+
+      await waitFor(() => {
+        const assignCall = fetchMock.mock.calls.find(
+          (call) =>
+            String(call[0]).includes('/deliveries/') &&
+            call[1]?.method === 'PATCH'
+        );
+        expect(assignCall).toBeDefined();
+        expect(JSON.parse(String(assignCall?.[1]?.body))).toEqual({
+          volunteerId: '99999999-9999-4999-8999-999999999999',
+        });
+      });
+    });
+
     it('shows unmatched elders as needing a volunteer in Hebrew RTL and English LTR', async () => {
       vi.stubGlobal(
         'fetch',
@@ -291,6 +331,11 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByTestId('needs-volunteer-count')).toHaveTextContent(
         '1 ממתינים למתנדב/ת'
       );
+      expect(
+        screen.getByTestId(
+          `replacement-suggestions-${coordinatorDeliveryUnmatched.id}`
+        )
+      ).toHaveTextContent('מתנדבים מוצעים, הקרובים קודם');
 
       await user.click(screen.getByRole('button', { name: 'English' }));
 
@@ -302,6 +347,11 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByTestId('needs-volunteer-count')).toHaveTextContent(
         '1 need a volunteer'
       );
+      expect(
+        screen.getByTestId(
+          `replacement-suggestions-${coordinatorDeliveryUnmatched.id}`
+        )
+      ).toHaveTextContent('Suggested volunteers, closest first');
     });
 
     it('sorts and filters the coordinator deliveries list on the client', async () => {

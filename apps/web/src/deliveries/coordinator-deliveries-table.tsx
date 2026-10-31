@@ -273,24 +273,40 @@ export function CoordinatorDeliveriesTable({
                       />
                     </Table.Td>
                     <Table.Td>
-                      <NativeSelect
-                        aria-label={t('assign_volunteer')}
-                        data-testid={`assign-delivery-${delivery.id}`}
-                        value={
-                          unassigned
-                            ? ASSIGN_UNASSIGNED_VALUE
-                            : (delivery.volunteerId ?? ASSIGN_UNASSIGNED_VALUE)
-                        }
-                        data={assignOptions(delivery, assignableVolunteers, t)}
-                        disabled={assignPending}
-                        onChange={(event) => {
-                          const next = event.currentTarget.value;
-                          onAssign(
-                            delivery.id,
-                            next === ASSIGN_UNASSIGNED_VALUE ? null : next
-                          );
-                        }}
-                      />
+                      <Stack gap={6}>
+                        <NativeSelect
+                          aria-label={t('assign_volunteer')}
+                          data-testid={`assign-delivery-${delivery.id}`}
+                          value={
+                            unassigned
+                              ? ASSIGN_UNASSIGNED_VALUE
+                              : (delivery.volunteerId ??
+                                ASSIGN_UNASSIGNED_VALUE)
+                          }
+                          data={assignOptions(
+                            delivery,
+                            assignableVolunteers,
+                            t
+                          )}
+                          disabled={assignPending}
+                          onChange={(event) => {
+                            const next = event.currentTarget.value;
+                            onAssign(
+                              delivery.id,
+                              next === ASSIGN_UNASSIGNED_VALUE ? null : next
+                            );
+                          }}
+                        />
+                        {unassigned ? (
+                          <ReplacementSuggestions
+                            deliveryId={delivery.id}
+                            suggestions={delivery.replacementSuggestions ?? []}
+                            assignPending={assignPending}
+                            onAssign={onAssign}
+                            t={t}
+                          />
+                        ) : null}
+                      </Stack>
                     </Table.Td>
                     <Table.Td>
                       {unassigned ? (
@@ -382,6 +398,66 @@ function SortIcon({
     return <IconChevronUp size={14} aria-hidden />;
   }
   return <IconChevronDown size={14} aria-hidden />;
+}
+
+function ReplacementSuggestions({
+  deliveryId,
+  suggestions,
+  assignPending,
+  onAssign,
+  t,
+}: {
+  deliveryId: string;
+  suggestions: NonNullable<DeliveryResponseDto['replacementSuggestions']>;
+  assignPending: boolean;
+  onAssign: (deliveryId: string, volunteerId: string | null) => void;
+  t: TFunction<'admin'>;
+}): JSX.Element | null {
+  if (suggestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack gap={4} data-testid={`replacement-suggestions-${deliveryId}`}>
+      <AppText size="xs" c="dimmed">
+        {t('replacement_suggestions')}
+      </AppText>
+      <Group gap="xs" wrap="wrap">
+        {suggestions.map((suggestion) => {
+          const name = personName(
+            suggestion.firstName,
+            suggestion.lastName,
+            t('unnamed_volunteer')
+          );
+          const homeArea = suggestion.homeArea;
+          const hasArea =
+            typeof homeArea === 'string' && homeArea.trim().length > 0;
+          return (
+            <AppButton
+              key={suggestion.id}
+              size="xs"
+              variant="light"
+              disabled={assignPending}
+              data-testid={`suggest-assign-${deliveryId}-${suggestion.id}`}
+              aria-label={
+                hasArea
+                  ? t('assign_suggested_volunteer_area', {
+                      name,
+                      area: homeArea,
+                    })
+                  : t('assign_suggested_volunteer', { name })
+              }
+              onClick={() => {
+                onAssign(deliveryId, suggestion.id);
+              }}
+            >
+              {hasArea ? `${name} · ${homeArea}` : name}
+            </AppButton>
+          );
+        })}
+      </Group>
+    </Stack>
+  );
 }
 
 function personName(

@@ -367,6 +367,87 @@ test.describe('Distribution day deliveries', () => {
     ]);
   });
 
+  test('coordinator assigns a nearby suggested volunteer in one click', async ({
+    page,
+  }) => {
+    const assigned: Record<string, unknown>[] = [];
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      onAssign: (body) => assigned.push(body),
+      coordinatorDeliveries: [
+        {
+          id: DELIVERY_UNASSIGNED_ID,
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'unassigned',
+          volunteerId: null,
+          matchId: '15151515-1515-4151-8151-151515151515',
+          assignedAt: null,
+          volunteer: null,
+          elder: {
+            id: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+            street: '4 Park Ave',
+            houseNumber: '4',
+            entrance: null,
+            floor: null,
+            apartment: null,
+            addressNotes: null,
+            notes: null,
+            contacts: [],
+          },
+          replacementSuggestions: [
+            {
+              id: '99999999-9999-4999-8999-999999999999',
+              firstName: 'Dana',
+              lastName: 'Levi',
+              homeArea: 'Park',
+            },
+            {
+              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              firstName: 'Yonatan',
+              lastName: 'Bar',
+              homeArea: 'Neve Erez',
+            },
+          ],
+        },
+      ],
+    });
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+    await expect(page.getByTestId('coordinator-deliveries-page')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(
+      page.getByTestId(`replacement-suggestions-${DELIVERY_UNASSIGNED_ID}`)
+    ).toContainText('מתנדבים מוצעים, הקרובים קודם');
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(
+      page.getByTestId(`replacement-suggestions-${DELIVERY_UNASSIGNED_ID}`)
+    ).toContainText('Suggested volunteers, closest first');
+
+    await page
+      .getByTestId(
+        `suggest-assign-${DELIVERY_UNASSIGNED_ID}-99999999-9999-4999-8999-999999999999`
+      )
+      .click();
+    await expect
+      .poll(() => assigned)
+      .toEqual([{ volunteerId: '99999999-9999-4999-8999-999999999999' }]);
+  });
+
   test('coordinator sees unmatched elders as needing a volunteer in Hebrew and English', async ({
     page,
   }) => {

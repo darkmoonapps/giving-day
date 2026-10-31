@@ -260,7 +260,7 @@ person can be a coordinator in one city and a volunteer in another.
 - [ ] Reminder job execution for non-responders
 - [ ] Volunteer cancellation handling (optional `cancelReason`; deliveries become unassigned immediately)
 - [ ] "Needs a volunteer" list for coordinators
-- [ ] Volunteer replacement suggestions (sorted by proximity)
+- [x] Volunteer replacement suggestions (sorted by proximity)
 - [ ] Manual reassignment by coordinator only (no automatic reassignment)
 - [ ] Package status: Picked, then Delivered or Not delivered
 - [ ] Not delivered notes popup; note sent to coordinator and saved
@@ -402,9 +402,17 @@ Resolved (see Resolved Decisions): when to send unpicked and missing-final-statu
 
 ### Proximity Calculation
 
-- How to calculate volunteer-to-elder proximity? (straight-line distance, driving distance, volunteer `homeArea`)
-- Elders store optional lat/lng and `geocodeStatus`; volunteers store neighborhood only (`homeArea`), never a home street address
-- Privacy considerations for location data
+**Resolved.** v1 ranks only volunteers who confirmed for the day.
+Suggestions are ordered by a text match of `CityMembership.homeArea`
+against the elder's `street` and `addressNotes` (normalized Hebrew and
+English; address stop-words such as "St" / "רחוב" are ignored). Ties
+break by name. The list is capped at 5. The coordinator decides; there
+is no automatic reassignment. No geocoding and no schema change.
+
+Elders still store optional lat/lng and `geocodeStatus`; volunteers
+store neighborhood only (`homeArea`), never a home street address. Real
+distance (elder lat/lng plus a volunteer area location) is a possible
+later upgrade. See Resolved Decisions.
 
 ### Internationalization & Accessibility
 
@@ -455,3 +463,4 @@ These items were previously open or unspecified. They are now product decisions 
 - **Auth**: Google and Facebook OAuth (unchanged). Mandatory onboarding: `firstName`, `lastName`, `phone` required; `birthDate` and `email` optional; preferred locale. No privacy-acceptance step. After onboarding: notification permission and install prompts. See [ADR 0020](./adr/0020-oauth-join-link-auth.md).
 - **Join links**: Permanent shareable link per city and role. No 48-hour expiry and no `maxUses` by default. Coordinator can revoke and regenerate. Landing page has an Install app button. New members stay **pending** until a coordinator approves (one tap).
 - **Decline / cancel**: The volunteer may enter a `cancelReason` (visible to the coordinator). Their deliveries on that day move to unassigned and appear on the "Needs a volunteer" list. They are never auto-reassigned.
+- **Proximity (v1 replacement suggestions)**: Only volunteers who confirmed for the day are eligible. They are ranked by text match of `CityMembership.homeArea` against the elder's `street` and `addressNotes` (normalized Hebrew/English; address stop-words ignored). Tie-break by last name, then first name. Cap 5. The coordinator decides; there is no automatic reassignment. No geocoding or schema change. Real distance (elder lat/lng plus a volunteer area location) is a possible later upgrade.

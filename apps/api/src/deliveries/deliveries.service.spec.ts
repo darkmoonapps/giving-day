@@ -447,11 +447,59 @@ describe('DeliveriesService', () => {
         id: DELIVERY_YOSEF_ID,
         volunteerId: null,
         elder: { fullName: 'Yosef Abraham' },
+        replacementSuggestions: [
+          {
+            id: VOLUNTEER_A_ID,
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+            homeArea: null,
+          },
+        ],
       });
       expect(result.deliveries[1]).toMatchObject({
         volunteerId: VOLUNTEER_A_ID,
         volunteer: { firstName: 'Yonatan' },
+        replacementSuggestions: [],
       });
+    });
+
+    it('ranks replacement suggestions by volunteer home-area proximity', async () => {
+      mockPrisma.delivery.findMany.mockResolvedValue([unassignedYosef]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        {
+          volunteer: {
+            id: VOLUNTEER_A_ID,
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+            memberships: [{ homeArea: 'Neve Erez' }],
+          },
+        },
+        {
+          volunteer: {
+            id: VOLUNTEER_B_ID,
+            firstName: 'Dana',
+            lastName: 'Levi',
+            memberships: [{ homeArea: 'Park' }],
+          },
+        },
+      ]);
+
+      const result = await service.list(CITY_A_ID, DAY_ID, coordinatorA());
+
+      expect(result.deliveries[0]?.replacementSuggestions).toEqual([
+        {
+          id: VOLUNTEER_B_ID,
+          firstName: 'Dana',
+          lastName: 'Levi',
+          homeArea: 'Park',
+        },
+        {
+          id: VOLUNTEER_A_ID,
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+          homeArea: 'Neve Erez',
+        },
+      ]);
     });
 
     it('hides deliveries from a volunteer who has not confirmed', async () => {
@@ -573,6 +621,7 @@ describe('DeliveriesService', () => {
       );
 
       expect(result.volunteerId).toBe(VOLUNTEER_B_ID);
+      expect(result.replacementSuggestions).toEqual([]);
       expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -622,7 +671,17 @@ describe('DeliveriesService', () => {
 
       expect(result.volunteerId).toBeNull();
       expect(result.status).toBe('unassigned');
+      expect(result.replacementSuggestions).toEqual([]);
       expect(mockPrisma.dayParticipation.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.dayParticipation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
     });
 
     it('rejects assigning a non-volunteer', async () => {

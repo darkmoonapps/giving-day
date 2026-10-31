@@ -523,6 +523,19 @@ export interface DeliveryVolunteerDto {
   lastName: string | null;
 }
 
+export interface ReplacementSuggestionDto {
+  id: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /**
+   * Volunteer neighborhood only. Used to rank suggestions next to the elder address
+   * @nullable
+   */
+  homeArea: string | null;
+}
+
 export type DeliveryResponseDtoStatus = typeof DeliveryResponseDtoStatus[keyof typeof DeliveryResponseDtoStatus];
 
 
@@ -582,6 +595,8 @@ export interface DeliveryResponseDto {
   assignedAt?: string | null;
   /** @nullable */
   volunteer?: DeliveryResponseDtoVolunteer;
+  /** Confirmed volunteers ranked by home-area proximity to this elder. Coordinators only; empty when the delivery is assigned */
+  replacementSuggestions?: ReplacementSuggestionDto[];
 }
 
 export interface DayDeliveriesResponseDto {

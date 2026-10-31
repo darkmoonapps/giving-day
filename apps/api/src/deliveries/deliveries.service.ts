@@ -7,6 +7,7 @@ import {
   assignDeliverySchema,
   coordinatorDeliveriesResponseSchema,
   coordinatorDeliverySchema,
+  rankReplacementSuggestions,
   updateDeliveryStatusSchema,
   volunteerDeliveriesResponseSchema,
   volunteerDeliverySchema,
@@ -14,6 +15,7 @@ import {
   type CoordinatorDeliveriesResponse,
   type CoordinatorDelivery,
   type DayDeliveriesResponse,
+  type ReplacementVolunteerCandidate,
   type UpdateDeliveryStatus,
   type VolunteerDeliveriesResponse,
   type VolunteerDelivery,
@@ -355,7 +357,12 @@ export class DeliveriesService {
       return row;
     });
 
-    return this.toCoordinatorDelivery(updated);
+    return this.toCoordinatorDelivery(
+      updated,
+      updated.volunteerId === null
+        ? await this.loadAssignableCandidates(cityId, dayId)
+        : []
+    );
   }
 
   async updateStatus(
@@ -463,7 +470,7 @@ export class DeliveriesService {
     dayId: string,
     navigation: ListNavigation
   ): Promise<CoordinatorDeliveriesResponse> {
-    const [deliveries, confirmed] = await Promise.all([
+    const [deliveries, candidates] = await Promise.all([
       this.prisma.delivery.findMany({
         where: { cityId, dayId },
         include: {
@@ -471,18 +478,7 @@ export class DeliveriesService {
           volunteer: { select: VOLUNTEER_SELECT },
         },
       }),
-      this.prisma.dayParticipation.findMany({
-        where: this.confirmedAssignableWhere(cityId, dayId),
-        select: {
-          volunteer: {
-            select: VOLUNTEER_SELECT,
-          },
-        },
-        orderBy: [
-          { volunteer: { lastName: 'asc' } },
-          { volunteer: { firstName: 'asc' } },
-        ],
-      }),
+      this.loadAssignableCandidates(cityId, dayId),
     ]);
 
     const sorted = this.sortDeliveries(deliveries);
@@ -492,9 +488,51 @@ export class DeliveriesService {
       cityId,
       ...navigation,
       unassignedCount: sorted.filter((row) => row.volunteerId === null).length,
-      assignableVolunteers: confirmed.map((row) => row.volunteer),
-      deliveries: sorted.map((row) => this.toCoordinatorDelivery(row)),
+      assignableVolunteers: candidates.map((volunteer) => ({
+        id: volunteer.id,
+        firstName: volunteer.firstName,
+        lastName: volunteer.lastName,
+      })),
+      deliveries: sorted.map((row) =>
+        this.toCoordinatorDelivery(row, candidates)
+      ),
     });
+  }
+
+  private async loadAssignableCandidates(
+    cityId: string,
+    dayId: string
+  ): Promise<ReplacementVolunteerCandidate[]> {
+    const confirmed = await this.prisma.dayParticipation.findMany({
+      where: this.confirmedAssignableWhere(cityId, dayId),
+      select: {
+        volunteer: {
+          select: {
+            ...VOLUNTEER_SELECT,
+            memberships: {
+              where: {
+                cityId,
+                role: 'volunteer',
+                status: 'active',
+              },
+              select: { homeArea: true },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: [
+        { volunteer: { lastName: 'asc' } },
+        { volunteer: { firstName: 'asc' } },
+      ],
+    });
+
+    return confirmed.map((row) => ({
+      id: row.volunteer.id,
+      firstName: row.volunteer.firstName,
+      lastName: row.volunteer.lastName,
+      homeArea: row.volunteer.memberships?.[0]?.homeArea ?? null,
+    }));
   }
 
   private async listForVolunteer(
@@ -692,7 +730,8 @@ export class DeliveriesService {
   }
 
   private toCoordinatorDelivery(
-    row: DeliveryWithRelations
+    row: DeliveryWithRelations,
+    candidates: readonly ReplacementVolunteerCandidate[]
   ): CoordinatorDelivery {
     return coordinatorDeliverySchema.parse({
       id: row.id,
@@ -706,6 +745,16 @@ export class DeliveriesService {
       assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,
       volunteer: row.volunteer,
       elder: row.elder,
+      replacementSuggestions:
+        row.volunteerId === null
+          ? rankReplacementSuggestions(
+              {
+                street: row.elder.street,
+                addressNotes: row.elder.addressNotes,
+              },
+              candidates
+            )
+          : [],
     });
   }
 }

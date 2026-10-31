@@ -62,6 +62,10 @@ export const deliveryVolunteerSchema = z.object({
   lastName: z.string().nullable(),
 });
 
+export const replacementSuggestionSchema = deliveryVolunteerSchema.extend({
+  homeArea: z.string().nullable(),
+});
+
 export const volunteerDeliverySchema = z.object({
   id: z.string().uuid(),
   cityId: z.string().uuid(),
@@ -77,6 +81,7 @@ export const coordinatorDeliverySchema = volunteerDeliverySchema.extend({
   matchId: z.string().uuid().nullable(),
   assignedAt: z.string().datetime().nullable(),
   volunteer: deliveryVolunteerSchema.nullable(),
+  replacementSuggestions: z.array(replacementSuggestionSchema),
 });
 
 export const volunteerDeliveriesResponseSchema = z.object({
@@ -127,6 +132,7 @@ export type ContactRelation = z.infer<typeof contactRelationSchema>;
 export type DeliveryElderContact = z.infer<typeof deliveryElderContactSchema>;
 export type DeliveryElder = z.infer<typeof deliveryElderSchema>;
 export type DeliveryVolunteer = z.infer<typeof deliveryVolunteerSchema>;
+export type ReplacementSuggestion = z.infer<typeof replacementSuggestionSchema>;
 export type VolunteerDelivery = z.infer<typeof volunteerDeliverySchema>;
 export type CoordinatorDelivery = z.infer<typeof coordinatorDeliverySchema>;
 export type VolunteerDeliveriesResponse = z.infer<

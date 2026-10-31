@@ -119,6 +119,14 @@ describe('coordinatorDeliveriesResponseSchema', () => {
           matchId: MATCH_ID,
           assignedAt: null,
           volunteer: null,
+          replacementSuggestions: [
+            {
+              id: VOLUNTEER_ID,
+              firstName: 'Yonatan',
+              lastName: 'Bar',
+              homeArea: 'Weizmann',
+            },
+          ],
           elder,
         },
       ],
