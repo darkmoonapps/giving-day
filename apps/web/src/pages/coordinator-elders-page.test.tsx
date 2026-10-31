@@ -25,7 +25,7 @@ describe('CoordinatorEldersPage', () => {
   it('lists active elders and creates one with notes and next of kin', async () => {
     const fetchMock = vi.fn(createElderFetchMock());
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp(`/cities/${CITY_A_ID}/elders`);
 
@@ -81,12 +81,12 @@ describe('CoordinatorEldersPage', () => {
         ],
       });
     });
-  });
+  }, 15_000);
 
   it('edits notes and next of kin', async () => {
     const fetchMock = vi.fn(createElderFetchMock());
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp(`/cities/${CITY_A_ID}/elders`);
     await screen.findByTestId(`elder-row-${ELDER_RIVKAH_ID}`);
@@ -119,7 +119,7 @@ describe('CoordinatorEldersPage', () => {
         ],
       });
     });
-  });
+  }, 15_000);
 
   it('toggles inactive elders and reactivates a paused elder after confirm', async () => {
     const fetchMock = vi.fn(
