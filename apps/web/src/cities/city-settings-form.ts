@@ -1,11 +1,12 @@
 import {
+  CITY_DEFAULT_THEME,
   isAbsoluteHttpsUrl,
   type Locale,
   type UpdateCitySettings,
 } from '@giving-day/shared';
 import type { CitySettingsResponseDto } from '../api/generated/api';
 
-export const CITY_DEFAULT_THEME = 'wisteria-mint';
+export { CITY_DEFAULT_THEME };
 
 export const CITY_DEFAULT_THEMES = [CITY_DEFAULT_THEME] as const;
 

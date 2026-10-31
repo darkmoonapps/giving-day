@@ -15,6 +15,9 @@ export const timeOfDaySchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, 'validation.invalid_time');
 
+export const CITY_DEFAULT_THEME = 'wisteria-mint';
+export const GIVING_DAY_THEME_ATTRIBUTE = 'data-giving-day-theme';
+
 export const citySettingsExtraSchema = z.record(z.string(), z.unknown());
 
 export function isAbsoluteHttpsUrl(value: string): boolean {

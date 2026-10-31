@@ -9,6 +9,7 @@ import { AppAlert, AppBadge, AppButton, AppText } from '@giving-day/ui';
 import { Group, Modal, NativeSelect, Stack, Textarea } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { volunteerDeliveryStatusColor } from '../theme/status-colors';
 import { ElderAddress } from './elder-address';
 
 const CONTACT_RELATION_KEYS: Record<
@@ -295,14 +296,7 @@ function DeliveryStatusBadge({
   ) {
     return null;
   }
-  const color =
-    status === 'delivered'
-      ? 'teal'
-      : status === 'not_delivered'
-        ? 'red'
-        : status === 'picked'
-          ? 'blue'
-          : 'gray';
+  const color = volunteerDeliveryStatusColor(status);
   return (
     <AppBadge color={color} size="sm" data-testid="volunteer-delivery-status">
       {t(STATUS_I18N_KEYS[status])}

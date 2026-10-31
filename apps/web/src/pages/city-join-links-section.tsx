@@ -6,6 +6,7 @@ import {
   AppText,
   AppTitle,
   LoadingState,
+  SEMANTIC_COLORS,
 } from '@giving-day/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -104,7 +105,10 @@ function JoinLinkRoleCard({
         </AppText>
       )}
       {copied ? (
-        <AppAlert color="teal" data-testid={`join-link-copied-${role}`}>
+        <AppAlert
+          color={SEMANTIC_COLORS.success}
+          data-testid={`join-link-copied-${role}`}
+        >
           {t('join_link_copied')}
         </AppAlert>
       ) : null}

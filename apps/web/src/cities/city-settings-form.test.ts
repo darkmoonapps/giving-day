@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CITY_DEFAULT_THEME } from '@giving-day/shared';
 import { holonCitySettings } from '../test/city-settings-fixtures';
 import {
   emptyCitySettingsFormValues,
@@ -17,7 +18,7 @@ describe('toTimeInputValue', () => {
 
 describe('themeSelectValues', () => {
   it('keeps the Holon default and includes an unknown saved theme', () => {
-    expect(themeSelectValues('wisteria-mint')).toEqual(['wisteria-mint']);
+    expect(themeSelectValues(CITY_DEFAULT_THEME)).toEqual([CITY_DEFAULT_THEME]);
     expect(themeSelectValues('deep-plum')).toEqual([
       'wisteria-mint',
       'deep-plum',

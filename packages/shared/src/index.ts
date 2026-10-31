@@ -20,6 +20,8 @@ export {
   type LanguageCode,
 } from './schemas/language';
 export {
+  CITY_DEFAULT_THEME,
+  GIVING_DAY_THEME_ATTRIBUTE,
   addCityCoordinatorSchema,
   cityCoordinatorSchema,
   cityCoordinatorsResponseSchema,

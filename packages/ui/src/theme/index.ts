@@ -10,9 +10,11 @@ export {
 export {
   MINT_BRAND,
   PLUM_BACKGROUND,
+  SEMANTIC_COLORS,
   WISTERIA_BRAND,
   mint,
   plum,
+  renderedDarkBadges,
   renderedLightBadges,
   themeTokens,
   wisteria,

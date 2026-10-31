@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CITY_DEFAULT_THEME,
   addCityCoordinatorSchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinkStatusSchema,
@@ -25,7 +26,7 @@ describe('city schemas', () => {
     unpickedPushMinutesBeforeEnd: 60,
     missingFinalStatusWaitHours: 72,
     defaultLocale: 'he' as const,
-    defaultTheme: 'wisteria-mint',
+    defaultTheme: CITY_DEFAULT_THEME,
     orgName: 'Latet Holon',
     logoUrl: null,
     extra: { mapZoom: 14 },

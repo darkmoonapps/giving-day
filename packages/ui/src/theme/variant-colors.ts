@@ -27,11 +27,10 @@ export const variantColorResolver: VariantColorsResolver = (input) => {
     return resolved;
   }
 
-  const override = renderedLightBadges[parsed.color];
   return {
     ...resolved,
-    color: override.color,
-    background: override.background,
-    hover: override.background,
+    color: `var(--mantine-color-${parsed.color}-light-color)`,
+    background: `var(--mantine-color-${parsed.color}-light)`,
+    hover: `var(--mantine-color-${parsed.color}-light)`,
   };
 };

@@ -6,6 +6,7 @@ import {
   AppText,
   AppTitle,
   LoadingState,
+  SEMANTIC_COLORS,
 } from '@giving-day/ui';
 import type { TFunction } from 'i18next';
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
@@ -168,7 +169,10 @@ export function CitySettingsPage(): JSX.Element {
               >
                 <Stack gap="lg">
                   {saved ? (
-                    <AppAlert color="teal" data-testid="city-settings-success">
+                    <AppAlert
+                      color={SEMANTIC_COLORS.success}
+                      data-testid="city-settings-success"
+                    >
                       {t('settings_save_success')}
                     </AppAlert>
                   ) : null}
