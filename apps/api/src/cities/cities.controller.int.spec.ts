@@ -316,6 +316,32 @@ describe('Cities HTTP authorization', () => {
       expect(response.body.url).toContain(response.body.token);
     });
 
+    it('returns both role statuses so the coordinator UI can render without a secret URL', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.cityInvite.findMany.mockResolvedValue([]);
+
+      const listed = await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/join-links`)
+        .expect(200);
+
+      expect(listed.body.links).toEqual([
+        {
+          role: 'coordinator',
+          active: false,
+          createdAt: null,
+          usedCount: 0,
+        },
+        {
+          role: 'volunteer',
+          active: false,
+          createdAt: null,
+          usedCount: 0,
+        },
+      ]);
+      expect(listed.body).not.toHaveProperty('url');
+      expect(JSON.stringify(listed.body)).not.toMatch(/"token"/);
+    });
+
     it('forbids a volunteer from reading or rotating links', async () => {
       currentUser = volunteerA();
       await request(app.getHttpServer())

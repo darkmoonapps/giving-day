@@ -52,6 +52,33 @@ test.describe('Coordinator city settings', () => {
       });
     });
 
+    await page.route('**/api/cities/*/join-links', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          links: [
+            {
+              role: 'coordinator',
+              active: false,
+              createdAt: null,
+              usedCount: 0,
+            },
+            {
+              role: 'volunteer',
+              active: true,
+              createdAt: '2026-10-01T09:00:00.000Z',
+              usedCount: 2,
+            },
+          ],
+        }),
+      });
+    });
+
     await page.route('**/api/cities/*/settings', async (route) => {
       const request = route.request();
       if (request.method() === 'PATCH') {

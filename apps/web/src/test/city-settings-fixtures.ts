@@ -1,4 +1,8 @@
-import type { CitySettingsResponseDto } from '../api/generated/api';
+import type {
+  CityJoinLinkCreatedDto,
+  CityJoinLinksResponseDto,
+  CitySettingsResponseDto,
+} from '../api/generated/api';
 import {
   createAuthFetchMock,
   mockEmptyResponse,
@@ -28,10 +32,49 @@ export const holonCitySettings: CitySettingsResponseDto = {
   extra: { mapZoom: 14 },
 };
 
+export const holonJoinLinks: CityJoinLinksResponseDto = {
+  links: [
+    {
+      role: 'coordinator',
+      active: false,
+      createdAt: null,
+      usedCount: 0,
+    },
+    {
+      role: 'volunteer',
+      active: true,
+      createdAt: '2026-10-01T09:00:00.000Z',
+      usedCount: 2,
+    },
+  ],
+};
+
+export const holonVolunteerJoinLinkCreated: CityJoinLinkCreatedDto = {
+  role: 'volunteer',
+  token: 'fake-holon-volunteer-token',
+  url: 'http://localhost:3000/join/fake-holon-volunteer-token',
+  createdAt: '2026-10-31T12:00:00.000Z',
+  usedCount: 0,
+};
+
+export const holonCoordinatorJoinLinkCreated: CityJoinLinkCreatedDto = {
+  role: 'coordinator',
+  token: 'fake-holon-coordinator-token',
+  url: 'http://localhost:3000/join/fake-holon-coordinator-token',
+  createdAt: '2026-10-31T12:05:00.000Z',
+  usedCount: 0,
+};
+
 export interface CitySettingsFetchStub extends AuthFetchStub {
   settings?: CitySettingsResponseDto;
+  joinLinks?: CityJoinLinksResponseDto;
+  regenerated?: Partial<
+    Record<'volunteer' | 'coordinator', CityJoinLinkCreatedDto>
+  >;
   getStatus?: number;
   updateStatus?: number;
+  joinLinksStatus?: number;
+  regenerateStatus?: number;
 }
 
 export function createCitySettingsFetchMock(
@@ -43,6 +86,7 @@ export function createCitySettingsFetchMock(
     logout: options.logout,
   });
   let settings = options.settings ?? holonCitySettings;
+  let joinLinks = options.joinLinks ?? holonJoinLinks;
 
   return async (
     input: RequestInfo | URL,
@@ -50,6 +94,54 @@ export function createCitySettingsFetchMock(
   ): Promise<Response> => {
     const url = String(input);
     const method = init?.method ?? 'GET';
+
+    if (
+      method === 'POST' &&
+      url.includes(`/api/cities/${CITY_A_ID}/join-links/`)
+    ) {
+      if (
+        options.regenerateStatus !== undefined &&
+        options.regenerateStatus >= 400
+      ) {
+        return mockEmptyResponse(options.regenerateStatus);
+      }
+      const role: 'volunteer' | 'coordinator' = url.includes(
+        '/coordinator/regenerate'
+      )
+        ? 'coordinator'
+        : 'volunteer';
+      const created =
+        options.regenerated?.[role] ??
+        (role === 'coordinator'
+          ? holonCoordinatorJoinLinkCreated
+          : holonVolunteerJoinLinkCreated);
+      joinLinks = {
+        links: joinLinks.links.map((link) =>
+          link.role === role
+            ? {
+                role,
+                active: true,
+                createdAt: created.createdAt,
+                usedCount: created.usedCount,
+              }
+            : link
+        ),
+      };
+      return mockJsonResponse(created, 201);
+    }
+
+    if (
+      method === 'GET' &&
+      url.includes(`/api/cities/${CITY_A_ID}/join-links`)
+    ) {
+      if (
+        options.joinLinksStatus !== undefined &&
+        options.joinLinksStatus >= 400
+      ) {
+        return mockEmptyResponse(options.joinLinksStatus);
+      }
+      return mockJsonResponse(joinLinks);
+    }
 
     if (
       method === 'PATCH' &&

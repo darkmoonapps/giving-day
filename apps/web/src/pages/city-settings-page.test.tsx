@@ -4,15 +4,20 @@ import userEvent from '@testing-library/user-event';
 import { clearAccessToken } from '../auth/access-token';
 import { i18n } from '../i18n';
 import { CITY_A_ID, volunteerUser } from '../test/distribution-day-fixtures';
+import * as cityJoinLinks from '../cities/city-join-links';
+import { joinLinkStorageKey } from '../cities/city-join-links';
 import {
   createCitySettingsFetchMock,
   holonCitySettings,
+  holonVolunteerJoinLinkCreated,
 } from '../test/city-settings-fixtures';
 import { renderApp } from '../test/render';
 
 describe('CitySettingsPage', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    window.localStorage.clear();
     clearAccessToken();
     await i18n.changeLanguage('he');
   });
@@ -166,5 +171,149 @@ describe('CitySettingsPage', () => {
         String(call[0]).includes(`/api/cities/${CITY_A_ID}/settings`)
       )
     ).toBe(false);
+    expect(screen.queryByTestId('city-join-links')).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some((call) =>
+        String(call[0]).includes(`/api/cities/${CITY_A_ID}/join-links`)
+      )
+    ).toBe(false);
+  });
+
+  it('shows a previously revealed Holon volunteer URL without regenerating', async () => {
+    window.localStorage.setItem(
+      joinLinkStorageKey(CITY_A_ID, 'volunteer'),
+      holonVolunteerJoinLinkCreated.url
+    );
+    vi.stubGlobal('fetch', vi.fn(createCitySettingsFetchMock()));
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+
+    expect(await screen.findByTestId('join-link-url-volunteer')).toHaveValue(
+      holonVolunteerJoinLinkCreated.url
+    );
+  });
+
+  it('cancels regenerate without calling the API', async () => {
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    await screen.findByTestId('join-link-volunteer');
+    await user.click(screen.getByTestId('regenerate-join-link-volunteer'));
+    await user.click(
+      screen.getByTestId('cancel-regenerate-join-link-volunteer')
+    );
+
+    expect(
+      screen.getByTestId('regenerate-join-link-volunteer')
+    ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).includes('/join-links/volunteer/regenerate') &&
+          call[1]?.method === 'POST'
+      )
+    ).toBe(false);
+  });
+
+  it('shows Holon join-link status and copies after confirmed regenerate', async () => {
+    const copySpy = vi.spyOn(cityJoinLinks, 'copyText').mockResolvedValue(true);
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+
+    const volunteerCard = await screen.findByTestId('join-link-volunteer');
+    expect(volunteerCard).toHaveTextContent('יש קישור הצטרפות קבוע פעיל.');
+    expect(volunteerCard).toHaveTextContent('2 הצטרפויות דרך הקישור');
+    expect(
+      screen.queryByTestId('join-link-url-volunteer')
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('regenerate-join-link-volunteer'));
+    expect(
+      screen.getByText('לחדש את קישור ההצטרפות? הקישור הנוכחי יפסיק לעבוד.')
+    ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).includes('/join-links/volunteer/regenerate') &&
+          call[1]?.method === 'POST'
+      )
+    ).toBe(false);
+
+    await user.click(
+      screen.getByTestId('confirm-regenerate-join-link-volunteer')
+    );
+    expect(await screen.findByTestId('join-link-url-volunteer')).toHaveValue(
+      holonVolunteerJoinLinkCreated.url
+    );
+
+    await user.click(screen.getByTestId('copy-join-link-volunteer'));
+    await waitFor(() => {
+      expect(copySpy).toHaveBeenCalledWith(holonVolunteerJoinLinkCreated.url);
+    });
+    expect(
+      screen.getByTestId('join-link-copied-volunteer')
+    ).toBeInTheDocument();
+  });
+
+  it('creates a coordinator join link without a confirm step', async () => {
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    await screen.findByTestId('join-link-coordinator');
+    await user.click(screen.getByTestId('create-join-link-coordinator'));
+
+    expect(await screen.findByTestId('join-link-url-coordinator')).toHaveValue(
+      'http://localhost:3000/join/fake-holon-coordinator-token'
+    );
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).includes('/join-links/coordinator/regenerate') &&
+          call[1]?.method === 'POST'
+      )
+    ).toBe(true);
+  });
+
+  it('shows an error when join links cannot be loaded', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(createCitySettingsFetchMock({ joinLinksStatus: 500 }))
+    );
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+
+    expect(
+      await screen.findByTestId('city-join-links-error')
+    ).toBeInTheDocument();
+    expect(await screen.findByTestId('city-settings-form')).toBeInTheDocument();
+  });
+
+  it('shows an error when regenerate fails after confirm', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(createCitySettingsFetchMock({ regenerateStatus: 500 }))
+    );
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    await screen.findByTestId('join-link-volunteer');
+    await user.click(screen.getByTestId('regenerate-join-link-volunteer'));
+    await user.click(
+      screen.getByTestId('confirm-regenerate-join-link-volunteer')
+    );
+
+    expect(
+      await screen.findByTestId('join-link-regenerate-error-volunteer')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('join-link-url-volunteer')
+    ).not.toBeInTheDocument();
   });
 });
