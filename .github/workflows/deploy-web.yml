@@ -15,9 +15,13 @@
 #                             (https://giving-day.pages.dev) when unset.
 #   VITE_SENTRY_DSN, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL
 #
-# Wrangler is installed with npm, not pnpm. wrangler-action infers pnpm from
-# pnpm-lock.yaml and then runs `pnpm add wrangler@4` at the workspace root,
-# which fails with ERR_PNPM_ADDING_TO_ROOT.
+# Install Wrangler outside this pnpm workspace. wrangler-action infers pnpm
+# from pnpm-lock.yaml and runs `pnpm add wrangler@4` at the root
+# (ERR_PNPM_ADDING_TO_ROOT). Forcing packageManager: npm still runs
+# `npm i wrangler@4` at the root, which fails against pnpm node_modules
+# with "Cannot read properties of null (reading 'name')". A prefix install
+# in $RUNNER_TEMP keeps both the install and any action fallback off the
+# workspace. This workflow does not invent a default VITE_API_URL.
 name: Deploy Web
 
 on:
@@ -124,12 +128,18 @@ jobs:
       - name: Strip source maps from the Pages artifact
         run: find apps/web/dist -name '*.map' -delete
 
+      - name: Install Wrangler outside the workspace
+        run: |
+          mkdir -p "${RUNNER_TEMP}/wrangler-cli"
+          npm --prefix "${RUNNER_TEMP}/wrangler-cli" install wrangler@4
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: ${{ runner.temp }}/wrangler-cli
           packageManager: npm
           wranglerVersion: '4'
-          command: pages deploy apps/web/dist --project-name=${{ steps.pages.outputs.name }}
+          command: pages deploy ${{ github.workspace }}/apps/web/dist --project-name=${{ steps.pages.outputs.name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

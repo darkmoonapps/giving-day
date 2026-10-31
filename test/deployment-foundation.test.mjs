@@ -77,6 +77,22 @@ describe('free-tier deploy wiring', () => {
     assert.match(deployWeb, /secrets\.VITE_SENTRY_DSN/);
     assert.match(deployWeb, /vars\.VITE_API_URL/);
     assert.match(deployWeb, /vars\.CLOUDFLARE_PAGES_PROJECT/);
+    assert.match(
+      deployWeb,
+      /npm --prefix "\$\{RUNNER_TEMP\}\/wrangler-cli" install wrangler@4/
+    );
+    assert.match(
+      deployWeb,
+      /workingDirectory:\s*\$\{\{\s*runner\.temp\s*\}\}\/wrangler-cli/
+    );
+    assert.match(
+      deployWeb,
+      /pages deploy \$\{\{\s*github\.workspace\s*\}\}\/apps\/web\/dist/
+    );
+    assert.doesNotMatch(
+      deployWeb,
+      /VITE_API_URL:\s*['"]https?:\/\/giving-day-api/
+    );
     assert.match(keepAwake, /cron:\s*'\*\/10 \* \* \* \*'/);
     assert.match(keepAwake, /vars\.KEEPAWAKE_START/);
     assert.match(keepAwake, /vars\.KEEPAWAKE_END/);

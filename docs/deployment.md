@@ -231,8 +231,9 @@ On push to `master`:
 1. Build the web app with `VITE_API_URL` and `VITE_SENTRY_DSN`
 2. Upload source maps to Sentry EU when `SENTRY_AUTH_TOKEN` is set
 3. Delete `*.map` files from `apps/web/dist`
-4. `wrangler pages deploy` to Cloudflare Pages (`packageManager: npm` so
-   wrangler-action does not run `pnpm add` at the workspace root)
+4. Install Wrangler with `npm --prefix` in `$RUNNER_TEMP`, then
+   `wrangler pages deploy` from that directory so wrangler-action never
+   runs `npm i` / `pnpm add` at the pnpm workspace root
 
 ### `Keep awake` (`.github/workflows/keep-awake.yml`)
 
