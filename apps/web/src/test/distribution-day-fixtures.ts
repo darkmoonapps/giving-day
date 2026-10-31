@@ -368,7 +368,7 @@ export interface DayFetchStub extends AuthFetchStub {
   createChangeRequest?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
   dashboard?: typeof holonDayDashboard | 'error';
-  volunteerRoute?: ReturnType<typeof holonVolunteerRoute> | 'error';
+  volunteerRoute?: ReturnType<typeof holonVolunteerRoute> | 'error' | 'pending';
 }
 
 export function createDayFetchMock(
@@ -459,6 +459,11 @@ export function createDayFetchMock(
     ) {
       if (options.volunteerRoute === 'error') {
         return mockJsonResponse({ message: 'error' }, 500);
+      }
+      if (options.volunteerRoute === 'pending') {
+        return new Promise(() => {
+          return;
+        });
       }
       return mockJsonResponse(
         options.volunteerRoute ?? holonVolunteerRoute(volunteerRows)

@@ -91,7 +91,7 @@
   "navigate_to_elder": "Navigate to {{name}}",
   "building_code_label": "Code",
   "route_title": "Suggested route",
-  "route_subtitle": "Visit order starts at the distribution center, then walks nearest neighbor to the next stop.",
+  "route_subtitle": "Starts at the distribution center, then goes to the closest next stop each time.",
   "route_center_label": "Distribution center",
   "route_stop_number": "Stop {{number}}",
   "route_unplaced": "Not on the map",

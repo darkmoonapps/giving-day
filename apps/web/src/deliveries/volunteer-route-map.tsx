@@ -2,6 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import type { VolunteerDayRoute } from '@giving-day/shared';
 import { useTranslation } from 'react-i18next';
 import type { VolunteerDayRouteResponseDto } from '../api/generated/api';
+import { createTextPopupContent } from './safe-popup-content';
 import 'leaflet/dist/leaflet.css';
 import './volunteer-route-map.css';
 
@@ -81,7 +82,7 @@ export function VolunteerRouteMap({
           }),
         })
           .addTo(map)
-          .bindPopup(route.center.address);
+          .bindPopup(createTextPopupContent(route.center.address));
       }
 
       for (const stop of stopsOnMap) {
@@ -100,7 +101,7 @@ export function VolunteerRouteMap({
           }),
         })
           .addTo(map)
-          .bindPopup(stop.elder.fullName);
+          .bindPopup(createTextPopupContent(stop.elder.fullName));
       }
 
       if (points.length >= 2) {

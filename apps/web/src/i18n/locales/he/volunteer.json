@@ -91,7 +91,7 @@
   "navigate_to_elder": "ניווט אל {{name}}",
   "building_code_label": "קוד",
   "route_title": "מסלול מומלץ",
-  "route_subtitle": "סדר הביקור מתחיל במרכז החלוקה, ואז ממשיך לתחנה הקרובה ביותר בכל פעם.",
+  "route_subtitle": "מתחיל במרכז החלוקה, ואז ממשיך לתחנה הקרובה ביותר בכל פעם.",
   "route_center_label": "מרכז החלוקה",
   "route_stop_number": "תחנה {{number}}",
   "route_unplaced": "לא על המפה",

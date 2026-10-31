@@ -155,6 +155,43 @@ describe('DayDeliveriesPage', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('shows the volunteer delivery list while the route is still loading', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: volunteerUser(),
+            day: {
+              ...openDay,
+              myParticipation: {
+                id: '44444444-4444-4444-8444-444444444444',
+                cityId: CITY_A_ID,
+                dayId: DAY_ID,
+                volunteerId: volunteerUser().id,
+                status: 'confirmed',
+                respondedAt: '2026-10-29T10:00:00.000Z',
+                cancelReason: null,
+              },
+            },
+            volunteerRoute: 'pending',
+          })
+        )
+      );
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(list).toBeInTheDocument();
+      expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('volunteer-route-panel')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('volunteer-route-error')
+      ).not.toBeInTheDocument();
+    });
+
     it('asks the volunteer to confirm before showing elders', async () => {
       vi.stubGlobal(
         'fetch',

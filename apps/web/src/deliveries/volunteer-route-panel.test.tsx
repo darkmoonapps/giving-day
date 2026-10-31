@@ -81,6 +81,12 @@ describe('VolunteerRoutePanel', () => {
     );
 
     expect(screen.getByTestId('volunteer-route-panel')).toBeInTheDocument();
+    expect(screen.getByText('מסלול מומלץ')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'מתחיל במרכז החלוקה, ואז ממשיך לתחנה הקרובה ביותר בכל פעם.'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByTestId('volunteer-route-map')).toBeInTheDocument();
     const stops = screen.getAllByTestId('volunteer-route-stop');
     expect(stops).toHaveLength(2);
@@ -114,6 +120,11 @@ describe('VolunteerRoutePanel', () => {
     );
 
     expect(screen.getByText('Suggested route')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Starts at the distribution center, then goes to the closest next stop each time.'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText('Distribution center')).toBeInTheDocument();
     expect(screen.getByText('Stop 1')).toBeInTheDocument();
     expect(screen.getByText('Not on the map')).toBeInTheDocument();
