@@ -89,6 +89,9 @@ describe('free-tier deploy wiring', () => {
       deployWeb,
       /pages deploy \$\{\{\s*github\.workspace\s*\}\}\/apps\/web\/dist/
     );
+    assert.match(deployWeb, /--branch=\$\{\{\s*github\.ref_name\s*\}\}/);
+    assert.match(deployWeb, /--commit-hash=\$\{\{\s*github\.sha\s*\}\}/);
+    assert.doesNotMatch(deployWeb, /--commit-message=/);
     assert.doesNotMatch(
       deployWeb,
       /VITE_API_URL:\s*['"]https?:\/\/giving-day-api/
@@ -119,6 +122,8 @@ describe('free-tier deploy wiring', () => {
       hasExactHttpsLink(docsLinks, 'neon.com', '/docs/introduction/plans'),
       true
     );
+    assert.match(docs, /--branch=/);
+    assert.match(docs, /--commit-hash=/);
     assert.match(docs, /100 CU-hours/);
     assert.match(docs, /sendDefaultPii/);
     assert.doesNotMatch(docs, /postgresql:\/\/[^:]+:[^@]+@/);
