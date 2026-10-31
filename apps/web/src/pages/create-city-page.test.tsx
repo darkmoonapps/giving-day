@@ -25,7 +25,7 @@ describe('CreateCityPage', () => {
   it('lets a super admin create a city and opens its settings', async () => {
     const fetchMock = vi.fn(createCityFetchMock());
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp('/');
     await user.click(await screen.findByTestId('create-city'));
@@ -61,13 +61,14 @@ describe('CreateCityPage', () => {
 
   it('shows a dedicated too-long slug message', async () => {
     vi.stubGlobal('fetch', vi.fn(createCityFetchMock()));
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp('/admin/cities/new');
     await screen.findByTestId('create-city-form');
     await user.type(screen.getByLabelText(/שם בעברית/), 'חולון');
     await user.type(screen.getByLabelText(/שם באנגלית/), 'Holon');
-    await user.type(screen.getByLabelText(/מזהה כתובת/), 'a'.repeat(65));
+    await user.click(screen.getByLabelText(/מזהה כתובת/));
+    await user.paste('a'.repeat(65));
     await user.click(screen.getByTestId('create-city-submit'));
 
     expect(screen.getByText('השתמשו בעד 64 תווים')).toBeInTheDocument();
@@ -81,7 +82,7 @@ describe('CreateCityPage', () => {
       })
     );
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp('/admin/cities/new');
     await screen.findByTestId('create-city-form');

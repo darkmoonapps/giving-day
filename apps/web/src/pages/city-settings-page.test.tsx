@@ -48,7 +48,7 @@ describe('CitySettingsPage', () => {
   it('saves an updated Holon distribution center address', async () => {
     const fetchMock = vi.fn(createCitySettingsFetchMock());
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp(`/cities/${CITY_A_ID}/settings`);
     await screen.findByTestId('city-settings-form');
