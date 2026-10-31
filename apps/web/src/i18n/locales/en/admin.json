@@ -55,6 +55,8 @@
   "matches_subtitle": "Pair an approved volunteer with an active elder. An elder can have only one current permanent match.",
   "matches_empty": "There are no current permanent matches yet.",
   "matches_load_error": "We could not load matches. Try again later.",
+  "matches_no_access_title": "No access",
+  "matches_no_access": "Only city coordinators can view or change permanent matches.",
   "create_match": "Create match",
   "create_match_error": "We could not create that match. Try again.",
   "match_conflict": "That elder already has a current permanent match.",

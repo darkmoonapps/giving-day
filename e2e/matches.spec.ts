@@ -28,6 +28,18 @@ test.describe('Coordinator permanent matches', () => {
       ],
     });
 
+    await page.route('**/api/cities/*/distribution-days', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ days: [] }),
+      });
+    });
+
     await page.route('**/api/cities/*/matches/**', async (route) => {
       const request = route.request();
       if (request.method() === 'POST' && request.url().includes('/end')) {
@@ -157,8 +169,10 @@ test.describe('Coordinator permanent matches', () => {
       });
     });
 
-    await page.goto(`/cities/${CITY_A_ID}/matches`);
+    await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await page.getByTestId('view-matches').click();
+    await expect(page).toHaveURL(`/cities/${CITY_A_ID}/matches`);
     await expect(page.getByTestId('coordinator-matches-page')).toBeVisible();
     await expect(
       page.getByTestId(`match-row-${MATCH_RIVKAH_ID}`)
@@ -181,5 +195,58 @@ test.describe('Coordinator permanent matches', () => {
     await expect(ended).toEqual([]);
     await page.getByTestId(`confirm-end-match-${MATCH_RIVKAH_ID}`).click();
     await expect.poll(() => ended).toEqual([{ endReason: 'reassigned' }]);
+  });
+
+  test('volunteer who opens the matches URL sees no access', async ({
+    page,
+  }) => {
+    const matchesRequested: string[] = [];
+
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Dana',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'volunteer',
+          status: 'active',
+        },
+      ],
+    });
+
+    await page.route('**/api/cities/*/distribution-days', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ days: [] }),
+      });
+    });
+
+    await page.route('**/api/cities/*/matches**', async (route) => {
+      matchesRequested.push(route.request().url());
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          statusCode: 404,
+          message: 'cities.not_found',
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.getByTestId('home-page')).toBeVisible();
+    await expect(page.getByTestId('view-matches')).toHaveCount(0);
+
+    await page.goto(`/cities/${CITY_A_ID}/matches`);
+    await expect(page.getByTestId('matches-no-access')).toBeVisible();
+    await expect(page.getByTestId('coordinator-matches-table')).toHaveCount(0);
+    await expect(page.getByTestId('create-match-form')).toHaveCount(0);
+    expect(matchesRequested).toEqual([]);
   });
 });

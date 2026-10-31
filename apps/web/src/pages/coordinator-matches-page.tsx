@@ -1,6 +1,9 @@
 import { NativeSelect, Stack, Table } from '@mantine/core';
 import { useState } from 'react';
-import type { MatchEndReason } from '@giving-day/shared';
+import {
+  getActiveCoordinatorCities,
+  type MatchEndReason,
+} from '@giving-day/shared';
 import {
   AppAlert,
   AppButton,
@@ -16,6 +19,7 @@ import {
   useListCityMatches,
 } from '../api/generated/api';
 import { ApiError } from '../api/mutator';
+import { useSession } from '../auth/session-provider';
 import { isUuid } from '../distribution-days/format-day';
 import { AppChrome } from '../layout/app-chrome';
 
@@ -54,9 +58,13 @@ function personName(
 export function CoordinatorMatchesPage(): JSX.Element {
   const { cityId } = useParams();
   const navigate = useNavigate();
+  const { user } = useSession();
   const { t } = useTranslation('admin');
   const { t: tCommon } = useTranslation('common');
   const validId = isUuid(cityId);
+  const coordinatorCities =
+    user === null ? [] : getActiveCoordinatorCities(user);
+  const allowed = validId && coordinatorCities.includes(cityId ?? '');
   const [elderId, setElderId] = useState('');
   const [volunteerId, setVolunteerId] = useState('');
   const [endReasons, setEndReasons] = useState<Record<string, MatchEndReason>>(
@@ -68,7 +76,7 @@ export function CoordinatorMatchesPage(): JSX.Element {
   const [endingMatchId, setEndingMatchId] = useState<string | null>(null);
 
   const matchesQuery = useListCityMatches(cityId ?? '', {
-    query: { enabled: validId },
+    query: { enabled: allowed },
   });
   const createMutation = useCreateCityPermanentMatch({
     mutation: {
@@ -94,7 +102,8 @@ export function CoordinatorMatchesPage(): JSX.Element {
 
   const payload = matchesQuery.data;
   const loading = matchesQuery.isLoading || payload === undefined;
-  const failed = matchesQuery.isError || !validId;
+  const denied = validId && !allowed;
+  const failed = !validId || matchesQuery.isError;
   const createConflict = isConflictError(createMutation.error);
 
   return (
@@ -116,7 +125,15 @@ export function CoordinatorMatchesPage(): JSX.Element {
         component="section"
         data-testid="coordinator-matches-page"
       >
-        {failed ? (
+        {denied ? (
+          <AppAlert
+            color="red"
+            title={t('matches_no_access_title')}
+            data-testid="matches-no-access"
+          >
+            {t('matches_no_access')}
+          </AppAlert>
+        ) : failed ? (
           <AppAlert color="red" title={tCommon('error.unexpected_title')}>
             {t('matches_load_error')}
           </AppAlert>
