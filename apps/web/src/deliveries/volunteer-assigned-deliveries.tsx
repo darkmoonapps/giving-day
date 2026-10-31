@@ -1,10 +1,15 @@
 import { AppAlert, LoadingState } from '@giving-day/ui';
-import { useEffect, useRef, useState } from 'react';
+import { Modal } from '@mantine/core';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  useCreateCityElderChangeRequest,
+  useListCityElderChangeRequests,
   useListDayDeliveries,
   useUpdateDayDeliveryStatus,
 } from '../api/generated/api';
+import { VolunteerChangeRequestForm } from '../change-requests/volunteer-change-request-form';
+import { pendingElderIds } from '../change-requests/change-request-view';
 import {
   areAllDeliveriesFinished,
   deliveriesJustFinished,
@@ -22,8 +27,26 @@ export function VolunteerAssignedDeliveries({
   const { t } = useTranslation('volunteer');
   const { t: tCommon } = useTranslation('common');
   const [showFinishedThanks, setShowFinishedThanks] = useState(false);
+  const [editingElderId, setEditingElderId] = useState<string | null>(null);
+  const [submittedElderIds, setSubmittedElderIds] = useState<string[]>([]);
   const previouslyFinishedRef = useRef<boolean | null>(null);
   const deliveriesQuery = useListDayDeliveries(cityId, dayId);
+  const pendingQuery = useListCityElderChangeRequests(cityId, {
+    status: 'pending',
+  });
+  const createChangeRequest = useCreateCityElderChangeRequest({
+    mutation: {
+      onSuccess: async (created) => {
+        setSubmittedElderIds((current) =>
+          current.includes(created.elderId)
+            ? current
+            : [...current, created.elderId]
+        );
+        setEditingElderId(null);
+        await pendingQuery.refetch();
+      },
+    },
+  });
   const updateMutation = useUpdateDayDeliveryStatus({
     mutation: {
       onSuccess: async () => {
@@ -35,6 +58,15 @@ export function VolunteerAssignedDeliveries({
   const deliveries = deliveriesQuery.data?.deliveries;
   const finished =
     deliveries === undefined ? null : areAllDeliveriesFinished(deliveries);
+  const pendingIds = useMemo(() => {
+    const fromApi = pendingElderIds(pendingQuery.data?.changeRequests ?? []);
+    return new Set([...fromApi, ...submittedElderIds]);
+  }, [pendingQuery.data?.changeRequests, submittedElderIds]);
+  const editingElder =
+    editingElderId === null || deliveries === undefined
+      ? null
+      : (deliveries.find((delivery) => delivery.elder.id === editingElderId)
+          ?.elder ?? null);
 
   useEffect(() => {
     if (finished === null) {
@@ -72,6 +104,8 @@ export function VolunteerAssignedDeliveries({
         deliveries={deliveriesQuery.data.deliveries}
         pending={updateMutation.isPending}
         error={updateMutation.isError}
+        pendingElderIds={pendingIds}
+        onSuggestCorrection={setEditingElderId}
         onUpdateStatus={(deliveryId, data) => {
           updateMutation.mutate({
             cityId,
@@ -81,6 +115,31 @@ export function VolunteerAssignedDeliveries({
           });
         }}
       />
+      <Modal
+        opened={editingElder !== null}
+        onClose={() => {
+          if (!createChangeRequest.isPending) {
+            setEditingElderId(null);
+          }
+        }}
+        title={t('suggest_correction_title')}
+        data-testid="change-request-modal"
+        transitionProps={{ duration: 0 }}
+      >
+        {editingElder !== null ? (
+          <VolunteerChangeRequestForm
+            elder={editingElder}
+            submitting={createChangeRequest.isPending}
+            error={createChangeRequest.isError}
+            onSubmit={(data) => {
+              createChangeRequest.mutate({ cityId, data });
+            }}
+            onCancel={() => {
+              setEditingElderId(null);
+            }}
+          />
+        ) : null}
+      </Modal>
     </>
   );
 }

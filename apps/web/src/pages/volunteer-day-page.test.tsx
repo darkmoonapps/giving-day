@@ -318,4 +318,49 @@ describe('VolunteerDayPage', () => {
     expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
     expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
   });
+
+  it('lets a confirmed volunteer submit an elder detail change request', async () => {
+    const fetchMock = vi.fn(
+      createDayFetchMock({
+        refresh: 'ok',
+        user: volunteerUser(),
+        day: confirmedDay(),
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+
+    expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
+    await user.click(screen.getByTestId('suggest-correction'));
+    expect(
+      await screen.findByTestId('change-request-modal')
+    ).toBeInTheDocument();
+    await user.clear(screen.getByTestId('change-request-street'));
+    await user.type(
+      screen.getByTestId('change-request-street'),
+      '18 Weizmann St'
+    );
+    await user.type(
+      screen.getByTestId('change-request-reason'),
+      'Moved within Holon'
+    );
+    await user.click(screen.getByTestId('change-request-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('change-request-pending')).toBeInTheDocument();
+    });
+    const createCall = fetchMock.mock.calls.find(
+      (call) =>
+        String(call[0]).includes('/elder-change-requests') &&
+        call[1]?.method === 'POST'
+    );
+    expect(createCall).toBeDefined();
+    expect(JSON.parse(String(createCall?.[1]?.body))).toEqual({
+      elderId: volunteerDeliveryRivkah.elder.id,
+      changes: { street: '18 Weizmann St' },
+      reason: 'Moved within Holon',
+    });
+  });
 });

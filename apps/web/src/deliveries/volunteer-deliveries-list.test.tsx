@@ -72,4 +72,24 @@ describe('VolunteerDeliveriesList', () => {
       notDeliveredReason: 'not_home',
     });
   });
+
+  it('shows a pending badge and a suggest-correction action', async () => {
+    const onSuggestCorrection = vi.fn();
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <VolunteerDeliveriesList
+        deliveries={[delivery]}
+        pending={false}
+        error={false}
+        pendingElderIds={new Set([delivery.elder.id])}
+        onSuggestCorrection={onSuggestCorrection}
+        onUpdateStatus={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('change-request-pending')).toBeInTheDocument();
+    await user.click(screen.getByTestId('suggest-correction'));
+    expect(onSuggestCorrection).toHaveBeenCalledWith(delivery.elder.id);
+  });
 });

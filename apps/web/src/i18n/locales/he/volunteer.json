@@ -66,5 +66,21 @@
   "not_delivered_reason_hospitalized": "אושפז/ה",
   "not_delivered_reason_deceased": "נפטר/ה",
   "not_delivered_reason_other": "אחר",
-  "call_next_of_kin": "התקשרו אל {{name}}"
+  "call_next_of_kin": "התקשרו אל {{name}}",
+  "suggest_correction": "הצעת תיקון",
+  "suggest_correction_title": "הצעת שינוי בפרטים",
+  "pending_change_request": "בקשת שינוי ממתינה",
+  "street_label": "רחוב",
+  "house_number_label": "מספר בית",
+  "change_request_reason_label": "למה צריך את השינוי?",
+  "change_request_reason_placeholder": "אופציונלי. הרכזת תראה את זה.",
+  "change_request_submit": "שליחת בקשה",
+  "change_request_cancel": "חזרה",
+  "change_request_submit_error": "לא הצלחנו לשלוח את בקשת השינוי. נסו שוב.",
+  "add_next_of_kin": "הוספת איש קשר",
+  "remove_next_of_kin": "הסרה",
+  "next_of_kin_name": "שם איש הקשר",
+  "next_of_kin_relation": "קרבה",
+  "next_of_kin_phone": "טלפון איש הקשר",
+  "next_of_kin_primary": "איש קשר ראשי"
 }

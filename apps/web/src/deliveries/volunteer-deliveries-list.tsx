@@ -76,11 +76,15 @@ export function VolunteerDeliveriesList({
   deliveries,
   pending,
   error,
+  pendingElderIds = new Set<string>(),
+  onSuggestCorrection,
   onUpdateStatus,
 }: {
   deliveries: VolunteerDelivery[];
   pending: boolean;
   error: boolean;
+  pendingElderIds?: ReadonlySet<string>;
+  onSuggestCorrection?: (elderId: string) => void;
   onUpdateStatus: (deliveryId: string, data: UpdateDeliveryStatus) => void;
 }): JSX.Element {
   const { t } = useTranslation('volunteer');
@@ -195,6 +199,27 @@ export function VolunteerDeliveriesList({
                 <AppText size="sm">
                   {t('elder_notes_label')}: {delivery.elder.notes}
                 </AppText>
+              ) : null}
+              {pendingElderIds.has(delivery.elder.id) ? (
+                <AppBadge
+                  color="yellow"
+                  size="sm"
+                  data-testid="change-request-pending"
+                >
+                  {t('pending_change_request')}
+                </AppBadge>
+              ) : null}
+              {onSuggestCorrection !== undefined ? (
+                <AppButton
+                  size="sm"
+                  variant="light"
+                  data-testid="suggest-correction"
+                  onClick={() => {
+                    onSuggestCorrection(delivery.elder.id);
+                  }}
+                >
+                  {t('suggest_correction')}
+                </AppButton>
               ) : null}
               {delivery.status === 'not_delivered' &&
               delivery.note !== null &&
