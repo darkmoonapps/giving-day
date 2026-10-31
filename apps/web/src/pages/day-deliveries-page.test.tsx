@@ -126,5 +126,51 @@ describe('DayDeliveriesPage', () => {
         });
       });
     });
+
+    it('lists only confirmed volunteers in the assign dropdown', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: coordinatorUser(),
+            assignableVolunteers: [
+              {
+                id: '99999999-9999-4999-8999-999999999999',
+                firstName: 'Dana',
+                lastName: 'Levi',
+              },
+            ],
+            coordinatorDeliveries: [
+              coordinatorDeliveryUnassigned,
+              coordinatorDeliveryRivkah,
+            ],
+          })
+        )
+      );
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      const unassignedRow = await screen.findByTestId(
+        'delivery-row-unassigned'
+      );
+      const unassignedOptions = within(unassignedRow)
+        .getAllByRole('option')
+        .map((option) => option.textContent);
+
+      expect(unassignedOptions).toEqual(['ללא שיבוץ', 'Dana Levi']);
+      expect(unassignedOptions).not.toContain('Yonatan Bar');
+
+      const assignedRow = screen.getByTestId('delivery-row-assigned');
+      const assignedOptions = within(assignedRow)
+        .getAllByRole('option')
+        .map((option) => option.textContent);
+
+      expect(assignedOptions).toEqual([
+        'ללא שיבוץ',
+        'Dana Levi',
+        'Yonatan Bar',
+      ]);
+    });
   });
 });
