@@ -2866,6 +2866,38 @@
           "lastName"
         ]
       },
+      "ReplacementSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "99999999-9999-4999-8999-999999999999"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Dana",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Levi",
+            "nullable": true
+          },
+          "homeArea": {
+            "type": "string",
+            "example": "Weizmann",
+            "nullable": true,
+            "description": "Volunteer neighborhood only. Used to rank suggestions next to the elder address"
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "homeArea"
+        ]
+      },
       "DeliveryResponseDto": {
         "type": "object",
         "properties": {
@@ -2945,6 +2977,13 @@
                 "$ref": "#/components/schemas/DeliveryVolunteerDto"
               }
             ]
+          },
+          "replacementSuggestions": {
+            "description": "Confirmed volunteers ranked by home-area proximity to this elder. Coordinators only; empty when the delivery is assigned",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplacementSuggestionDto"
+            }
           }
         },
         "required": [

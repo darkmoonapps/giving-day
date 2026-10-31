@@ -92,6 +92,30 @@ export class DeliveryVolunteerDto {
   lastName!: string | null;
 }
 
+export class ReplacementSuggestionDto {
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    example: '99999999-9999-4999-8999-999999999999',
+  })
+  id!: string;
+
+  @ApiProperty({ type: String, example: 'Dana', nullable: true })
+  firstName!: string | null;
+
+  @ApiProperty({ type: String, example: 'Levi', nullable: true })
+  lastName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    example: 'Weizmann',
+    nullable: true,
+    description:
+      'Volunteer neighborhood only. Used to rank suggestions next to the elder address',
+  })
+  homeArea!: string | null;
+}
+
 export class DeliveryResponseDto {
   @ApiProperty({
     type: String,
@@ -194,6 +218,13 @@ export class DeliveryResponseDto {
 
   @ApiPropertyOptional({ type: DeliveryVolunteerDto, nullable: true })
   volunteer?: DeliveryVolunteerDto | null;
+
+  @ApiPropertyOptional({
+    type: [ReplacementSuggestionDto],
+    description:
+      'Confirmed volunteers ranked by home-area proximity to this elder. Coordinators only; empty when the delivery is assigned',
+  })
+  replacementSuggestions?: ReplacementSuggestionDto[];
 }
 
 export class DayDeliveriesResponseDto {

@@ -141,6 +141,12 @@ export interface StubCoordinatorDelivery {
     lastName: string | null;
   } | null;
   elder: StubDeliveryElder;
+  replacementSuggestions?: Array<{
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    homeArea: string | null;
+  }>;
 }
 
 export async function stubDistributionDayApi(

@@ -135,6 +135,7 @@ export {
   deliveryStatusSchema,
   deliveryVolunteerSchema,
   notDeliveredReasonSchema,
+  replacementSuggestionSchema,
   updateDeliveryStatusSchema,
   volunteerDeliveriesResponseSchema,
   volunteerDeliverySchema,
@@ -150,11 +151,19 @@ export {
   type DeliveryStatus,
   type DeliveryVolunteer,
   type NotDeliveredReason,
+  type ReplacementSuggestion,
   type UpdateDeliveryStatus,
   type VolunteerDeliveriesResponse,
   type VolunteerDelivery,
   type VolunteerDeliveryStatus,
 } from './schemas/delivery';
+export {
+  REPLACEMENT_SUGGESTION_LIMIT,
+  proximityScore,
+  rankReplacementSuggestions,
+  type ElderProximityAddress,
+  type ReplacementVolunteerCandidate,
+} from './replacement-suggestions';
 export {
   createPermanentMatchSchema,
   endPermanentMatchSchema,

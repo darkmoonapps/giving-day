@@ -15,6 +15,7 @@ import {
   parseDateOnly,
   respondToDistributionDaySchema,
   assignDeliverySchema,
+  rankReplacementSuggestions,
   updateDeliveryStatusSchema,
   createElderSchema,
   createElderChangeRequestSchema,
@@ -58,6 +59,19 @@ describe('shared public exports', () => {
     expect(assignDeliverySchema.parse({ volunteerId: null }).volunteerId).toBe(
       null
     );
+    expect(
+      rankReplacementSuggestions(
+        { street: '8 Weizmann St', addressNotes: null },
+        [
+          {
+            id: '99999999-9999-4999-8999-999999999999',
+            firstName: 'Dana',
+            lastName: 'Levi',
+            homeArea: 'Weizmann',
+          },
+        ]
+      )[0]?.homeArea
+    ).toBe('Weizmann');
     expect(updateDeliveryStatusSchema.parse({ status: 'picked' }).status).toBe(
       'picked'
     );
