@@ -231,8 +231,19 @@ On push to `master`:
 1. Build the web app with `VITE_API_URL` and `VITE_SENTRY_DSN`
 2. Upload source maps to Sentry EU when `SENTRY_AUTH_TOKEN` is set
 3. Delete `*.map` files from `apps/web/dist`
-4. `wrangler pages deploy` to Cloudflare Pages (`packageManager: npm` so
-   wrangler-action does not run `pnpm add` at the workspace root)
+4. Install Wrangler with `npm --prefix` in `$RUNNER_TEMP`, then
+   `wrangler pages deploy` from that directory so wrangler-action never
+   runs `npm i` / `pnpm add` at the pnpm workspace root. The deploy
+   passes `--branch=${{ github.ref_name }}` and
+   `--commit-hash=${{ github.sha }}` because that working directory is
+   not a git checkout: Wrangler only auto-detects branch and commit
+   when `cwd` is a repository. `--branch` matching the Pages
+   `production_branch` (this repo uses `master`) keeps the deploy in
+   production; omitting `--branch` would also default to production,
+   but would drop the branch name and commit metadata. `--commit-message`
+   is omitted: it does not change production vs preview, and interpolating
+   a commit subject is unsafe (quotes, newlines; missing on
+   `workflow_dispatch`).
 
 ### `Keep awake` (`.github/workflows/keep-awake.yml`)
 
