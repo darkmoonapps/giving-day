@@ -446,4 +446,140 @@ describe('Deliveries HTTP authorization', () => {
         .expect(404);
     });
   });
+
+  describe('PATCH /api/cities/:cityId/distribution-days/:dayId/deliveries/:deliveryId/status', () => {
+    const statusPath = `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries/${DELIVERY_RIVKAH_ID}/status`;
+
+    beforeEach(() => {
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue({
+        id: '44444444-4444-4444-8444-444444444444',
+        cityId: CITY_A_ID,
+        dayId: DAY_ID,
+        volunteerId: VOLUNTEER_A_ID,
+        status: 'confirmed',
+        respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+        cancelReason: null,
+        finishedAt: null,
+      });
+    });
+
+    it('lets a confirmed volunteer mark their delivery picked', async () => {
+      currentUser = volunteerA();
+      mockPrisma.delivery.findFirst.mockImplementation(
+        async (args?: { include?: unknown }) => {
+          if (args?.include !== undefined) {
+            return {
+              ...assignedRivkah,
+              status: 'picked' as const,
+              pickedAt: new Date('2026-11-15T09:15:00.000Z'),
+            };
+          }
+          return assignedRivkah;
+        }
+      );
+
+      const response = await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({ status: 'picked' })
+        .expect(200);
+
+      expect(response.body.status).toBe('picked');
+      expect(response.body.volunteerId).toBeUndefined();
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalled();
+    });
+
+    it('lets a confirmed volunteer mark a picked delivery not delivered', async () => {
+      currentUser = volunteerA();
+      mockPrisma.delivery.findFirst.mockImplementation(
+        async (args?: { include?: unknown }) => {
+          const picked = {
+            ...assignedRivkah,
+            status: 'picked' as const,
+            pickedAt: new Date('2026-11-15T09:15:00.000Z'),
+          };
+          if (args?.include !== undefined) {
+            return {
+              ...picked,
+              status: 'not_delivered' as const,
+              note: 'Elder was not home in Holon',
+              notDeliveredReason: 'not_home' as const,
+            };
+          }
+          return picked;
+        }
+      );
+
+      const response = await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({
+          status: 'not_delivered',
+          note: 'Elder was not home in Holon',
+          notDeliveredReason: 'not_home',
+        })
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        status: 'not_delivered',
+        note: 'Elder was not home in Holon',
+        notDeliveredReason: 'not_home',
+      });
+    });
+
+    it('rejects not delivered without a note', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({ status: 'not_delivered', notDeliveredReason: 'not_home' })
+        .expect(400);
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects skipping pickup', async () => {
+      currentUser = volunteerA();
+      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
+
+      const response = await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({ status: 'delivered' })
+        .expect(400);
+
+      expect(response.body.message).toBe('deliveries.invalid_transition');
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('forbids a volunteer who has not confirmed', async () => {
+      currentUser = volunteerA();
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({ status: 'picked' })
+        .expect(400);
+
+      expect(response.body.message).toBe('deliveries.not_confirmed');
+    });
+
+    it('does not let a coordinator use the volunteer status endpoint', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .patch(statusPath)
+        .send({ status: 'picked' })
+        .expect(400);
+
+      expect(response.body.message).toBe('deliveries.not_confirmed');
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('hides another city from a volunteer', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .patch(
+          `/api/cities/${CITY_B_ID}/distribution-days/${DAY_ID}/deliveries/${DELIVERY_RIVKAH_ID}/status`
+        )
+        .send({ status: 'picked' })
+        .expect(404);
+    });
+  });
 });

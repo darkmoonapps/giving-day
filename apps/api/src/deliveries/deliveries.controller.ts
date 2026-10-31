@@ -18,6 +18,7 @@ import {
 import type {
   CoordinatorDelivery,
   DayDeliveriesResponse,
+  VolunteerDelivery,
 } from '@giving-day/shared';
 import type { UserWithMemberships } from '../abilities/ability.factory';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -30,6 +31,7 @@ import {
   DayDeliveriesResponseDto,
   DeliveryResponseDto,
 } from './dto/delivery-response.dto';
+import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
 @ApiTags('deliveries')
 @ApiBearerAuth()
@@ -76,5 +78,33 @@ export class DeliveriesController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<CoordinatorDelivery> {
     return this.deliveriesService.assign(cityId, dayId, deliveryId, dto, user);
+  }
+
+  @Patch(':deliveryId/status')
+  @RequireAbilities({ action: 'update', subject: 'Delivery' })
+  @ApiBody({ type: UpdateDeliveryStatusDto })
+  @ApiOperation({
+    operationId: 'updateDayDeliveryStatus',
+    summary:
+      'Assigned volunteer marks a delivery Picked, then Delivered or Not delivered',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'dayId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'deliveryId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: DeliveryResponseDto })
+  async updateStatus(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('dayId', ParseUUIDPipe) dayId: string,
+    @Param('deliveryId', ParseUUIDPipe) deliveryId: string,
+    @Body() dto: UpdateDeliveryStatusDto,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<VolunteerDelivery> {
+    return this.deliveriesService.updateStatus(
+      cityId,
+      dayId,
+      deliveryId,
+      dto,
+      user
+    );
   }
 }

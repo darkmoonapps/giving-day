@@ -129,7 +129,9 @@ export interface StubCoordinatorDelivery {
   id: string;
   cityId: string;
   dayId: string;
-  status: 'unassigned' | 'assigned';
+  status: 'unassigned' | 'assigned' | 'picked' | 'delivered' | 'not_delivered';
+  note?: string | null;
+  notDeliveredReason?: string | null;
   volunteerId: string | null;
   matchId: string | null;
   assignedAt: string | null;
@@ -151,10 +153,13 @@ export async function stubDistributionDayApi(
       id: string;
       cityId: string;
       dayId: string;
-      status: 'assigned';
+      status: 'assigned' | 'picked' | 'delivered' | 'not_delivered';
+      note?: string | null;
+      notDeliveredReason?: string | null;
       elder: StubDeliveryElder;
     }>;
     onAssign?: (body: Record<string, unknown>) => void;
+    onUpdateStatus?: (body: Record<string, unknown>) => void;
     myParticipation?: Record<string, unknown> | null;
     assignableVolunteers?: Array<{
       id: string;
@@ -177,6 +182,7 @@ export async function stubDistributionDayApi(
     myParticipation:
       options.myParticipation === undefined ? null : options.myParticipation,
   };
+  const volunteerDeliveries = [...(options.volunteerDeliveries ?? [])];
 
   await page.route('**/api/cities/*/distribution-days/**', async (route) => {
     const request = route.request();
@@ -216,6 +222,59 @@ export async function stubDistributionDayApi(
       return;
     }
 
+    if (method === 'PATCH' && url.pathname.endsWith('/status')) {
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      if (options.onUpdateStatus !== undefined) {
+        options.onUpdateStatus(body);
+      }
+      const current = volunteerDeliveries[0];
+      if (current !== undefined && typeof body.status === 'string') {
+        if (
+          body.status === 'assigned' ||
+          body.status === 'picked' ||
+          body.status === 'delivered' ||
+          body.status === 'not_delivered'
+        ) {
+          current.status = body.status;
+        }
+        current.note = typeof body.note === 'string' ? body.note : current.note;
+        current.notDeliveredReason =
+          typeof body.notDeliveredReason === 'string'
+            ? body.notDeliveredReason
+            : current.notDeliveredReason;
+      }
+      await jsonFulfill(route, {
+        ...(current ?? {
+          id: '16161616-1616-4161-8161-161616161616',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+            street: '12 Example St',
+            houseNumber: '12',
+            entrance: 'B',
+            floor: '3',
+            apartment: '7',
+            addressNotes: 'Knock loudly',
+            notes: 'Entrance is around the back',
+            contacts: [],
+          },
+        }),
+        status: body.status ?? 'picked',
+        note: typeof body.note === 'string' ? body.note : null,
+        notDeliveredReason:
+          typeof body.notDeliveredReason === 'string'
+            ? body.notDeliveredReason
+            : null,
+      });
+      return;
+    }
+
     if (method === 'PATCH' && url.pathname.includes('/deliveries/')) {
       const raw = request.postData();
       const body =
@@ -230,6 +289,8 @@ export async function stubDistributionDayApi(
         cityId: CITY_A_ID,
         dayId: DAY_ID,
         status: body.volunteerId === null ? 'unassigned' : 'assigned',
+        note: null,
+        notDeliveredReason: null,
         volunteerId: body.volunteerId ?? null,
         matchId: '14141414-1414-4141-8141-141414141414',
         assignedAt:
@@ -285,7 +346,7 @@ export async function stubDistributionDayApi(
       await jsonFulfill(route, {
         dayId: DAY_ID,
         cityId: CITY_A_ID,
-        deliveries: options.volunteerDeliveries ?? [],
+        deliveries: volunteerDeliveries,
       });
       return;
     }

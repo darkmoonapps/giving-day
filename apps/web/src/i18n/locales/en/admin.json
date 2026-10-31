@@ -31,6 +31,7 @@
   "delivery_status_delivered": "Delivered",
   "delivery_status_not_delivered": "Not delivered",
   "delivery_status_cancelled": "Cancelled",
+  "not_delivered_note": "Not-delivered note",
   "filter_elder": "Filter by elder name",
   "filter_address": "Filter by address",
   "filter_volunteer": "Filter by volunteer",

@@ -1119,6 +1119,71 @@
         ]
       }
     },
+    "/api/cities/{cityId}/distribution-days/{dayId}/deliveries/{deliveryId}/status": {
+      "patch": {
+        "operationId": "updateDayDeliveryStatus",
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dayId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assigned volunteer marks a delivery Picked, then Delivered or Not delivered",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
     "/api/cities/{cityId}/elders": {
       "get": {
         "operationId": "listCityElders",
@@ -2587,6 +2652,26 @@
             ],
             "example": "assigned"
           },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Required and returned when status is not_delivered"
+          },
+          "notDeliveredReason": {
+            "type": "string",
+            "enum": [
+              "not_home",
+              "refused",
+              "wrong_address",
+              "hospitalized",
+              "deceased",
+              "other"
+            ],
+            "nullable": true,
+            "example": null,
+            "description": "Required and returned when status is not_delivered"
+          },
           "elder": {
             "$ref": "#/components/schemas/DeliveryElderDto"
           },
@@ -2623,6 +2708,8 @@
           "cityId",
           "dayId",
           "status",
+          "note",
+          "notDeliveredReason",
           "elder"
         ]
       },
@@ -2676,6 +2763,42 @@
         },
         "required": [
           "volunteerId"
+        ]
+      },
+      "UpdateDeliveryStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "picked",
+              "delivered",
+              "not_delivered"
+            ],
+            "example": "picked",
+            "description": "Assigned volunteer marks Picked, then Delivered or Not delivered"
+          },
+          "note": {
+            "type": "string",
+            "example": "Elder was not home in Holon",
+            "description": "Required when status is not_delivered"
+          },
+          "notDeliveredReason": {
+            "type": "string",
+            "enum": [
+              "not_home",
+              "refused",
+              "wrong_address",
+              "hospitalized",
+              "deceased",
+              "other"
+            ],
+            "example": "not_home",
+            "description": "Required when status is not_delivered"
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "ElderContactResponseDto": {

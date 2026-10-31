@@ -134,6 +134,37 @@ export class DeliveryResponseDto {
     | 'not_delivered'
     | 'cancelled';
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: null,
+    description: 'Required and returned when status is not_delivered',
+  })
+  note!: string | null;
+
+  @ApiProperty({
+    type: String,
+    enum: [
+      'not_home',
+      'refused',
+      'wrong_address',
+      'hospitalized',
+      'deceased',
+      'other',
+    ],
+    nullable: true,
+    example: null,
+    description: 'Required and returned when status is not_delivered',
+  })
+  notDeliveredReason!:
+    | 'not_home'
+    | 'refused'
+    | 'wrong_address'
+    | 'hospitalized'
+    | 'deceased'
+    | 'other'
+    | null;
+
   @ApiProperty({ type: DeliveryElderDto })
   elder!: DeliveryElderDto;
 

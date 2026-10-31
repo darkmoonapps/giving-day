@@ -761,4 +761,259 @@ describe('DeliveriesService', () => {
       expect(CITY_B_ID).toHaveLength(36);
     });
   });
+
+  describe('updateStatus', () => {
+    const confirmedParticipation = {
+      id: '44444444-4444-4444-8444-444444444444',
+      cityId: CITY_A_ID,
+      dayId: DAY_ID,
+      volunteerId: VOLUNTEER_A_ID,
+      status: 'confirmed' as const,
+      respondedAt: new Date('2026-10-29T10:00:00.000Z'),
+      cancelReason: null,
+      finishedAt: null,
+    };
+
+    beforeEach(() => {
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(
+        confirmedParticipation
+      );
+    });
+
+    it('lets a confirmed volunteer mark their assigned delivery picked', async () => {
+      const picked = {
+        ...assignedRivkah,
+        status: 'picked' as const,
+        pickedAt: new Date('2026-11-15T09:15:00.000Z'),
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(assignedRivkah)
+        .mockResolvedValueOnce(picked);
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.updateStatus(
+        CITY_A_ID,
+        DAY_ID,
+        DELIVERY_RIVKAH_ID,
+        { status: 'picked' },
+        volunteerA()
+      );
+
+      expect(result.status).toBe('picked');
+      expect(result).not.toHaveProperty('volunteerId');
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: DELIVERY_RIVKAH_ID,
+            volunteerId: VOLUNTEER_A_ID,
+            status: 'assigned',
+          }),
+          data: expect.objectContaining({
+            status: 'picked',
+            pickedAt: expect.any(Date),
+          }),
+        })
+      );
+      expect(mockPrisma.deliveryEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fromStatus: 'assigned',
+            toStatus: 'picked',
+            actorId: VOLUNTEER_A_ID,
+          }),
+        })
+      );
+    });
+
+    it('lets a confirmed volunteer mark a picked delivery delivered', async () => {
+      const picked = {
+        ...assignedRivkah,
+        status: 'picked' as const,
+        pickedAt: new Date('2026-11-15T09:15:00.000Z'),
+      };
+      const delivered = {
+        ...picked,
+        status: 'delivered' as const,
+        finalAt: new Date('2026-11-15T10:00:00.000Z'),
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(picked)
+        .mockResolvedValueOnce(delivered);
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.updateStatus(
+        CITY_A_ID,
+        DAY_ID,
+        DELIVERY_RIVKAH_ID,
+        { status: 'delivered' },
+        volunteerA()
+      );
+
+      expect(result.status).toBe('delivered');
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'picked' }),
+          data: expect.objectContaining({
+            status: 'delivered',
+            finalAt: expect.any(Date),
+          }),
+        })
+      );
+    });
+
+    it('lets a confirmed volunteer mark a picked delivery not delivered with a note', async () => {
+      const picked = {
+        ...assignedRivkah,
+        status: 'picked' as const,
+        pickedAt: new Date('2026-11-15T09:15:00.000Z'),
+      };
+      const notDelivered = {
+        ...picked,
+        status: 'not_delivered' as const,
+        note: 'Elder was not home in Holon',
+        notDeliveredReason: 'not_home' as const,
+        finalAt: new Date('2026-11-15T10:00:00.000Z'),
+      };
+      mockPrisma.delivery.findFirst
+        .mockResolvedValueOnce(picked)
+        .mockResolvedValueOnce(notDelivered);
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.updateStatus(
+        CITY_A_ID,
+        DAY_ID,
+        DELIVERY_RIVKAH_ID,
+        {
+          status: 'not_delivered',
+          note: '  Elder was not home in Holon  ',
+          notDeliveredReason: 'not_home',
+        },
+        volunteerA()
+      );
+
+      expect(result).toMatchObject({
+        status: 'not_delivered',
+        note: 'Elder was not home in Holon',
+        notDeliveredReason: 'not_home',
+      });
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'not_delivered',
+            note: 'Elder was not home in Holon',
+            notDeliveredReason: 'not_home',
+          }),
+        })
+      );
+      expect(mockPrisma.deliveryEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            note: 'Elder was not home in Holon',
+            toStatus: 'not_delivered',
+          }),
+        })
+      );
+    });
+
+    it('rejects skipping pickup', async () => {
+      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
+
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'delivered' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({ message: 'deliveries.invalid_transition' });
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects not delivered without a note and reason', async () => {
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'not_delivered' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({ message: 'deliveries.invalid_status' });
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects a volunteer who has not confirmed', async () => {
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'picked' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({ message: 'deliveries.not_confirmed' });
+      expect(mockPrisma.delivery.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('hides another volunteer delivery', async () => {
+      mockPrisma.delivery.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'picked' },
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not let a coordinator use the volunteer status endpoint', async () => {
+      mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'picked' },
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({ message: 'deliveries.not_confirmed' });
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not overwrite a concurrent status change', async () => {
+      mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.updateStatus(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'picked' },
+          volunteerA()
+        )
+      ).rejects.toMatchObject({ message: 'deliveries.invalid_transition' });
+      expect(mockPrisma.deliveryEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('hides another city from a volunteer', async () => {
+      await expect(
+        service.updateStatus(
+          CITY_B_ID,
+          DAY_ID,
+          DELIVERY_RIVKAH_ID,
+          { status: 'picked' },
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
 });

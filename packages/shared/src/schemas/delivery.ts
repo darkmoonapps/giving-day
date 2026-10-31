@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const DELIVERY_NOTE_MAX_LENGTH = 2000;
+
 export const deliveryStatusSchema = z.enum([
   'unassigned',
   'assigned',
@@ -7,6 +9,21 @@ export const deliveryStatusSchema = z.enum([
   'delivered',
   'not_delivered',
   'cancelled',
+]);
+
+export const notDeliveredReasonSchema = z.enum([
+  'not_home',
+  'refused',
+  'wrong_address',
+  'hospitalized',
+  'deceased',
+  'other',
+]);
+
+export const volunteerDeliveryStatusSchema = z.enum([
+  'picked',
+  'delivered',
+  'not_delivered',
 ]);
 
 export const contactRelationSchema = z.enum([
@@ -50,6 +67,8 @@ export const volunteerDeliverySchema = z.object({
   cityId: z.string().uuid(),
   dayId: z.string().uuid(),
   status: deliveryStatusSchema,
+  note: z.string().nullable(),
+  notDeliveredReason: notDeliveredReasonSchema.nullable(),
   elder: deliveryElderSchema,
 });
 
@@ -82,7 +101,25 @@ export const assignDeliverySchema = z.object({
   volunteerId: z.string().uuid().nullable(),
 });
 
+export const updateDeliveryStatusSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('picked'),
+  }),
+  z.object({
+    status: z.literal('delivered'),
+  }),
+  z.object({
+    status: z.literal('not_delivered'),
+    note: z.string().trim().min(1).max(DELIVERY_NOTE_MAX_LENGTH),
+    notDeliveredReason: notDeliveredReasonSchema,
+  }),
+]);
+
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
+export type NotDeliveredReason = z.infer<typeof notDeliveredReasonSchema>;
+export type VolunteerDeliveryStatus = z.infer<
+  typeof volunteerDeliveryStatusSchema
+>;
 export type ContactRelation = z.infer<typeof contactRelationSchema>;
 export type DeliveryElderContact = z.infer<typeof deliveryElderContactSchema>;
 export type DeliveryElder = z.infer<typeof deliveryElderSchema>;
@@ -97,6 +134,7 @@ export type CoordinatorDeliveriesResponse = z.infer<
 >;
 export type DayDeliveriesResponse = z.infer<typeof dayDeliveriesResponseSchema>;
 export type AssignDelivery = z.infer<typeof assignDeliverySchema>;
+export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;
 
 export function isCoordinatorDeliveriesResponse(
   value: DayDeliveriesResponse

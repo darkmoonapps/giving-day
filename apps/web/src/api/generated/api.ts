@@ -475,6 +475,23 @@ export const DeliveryResponseDtoStatus = {
 } as const;
 
 /**
+ * Required and returned when status is not_delivered
+ * @nullable
+ */
+export type DeliveryResponseDtoNotDeliveredReason = typeof DeliveryResponseDtoNotDeliveredReason[keyof typeof DeliveryResponseDtoNotDeliveredReason] | null;
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DeliveryResponseDtoNotDeliveredReason = {
+  not_home: 'not_home',
+  refused: 'refused',
+  wrong_address: 'wrong_address',
+  hospitalized: 'hospitalized',
+  deceased: 'deceased',
+  other: 'other',
+} as const;
+
+/**
  * @nullable
  */
 export type DeliveryResponseDtoVolunteer = DeliveryVolunteerDto | null;
@@ -484,6 +501,16 @@ export interface DeliveryResponseDto {
   cityId: string;
   dayId: string;
   status: DeliveryResponseDtoStatus;
+  /**
+   * Required and returned when status is not_delivered
+   * @nullable
+   */
+  note: string | null;
+  /**
+   * Required and returned when status is not_delivered
+   * @nullable
+   */
+  notDeliveredReason: DeliveryResponseDtoNotDeliveredReason;
   elder: DeliveryElderDto;
   /** @nullable */
   volunteerId?: string | null;
@@ -510,6 +537,44 @@ export interface AssignDeliveryDto {
    * @nullable
    */
   volunteerId: string | null;
+}
+
+/**
+ * Assigned volunteer marks Picked, then Delivered or Not delivered
+ */
+export type UpdateDeliveryStatusDtoStatus = typeof UpdateDeliveryStatusDtoStatus[keyof typeof UpdateDeliveryStatusDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UpdateDeliveryStatusDtoStatus = {
+  picked: 'picked',
+  delivered: 'delivered',
+  not_delivered: 'not_delivered',
+} as const;
+
+/**
+ * Required when status is not_delivered
+ */
+export type UpdateDeliveryStatusDtoNotDeliveredReason = typeof UpdateDeliveryStatusDtoNotDeliveredReason[keyof typeof UpdateDeliveryStatusDtoNotDeliveredReason];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UpdateDeliveryStatusDtoNotDeliveredReason = {
+  not_home: 'not_home',
+  refused: 'refused',
+  wrong_address: 'wrong_address',
+  hospitalized: 'hospitalized',
+  deceased: 'deceased',
+  other: 'other',
+} as const;
+
+export interface UpdateDeliveryStatusDto {
+  /** Assigned volunteer marks Picked, then Delivered or Not delivered */
+  status: UpdateDeliveryStatusDtoStatus;
+  /** Required when status is not_delivered */
+  note?: string;
+  /** Required when status is not_delivered */
+  notDeliveredReason?: UpdateDeliveryStatusDtoNotDeliveredReason;
 }
 
 export type ElderContactResponseDtoRelation = typeof ElderContactResponseDtoRelation[keyof typeof ElderContactResponseDtoRelation];
@@ -3747,6 +3812,83 @@ export const useAssignDayDelivery = <TError = unknown,
       > => {
 
       const mutationOptions = getAssignDayDeliveryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Assigned volunteer marks a delivery Picked, then Delivered or Not delivered
+ */
+export const getUpdateDayDeliveryStatusUrl = (cityId: string,
+    dayId: string,
+    deliveryId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/deliveries/${deliveryId}/status`
+}
+
+export const updateDayDeliveryStatus = async (cityId: string,
+    dayId: string,
+    deliveryId: string,
+    updateDeliveryStatusDto: UpdateDeliveryStatusDto, options?: RequestInit): Promise<DeliveryResponseDto> => {
+  
+  return apiFetch<DeliveryResponseDto>(getUpdateDayDeliveryStatusUrl(cityId,dayId,deliveryId),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateDeliveryStatusDto,)
+  }
+);}
+
+
+
+
+export const getUpdateDayDeliveryStatusMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDayDeliveryStatus>>, TError,{cityId: string;dayId: string;deliveryId: string;data: UpdateDeliveryStatusDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDayDeliveryStatus>>, TError,{cityId: string;dayId: string;deliveryId: string;data: UpdateDeliveryStatusDto}, TContext> => {
+
+const mutationKey = ['updateDayDeliveryStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDayDeliveryStatus>>, {cityId: string;dayId: string;deliveryId: string;data: UpdateDeliveryStatusDto}> = (props) => {
+          const {cityId,dayId,deliveryId,data} = props ?? {};
+
+          return  updateDayDeliveryStatus(cityId,dayId,deliveryId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDayDeliveryStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateDayDeliveryStatus>>>
+    export type UpdateDayDeliveryStatusMutationBody = UpdateDeliveryStatusDto
+    export type UpdateDayDeliveryStatusMutationError = unknown
+
+    /**
+ * @summary Assigned volunteer marks a delivery Picked, then Delivered or Not delivered
+ */
+export const useUpdateDayDeliveryStatus = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDayDeliveryStatus>>, TError,{cityId: string;dayId: string;deliveryId: string;data: UpdateDeliveryStatusDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateDayDeliveryStatus>>,
+        TError,
+        {cityId: string;dayId: string;deliveryId: string;data: UpdateDeliveryStatusDto},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateDayDeliveryStatusMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

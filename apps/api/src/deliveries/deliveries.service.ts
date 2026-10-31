@@ -7,15 +7,18 @@ import {
   assignDeliverySchema,
   coordinatorDeliveriesResponseSchema,
   coordinatorDeliverySchema,
+  updateDeliveryStatusSchema,
   volunteerDeliveriesResponseSchema,
   volunteerDeliverySchema,
   type AssignDelivery,
   type CoordinatorDeliveriesResponse,
   type CoordinatorDelivery,
   type DayDeliveriesResponse,
+  type UpdateDeliveryStatus,
   type VolunteerDeliveriesResponse,
   type VolunteerDelivery,
 } from '@giving-day/shared';
+import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 import type {
   DeliveryStatus,
   Prisma,
@@ -340,6 +343,106 @@ export class DeliveriesService {
     return this.toCoordinatorDelivery(updated);
   }
 
+  async updateStatus(
+    cityId: string,
+    dayId: string,
+    deliveryId: string,
+    dto: UpdateDeliveryStatusDto,
+    actor: UserWithMemberships
+  ): Promise<VolunteerDelivery> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'update', 'Delivery', cityId);
+    await this.requireCity(cityId);
+
+    const day = await this.requireDay(cityId, dayId);
+    if (!this.isOpen(day.status)) {
+      throw new BadRequestException('deliveries.day_not_open');
+    }
+
+    const parsed = updateDeliveryStatusSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('deliveries.invalid_status');
+    }
+
+    const payload = parsed.data;
+    const expectedFrom = this.expectedStatusForTransition(payload.status);
+
+    const participation = await this.prisma.dayParticipation.findUnique({
+      where: {
+        dayId_volunteerId: { dayId, volunteerId: actor.id },
+      },
+    });
+    if (
+      participation === null ||
+      participation.cityId !== cityId ||
+      participation.status !== 'confirmed'
+    ) {
+      throw new BadRequestException('deliveries.not_confirmed');
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.delivery.findFirst({
+        where: {
+          id: deliveryId,
+          cityId,
+          dayId,
+          volunteerId: actor.id,
+        },
+      });
+      if (current === null) {
+        throw new NotFoundException('deliveries.not_found');
+      }
+
+      if (current.status !== expectedFrom) {
+        throw new BadRequestException('deliveries.invalid_transition');
+      }
+
+      const result = await tx.delivery.updateMany({
+        where: {
+          id: current.id,
+          cityId,
+          dayId,
+          volunteerId: actor.id,
+          status: expectedFrom,
+        },
+        data: this.statusUpdateData(payload, now),
+      });
+
+      if (result.count === 0) {
+        throw new BadRequestException('deliveries.invalid_transition');
+      }
+
+      const row = await tx.delivery.findFirst({
+        where: { id: current.id, cityId, dayId },
+        include: {
+          elder: { select: ELDER_SELECT },
+          volunteer: { select: VOLUNTEER_SELECT },
+        },
+      });
+      if (row === null) {
+        throw new NotFoundException('deliveries.not_found');
+      }
+
+      await tx.deliveryEvent.create({
+        data: {
+          deliveryId: row.id,
+          fromStatus: current.status,
+          toStatus: row.status,
+          fromVolunteerId: current.volunteerId,
+          toVolunteerId: row.volunteerId,
+          actorId: actor.id,
+          note: payload.status === 'not_delivered' ? payload.note : null,
+          at: now,
+        },
+      });
+
+      return row;
+    });
+
+    return this.toVolunteerDelivery(updated);
+  }
+
   private async listForCoordinator(
     cityId: string,
     dayId: string
@@ -513,12 +616,41 @@ export class DeliveriesService {
     });
   }
 
+  private expectedStatusForTransition(
+    next: UpdateDeliveryStatus['status']
+  ): DeliveryStatus {
+    if (next === 'picked') {
+      return 'assigned';
+    }
+    return 'picked';
+  }
+
+  private statusUpdateData(
+    payload: UpdateDeliveryStatus,
+    now: Date
+  ): Prisma.DeliveryUncheckedUpdateManyInput {
+    if (payload.status === 'picked') {
+      return { status: 'picked', pickedAt: now };
+    }
+    if (payload.status === 'delivered') {
+      return { status: 'delivered', finalAt: now };
+    }
+    return {
+      status: 'not_delivered',
+      note: payload.note,
+      notDeliveredReason: payload.notDeliveredReason,
+      finalAt: now,
+    };
+  }
+
   private toVolunteerDelivery(row: DeliveryWithRelations): VolunteerDelivery {
     return volunteerDeliverySchema.parse({
       id: row.id,
       cityId: row.cityId,
       dayId: row.dayId,
       status: row.status,
+      note: row.note,
+      notDeliveredReason: row.notDeliveredReason,
       elder: row.elder,
     });
   }
@@ -531,6 +663,8 @@ export class DeliveriesService {
       cityId: row.cityId,
       dayId: row.dayId,
       status: row.status,
+      note: row.note,
+      notDeliveredReason: row.notDeliveredReason,
       volunteerId: row.volunteerId,
       matchId: row.matchId,
       assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,

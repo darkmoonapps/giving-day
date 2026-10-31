@@ -1,8 +1,5 @@
 import { Stack } from '@mantine/core';
-import {
-  getActiveCoordinatorCities,
-  type ContactRelation,
-} from '@giving-day/shared';
+import { getActiveCoordinatorCities } from '@giving-day/shared';
 import {
   AppAlert,
   AppButton,
@@ -20,7 +17,7 @@ import {
   type DeliveryVolunteerDto,
 } from '../api/generated/api';
 import { CoordinatorDeliveriesTable } from '../deliveries/coordinator-deliveries-table';
-import { ElderAddress } from '../deliveries/elder-address';
+import { VolunteerAssignedDeliveries } from '../deliveries/volunteer-assigned-deliveries';
 import {
   formatDayHours,
   formatDistributionDate,
@@ -29,25 +26,6 @@ import {
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 import { useSession } from '../auth/session-provider';
-
-const CONTACT_RELATION_KEYS: Record<
-  ContactRelation,
-  | 'contact_relation_child'
-  | 'contact_relation_spouse'
-  | 'contact_relation_sibling'
-  | 'contact_relation_caregiver'
-  | 'contact_relation_social_worker'
-  | 'contact_relation_neighbor'
-  | 'contact_relation_other'
-> = {
-  child: 'contact_relation_child',
-  spouse: 'contact_relation_spouse',
-  sibling: 'contact_relation_sibling',
-  caregiver: 'contact_relation_caregiver',
-  social_worker: 'contact_relation_social_worker',
-  neighbor: 'contact_relation_neighbor',
-  other: 'contact_relation_other',
-};
 
 function isCoordinatorDeliveries(
   value: DayDeliveriesResponseDto
@@ -160,17 +138,10 @@ function VolunteerDeliveries({
   const { t } = useTranslation('volunteer');
   const { t: tCommon } = useTranslation('common');
   const dayQuery = useGetDistributionDay(cityId, dayId);
-  const deliveriesQuery = useListDayDeliveries(cityId, dayId);
   const day = dayQuery.data;
   const confirmed = day?.myParticipation?.status === 'confirmed';
-  const loading =
-    dayQuery.isLoading || deliveriesQuery.isLoading || day === undefined;
-  const failed = dayQuery.isError || deliveriesQuery.isError;
-  const labels = {
-    entrance: t('entrance_label'),
-    floor: t('floor_label'),
-    apartment: t('apartment_label'),
-  };
+  const loading = dayQuery.isLoading || day === undefined;
+  const failed = dayQuery.isError;
 
   return (
     <Stack gap="lg" component="section" data-testid="volunteer-deliveries-page">
@@ -199,53 +170,8 @@ function VolunteerDeliveries({
             <AppAlert data-testid="confirm-first">
               {t('deliveries_confirm_first')}
             </AppAlert>
-          ) : (deliveriesQuery.data?.deliveries.length ?? 0) === 0 ? (
-            <AppText data-testid="volunteer-deliveries-empty">
-              {t('deliveries_empty')}
-            </AppText>
           ) : (
-            <Stack gap="md" data-testid="volunteer-deliveries-list">
-              {deliveriesQuery.data?.deliveries.map((delivery) => (
-                <Stack
-                  key={delivery.id}
-                  gap="xs"
-                  data-testid="volunteer-delivery-card"
-                >
-                  <AppText fw={600}>{delivery.elder.fullName}</AppText>
-                  <ElderAddress elder={delivery.elder} labels={labels} />
-                  {delivery.elder.contacts.length > 0 ? (
-                    <Stack gap={4} data-testid="elder-next-of-kin">
-                      <AppText size="sm" fw={500}>
-                        {t('next_of_kin_label')}
-                      </AppText>
-                      {delivery.elder.contacts.map((contact) => (
-                        <Stack gap={0} key={`${contact.phone}-${contact.name}`}>
-                          <AppText size="sm">
-                            {contact.name} (
-                            {t(CONTACT_RELATION_KEYS[contact.relation])})
-                          </AppText>
-                          <AppText size="sm">
-                            <a href={`tel:${contact.phone}`}>{contact.phone}</a>
-                          </AppText>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  ) : null}
-                  {delivery.elder.addressNotes !== null &&
-                  delivery.elder.addressNotes.length > 0 ? (
-                    <AppText size="sm">
-                      {t('address_notes_label')}: {delivery.elder.addressNotes}
-                    </AppText>
-                  ) : null}
-                  {delivery.elder.notes !== null &&
-                  delivery.elder.notes.length > 0 ? (
-                    <AppText size="sm">
-                      {t('elder_notes_label')}: {delivery.elder.notes}
-                    </AppText>
-                  ) : null}
-                </Stack>
-              ))}
-            </Stack>
+            <VolunteerAssignedDeliveries cityId={cityId} dayId={dayId} />
           )}
         </>
       )}
