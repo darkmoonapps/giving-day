@@ -245,7 +245,11 @@ function CoordinatorDeliveries({
                         </AppText>
                         {delivery.volunteerId === null ||
                         delivery.volunteerId === undefined ? (
-                          <AppBadge color="yellow" size="sm">
+                          <AppBadge
+                            color="yellow"
+                            size="sm"
+                            data-testid="needs-volunteer-badge"
+                          >
                             {t('needs_volunteer')}
                           </AppBadge>
                         ) : null}

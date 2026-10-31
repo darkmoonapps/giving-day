@@ -100,6 +100,9 @@ describe('Distribution days HTTP authorization', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    elder: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     match: {
       findMany: vi.fn().mockResolvedValue([]),
     },
@@ -184,6 +187,7 @@ describe('Distribution days HTTP authorization', () => {
     mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.delivery.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.delivery.findMany.mockResolvedValue([]);
+    mockPrisma.elder.findMany.mockResolvedValue([]);
     mockPrisma.match.findMany.mockResolvedValue([]);
     mockPrisma.deliveryEvent.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.$transaction.mockImplementation(
@@ -209,6 +213,51 @@ describe('Distribution days HTTP authorization', () => {
       expect(response.body.status).toBe('published');
       expect(response.body.startTime).toBe('09:00:00');
       expect(response.body.internalNotes).toBe('Need extra rice bags');
+    });
+
+    it('prefills unassigned deliveries for active elders without a permanent match', async () => {
+      currentUser = coordinatorA();
+      const unmatchedElderId = '13131313-1313-4131-8131-131313131313';
+      mockPrisma.elder.findMany.mockResolvedValue([{ id: unmatchedElderId }]);
+      mockPrisma.match.findMany.mockResolvedValue([]);
+      mockPrisma.delivery.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: '17171717-1717-4171-8171-171717171717',
+            volunteerId: null,
+            status: 'unassigned',
+            _count: { events: 0 },
+          },
+        ]);
+
+      await request(app.getHttpServer())
+        .post(`/api/cities/${CITY_A_ID}/distribution-days`)
+        .send({ date: '2026-11-15' })
+        .expect(201);
+
+      expect(mockPrisma.elder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            cityId: CITY_A_ID,
+            status: 'active',
+            archivedAt: null,
+          },
+        })
+      );
+      expect(mockPrisma.delivery.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: publishedDay.id,
+            elderId: unmatchedElderId,
+            volunteerId: null,
+            matchId: null,
+            status: 'unassigned',
+          }),
+        ],
+        skipDuplicates: true,
+      });
     });
 
     it('lets a super admin open a day', async () => {

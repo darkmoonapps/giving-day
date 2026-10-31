@@ -30,6 +30,22 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const REASSIGNABLE_STATUSES: DeliveryStatus[] = ['unassigned', 'assigned'];
 
+type PrefillMatch = {
+  id: string;
+  elderId: string;
+  volunteerId: string;
+};
+
+type PrefillRow = {
+  cityId: string;
+  dayId: string;
+  elderId: string;
+  volunteerId: string | null;
+  matchId: string | null;
+  status: 'assigned' | 'unassigned';
+  assignedAt: Date | null;
+};
+
 const ELDER_SELECT = {
   id: true,
   fullName: true,
@@ -75,73 +91,98 @@ export class DeliveriesService {
     tx: Prisma.TransactionClient,
     params: { cityId: string; dayId: string; actorId: string }
   ): Promise<number> {
-    const matches = await tx.match.findMany({
-      where: {
-        cityId: params.cityId,
-        type: 'permanent',
-        endsAt: null,
-        elder: {
+    const [elders, matches, existing] = await Promise.all([
+      tx.elder.findMany({
+        where: {
           cityId: params.cityId,
           status: 'active',
           archivedAt: null,
         },
-        volunteer: {
-          archivedAt: null,
-          memberships: {
-            some: {
-              cityId: params.cityId,
-              role: 'volunteer',
-              status: 'active',
+        select: { id: true },
+      }),
+      tx.match.findMany({
+        where: {
+          cityId: params.cityId,
+          type: 'permanent',
+          endsAt: null,
+          elder: {
+            cityId: params.cityId,
+            status: 'active',
+            archivedAt: null,
+          },
+          volunteer: {
+            archivedAt: null,
+            memberships: {
+              some: {
+                cityId: params.cityId,
+                role: 'volunteer',
+                status: 'active',
+              },
             },
           },
         },
-      },
-      select: {
-        id: true,
-        elderId: true,
-        volunteerId: true,
-      },
-    });
+        select: {
+          id: true,
+          elderId: true,
+          volunteerId: true,
+        },
+      }),
+      tx.delivery.findMany({
+        where: { cityId: params.cityId, dayId: params.dayId },
+        select: { elderId: true },
+      }),
+    ]);
 
-    const uniqueByElder = new Map<
-      string,
-      { id: string; elderId: string; volunteerId: string }
-    >();
+    const matchByElder = new Map<string, PrefillMatch>();
     for (const match of matches) {
-      if (!uniqueByElder.has(match.elderId)) {
-        uniqueByElder.set(match.elderId, match);
+      if (!matchByElder.has(match.elderId)) {
+        matchByElder.set(match.elderId, match);
       }
     }
 
-    const rows = [...uniqueByElder.values()];
+    const existingElderIds = new Set(existing.map((row) => row.elderId));
+    const assignedAt = new Date();
+    const rows = this.buildPrefillRows({
+      cityId: params.cityId,
+      dayId: params.dayId,
+      elders,
+      matchByElder,
+      existingElderIds,
+      assignedAt,
+    });
+
     if (rows.length === 0) {
       return 0;
     }
 
-    const assignedAt = new Date();
     await tx.delivery.createMany({
-      data: rows.map((match) => ({
-        cityId: params.cityId,
-        dayId: params.dayId,
-        elderId: match.elderId,
-        volunteerId: match.volunteerId,
-        matchId: match.id,
-        status: 'assigned',
-        assignedAt,
-      })),
+      data: rows,
+      skipDuplicates: true,
     });
 
     const created = await tx.delivery.findMany({
-      where: { cityId: params.cityId, dayId: params.dayId },
-      select: { id: true, volunteerId: true, status: true },
+      where: {
+        cityId: params.cityId,
+        dayId: params.dayId,
+        elderId: { in: rows.map((row) => row.elderId) },
+      },
+      select: {
+        id: true,
+        volunteerId: true,
+        status: true,
+        _count: { select: { events: true } },
+      },
     });
 
-    if (created.length === 0) {
+    const newDeliveries = created.filter(
+      (delivery) => delivery._count.events === 0
+    );
+    if (newDeliveries.length === 0) {
       return 0;
     }
 
     await tx.deliveryEvent.createMany({
-      data: created.map((delivery) => ({
+      data: newDeliveries.map((delivery) => ({
         deliveryId: delivery.id,
         fromStatus: 'unassigned',
         toStatus: delivery.status,
@@ -152,7 +193,49 @@ export class DeliveriesService {
       })),
     });
 
-    return created.length;
+    return newDeliveries.length;
+  }
+
+  private buildPrefillRows(params: {
+    cityId: string;
+    dayId: string;
+    elders: Array<{ id: string }>;
+    matchByElder: Map<string, PrefillMatch>;
+    existingElderIds: Set<string>;
+    assignedAt: Date;
+  }): PrefillRow[] {
+    const rows: PrefillRow[] = [];
+    for (const elder of params.elders) {
+      if (params.existingElderIds.has(elder.id)) {
+        continue;
+      }
+
+      const match = params.matchByElder.get(elder.id);
+      if (match === undefined) {
+        rows.push({
+          cityId: params.cityId,
+          dayId: params.dayId,
+          elderId: elder.id,
+          volunteerId: null,
+          matchId: null,
+          status: 'unassigned',
+          assignedAt: null,
+        });
+        continue;
+      }
+
+      rows.push({
+        cityId: params.cityId,
+        dayId: params.dayId,
+        elderId: elder.id,
+        volunteerId: match.volunteerId,
+        matchId: match.id,
+        status: 'assigned',
+        assignedAt: params.assignedAt,
+      });
+    }
+
+    return rows;
   }
 
   async list(

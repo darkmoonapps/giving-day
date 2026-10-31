@@ -8,6 +8,7 @@ import {
   DAY_ID,
   coordinatorDeliveryRivkah,
   coordinatorDeliveryUnassigned,
+  coordinatorDeliveryUnmatched,
   coordinatorUser,
   createDayFetchMock,
   openDay,
@@ -171,6 +172,44 @@ describe('DayDeliveriesPage', () => {
         'Dana Levi',
         'Yonatan Bar',
       ]);
+    });
+
+    it('shows unmatched elders as needing a volunteer in Hebrew RTL and English LTR', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: coordinatorUser(),
+            coordinatorDeliveries: [coordinatorDeliveryUnmatched],
+          })
+        )
+      );
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(
+        await screen.findByTestId('coordinator-deliveries-page')
+      ).toBeInTheDocument();
+      expect(document.documentElement.dir).toBe('rtl');
+      expect(await screen.findByText('Miriam Cohen')).toBeInTheDocument();
+      expect(screen.getByTestId('delivery-row-unassigned')).toBeInTheDocument();
+      expect(screen.getByTestId('needs-volunteer-badge')).toHaveTextContent(
+        'צריך מתנדב/ת'
+      );
+      expect(screen.getByTestId('needs-volunteer-count')).toHaveTextContent(
+        '1 ממתינים למתנדב/ת'
+      );
+
+      await user.click(screen.getByRole('button', { name: 'English' }));
+
+      expect(await screen.findByText('Needs a volunteer')).toBeInTheDocument();
+      expect(document.documentElement.dir).toBe('ltr');
+      expect(document.documentElement.lang).toBe('en');
+      expect(screen.getByTestId('needs-volunteer-count')).toHaveTextContent(
+        '1 need a volunteer'
+      );
     });
   });
 });

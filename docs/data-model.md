@@ -260,8 +260,13 @@ unique where `type = 'permanent' AND endsAt IS NULL`).
 | `createdById`          | uuid         |                                           |
 
 When a day is created, the system **prefills** one `Delivery` for each
-active elder that has a current permanent match. The coordinator then
-adjusts them. This is a prefill, **not** automatic reassignment.
+active elder in the city. Elders with a current permanent match get
+`volunteerId` set from that match. Elders with no current permanent match
+still get a row with `volunteerId` null so they appear on the coordinator's
+"Needs a volunteer" list and can be assigned. Archived and non-active
+elders are excluded. The coordinator then adjusts the list. This is a
+prefill, **not** automatic reassignment. Prefill is idempotent: unique
+`(dayId, elderId)` prevents duplicate rows.
 
 ### DayParticipation
 
@@ -443,7 +448,8 @@ erDiagram
   and install prompts
 - Permanent join links per city and role (revoke / regenerate); approval
   still required
-- Permanent and one-time matches; day prefill from permanent matches
+- Permanent and one-time matches; day prefill for every active elder
+  (assigned from current permanent matches, unmatched as needing a volunteer)
 - Confirm / decline / cancel with optional `cancelReason`; unassign on
   decline or cancel
 - Pickup and delivery statuses; coordinator-led reassignment

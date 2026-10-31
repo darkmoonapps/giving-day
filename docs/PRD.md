@@ -124,8 +124,9 @@ person can be a coordinator in one city and a volunteer in another.
 2. Navigates to "Create Distribution Day"
 3. Enters a date (that is the only required field to create the day)
 4. Optionally adds notes for that day and sets that day's hours
-5. System prefills one delivery per active elder with a current permanent
-   match; the coordinator adjusts as needed
+5. System prefills one delivery per active elder. Permanent matches are
+   assigned; unmatched elders appear as needing a volunteer. The
+   coordinator adjusts as needed
 6. Coordinator confirms creation and publishes
 7. System sends the initial notification to the city's volunteers
 
@@ -237,7 +238,7 @@ person can be a coordinator in one city and a volunteer in another.
 - [ ] Volunteer-elder matching and assignment (a volunteer can be matched with more than one elder)
 - [ ] Volunteer visibility limited to notes, details, and next of kin of assigned elders
 - [ ] Volunteer requests to change elder details; coordinator approval
-- [ ] Create distribution day (date required; optional notes and hours for that day; prefill from permanent matches)
+- [ ] Create distribution day (date required; optional notes and hours for that day; prefill every active elder, assigning current permanent matches)
 - [ ] Simple, beautiful Settings area where a coordinator configures the city
   - Distribution center address
   - Notification offsets and timings
@@ -440,7 +441,7 @@ These items were previously open or unspecified. They are now product decisions 
 - **Volunteer visibility**: A volunteer sees notes, details, and next of kin only for the elders assigned to them. Assigned elders are not shown on the confirmation screen (Flow 2); that screen shows only distribution day details.
 - **City Settings**: A coordinator can configure their city from a simple, beautiful Settings area, including distribution center address, notification offsets and timings, day hours, notification texts and languages, default theme, and org name/logo.
 - **Theming**: Light theme by default with a pastel "Wisteria & mint" palette (wisteria `#A99BE0` primary, mint `#A8E6CF` accent; mint for Delivered states). Dark theme uses deep plum `#1E1A2E` as the background with brightened accents. Users can toggle the theme and it follows the system preference.
-- **Distribution day creation**: A coordinator creates a distribution day by entering just a date. They can add notes per day and set that day's hours. Creating a day prefills deliveries from current permanent matches.
+- **Distribution day creation**: A coordinator creates a distribution day by entering just a date. They can add notes per day and set that day's hours. Creating a day prefills one delivery per active elder: current permanent matches are assigned, unmatched elders need a volunteer.
 - **Distribution center**: A coordinator sets the distribution center address on the city Settings page. Example: "10 Warehouse Rd, Holon".
 - **Map**: The map shows an optimized route that starts at the distribution center address.
 - **Navigate menu**: Each address has a Navigate menu with Google Maps, Apple Maps, and Waze.
