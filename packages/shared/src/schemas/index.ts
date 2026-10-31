@@ -203,6 +203,31 @@ export {
 } from './elder';
 
 export {
+  ELDER_CHANGE_REQUEST_SAFE_FIELDS,
+  changeRequestStatusSchema,
+  createElderChangeRequestSchema,
+  elderChangeRequestChangesSchema,
+  elderChangeRequestContactSnapshotSchema,
+  elderChangeRequestElderSnapshotSchema,
+  elderChangeRequestSchema,
+  elderChangeRequestsResponseSchema,
+  listElderChangeRequestsQuerySchema,
+  proposedElderChangesSchema,
+  rejectElderChangeRequestSchema,
+  type ChangeRequestStatus,
+  type CreateElderChangeRequest,
+  type ElderChangeRequest,
+  type ElderChangeRequestChanges,
+  type ElderChangeRequestContactSnapshot,
+  type ElderChangeRequestElderSnapshot,
+  type ElderChangeRequestSafeField,
+  type ElderChangeRequestsResponse,
+  type ListElderChangeRequestsQuery,
+  type ProposedElderChanges,
+  type RejectElderChangeRequest,
+} from './elder-change-request';
+
+export {
   announceDistributionDayResultSchema,
   notificationChannelSchema,
   notificationStatusSchema,

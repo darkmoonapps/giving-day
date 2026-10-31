@@ -15,6 +15,7 @@ import {
   assignDeliverySchema,
   updateDeliveryStatusSchema,
   createElderSchema,
+  createElderChangeRequestSchema,
   createPermanentMatchSchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
@@ -63,6 +64,12 @@ describe('shared public exports', () => {
         houseNumber: '1',
       }).fullName
     ).toBe('Elder A');
+    expect(
+      createElderChangeRequestSchema.parse({
+        elderId: '12121212-1212-4121-8121-121212121212',
+        changes: { notes: 'Knock loudly' },
+      }).elderId
+    ).toBe('12121212-1212-4121-8121-121212121212');
     expect(
       createPermanentMatchSchema.parse({
         elderId: '12121212-1212-4121-8121-121212121212',

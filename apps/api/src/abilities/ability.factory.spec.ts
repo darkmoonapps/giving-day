@@ -239,6 +239,36 @@ describe('AbilityFactory', () => {
       expect(ability.can('delete', 'MessageTemplate')).toBe(true);
     });
 
+    it('should allow coordinator to read, approve, and reject change requests in their city', () => {
+      const ability = factory.createForUser(coordinatorUser);
+
+      expect(ability.can('read', 'ElderChangeRequest')).toBe(true);
+      expect(ability.can('approve', 'ElderChangeRequest')).toBe(true);
+      expect(ability.can('reject', 'ElderChangeRequest')).toBe(true);
+      expect(
+        ability.can('read', subject('ElderChangeRequest', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can('approve', subject('ElderChangeRequest', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can('reject', subject('ElderChangeRequest', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can(
+          'read',
+          subject('ElderChangeRequest', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can(
+          'approve',
+          subject('ElderChangeRequest', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(ability.can('create', 'ElderChangeRequest')).toBe(false);
+    });
+
     it('should allow coordinator to read audit logs', () => {
       const ability = factory.createForUser(coordinatorUser);
 
@@ -292,11 +322,31 @@ describe('AbilityFactory', () => {
       ).toBe(false);
     });
 
-    it('should allow volunteer to create change requests', () => {
+    it('should allow volunteer to create and read change requests in their city', () => {
       const ability = factory.createForUser(volunteerUser);
 
       expect(ability.can('create', 'ElderChangeRequest')).toBe(true);
       expect(ability.can('read', 'ElderChangeRequest')).toBe(true);
+      expect(
+        ability.can('create', subject('ElderChangeRequest', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can('read', subject('ElderChangeRequest', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can(
+          'create',
+          subject('ElderChangeRequest', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can(
+          'read',
+          subject('ElderChangeRequest', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(ability.can('approve', 'ElderChangeRequest')).toBe(false);
+      expect(ability.can('reject', 'ElderChangeRequest')).toBe(false);
     });
 
     it('should allow volunteer to manage their own participation', () => {

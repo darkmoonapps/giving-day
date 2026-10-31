@@ -798,6 +798,141 @@ export interface UpdateElderDto {
   contacts?: ElderContactInputDto[];
 }
 
+export interface ElderChangeFieldDiffDto {
+  /** @nullable */
+  from: string | null;
+  /** @nullable */
+  to: string | null;
+}
+
+export type ElderChangeRequestContactSnapshotDtoRelation = typeof ElderChangeRequestContactSnapshotDtoRelation[keyof typeof ElderChangeRequestContactSnapshotDtoRelation];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ElderChangeRequestContactSnapshotDtoRelation = {
+  child: 'child',
+  spouse: 'spouse',
+  sibling: 'sibling',
+  caregiver: 'caregiver',
+  social_worker: 'social_worker',
+  neighbor: 'neighbor',
+  other: 'other',
+} as const;
+
+export interface ElderChangeRequestContactSnapshotDto {
+  id?: string;
+  name: string;
+  relation: ElderChangeRequestContactSnapshotDtoRelation;
+  phone: string;
+  isPrimary: boolean;
+}
+
+export interface ElderChangeContactsDiffDto {
+  from: ElderChangeRequestContactSnapshotDto[];
+  to: ElderChangeRequestContactSnapshotDto[];
+}
+
+export interface ElderChangeRequestChangesDto {
+  street?: ElderChangeFieldDiffDto;
+  houseNumber?: ElderChangeFieldDiffDto;
+  entrance?: ElderChangeFieldDiffDto;
+  floor?: ElderChangeFieldDiffDto;
+  apartment?: ElderChangeFieldDiffDto;
+  addressNotes?: ElderChangeFieldDiffDto;
+  notes?: ElderChangeFieldDiffDto;
+  contacts?: ElderChangeContactsDiffDto;
+}
+
+export interface ElderChangeRequestElderSnapshotDto {
+  id: string;
+  fullName: string;
+  street: string;
+  houseNumber: string;
+  /** @nullable */
+  entrance: string | null;
+  /** @nullable */
+  floor: string | null;
+  /** @nullable */
+  apartment: string | null;
+  /** @nullable */
+  addressNotes: string | null;
+  /** @nullable */
+  notes: string | null;
+  contacts: ElderContactResponseDto[];
+}
+
+export interface ElderChangeRequestVolunteerDto {
+  id: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+}
+
+export type ElderChangeRequestResponseDtoStatus = typeof ElderChangeRequestResponseDtoStatus[keyof typeof ElderChangeRequestResponseDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ElderChangeRequestResponseDtoStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  superseded: 'superseded',
+} as const;
+
+export interface ElderChangeRequestResponseDto {
+  id: string;
+  cityId: string;
+  elderId: string;
+  requestedById: string;
+  changes: ElderChangeRequestChangesDto;
+  /** @nullable */
+  reason: string | null;
+  status: ElderChangeRequestResponseDtoStatus;
+  /** @nullable */
+  reviewedById: string | null;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  reviewNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  elder: ElderChangeRequestElderSnapshotDto;
+  requestedBy: ElderChangeRequestVolunteerDto;
+}
+
+export interface ElderChangeRequestsResponseDto {
+  changeRequests: ElderChangeRequestResponseDto[];
+}
+
+export interface ProposedElderChangesDto {
+  street?: string;
+  houseNumber?: string;
+  /** @nullable */
+  entrance?: string | null;
+  /** @nullable */
+  floor?: string | null;
+  /** @nullable */
+  apartment?: string | null;
+  /** @nullable */
+  addressNotes?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  contacts?: ElderContactInputDto[];
+}
+
+export interface CreateElderChangeRequestDto {
+  elderId: string;
+  changes: ProposedElderChangesDto;
+  /** @nullable */
+  reason?: string | null;
+}
+
+export interface RejectElderChangeRequestDto {
+  /** @nullable */
+  reviewNote?: string | null;
+}
+
 export type MatchElderSummaryDtoStatus = typeof MatchElderSummaryDtoStatus[keyof typeof MatchElderSummaryDtoStatus];
 
 
@@ -910,6 +1045,21 @@ export const ListCityEldersStatus = {
   moved: 'moved',
   deceased: 'deceased',
   removed: 'removed',
+} as const;
+
+export type ListCityElderChangeRequestsParams = {
+status?: ListCityElderChangeRequestsStatus;
+};
+
+export type ListCityElderChangeRequestsStatus = typeof ListCityElderChangeRequestsStatus[keyof typeof ListCityElderChangeRequestsStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListCityElderChangeRequestsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  superseded: 'superseded',
 } as const;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -4335,6 +4485,452 @@ export const useDeactivateCityElder = <TError = unknown,
       > => {
 
       const mutationOptions = getDeactivateCityElderMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List elder change requests (coordinators: pending by default; volunteers: own only)
+ */
+export const getListCityElderChangeRequestsUrl = (cityId: string,
+    params?: ListCityElderChangeRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/cities/${cityId}/elder-change-requests?${stringifiedParams}` : `/api/cities/${cityId}/elder-change-requests`
+}
+
+export const listCityElderChangeRequests = async (cityId: string,
+    params?: ListCityElderChangeRequestsParams, options?: RequestInit): Promise<ElderChangeRequestsResponseDto> => {
+  
+  return apiFetch<ElderChangeRequestsResponseDto>(getListCityElderChangeRequestsUrl(cityId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListCityElderChangeRequestsQueryKey = (cityId?: string,
+    params?: ListCityElderChangeRequestsParams,) => {
+    return [
+    `/api/cities/${cityId}/elder-change-requests`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListCityElderChangeRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError = unknown>(cityId: string,
+    params?: ListCityElderChangeRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityElderChangeRequestsQueryKey(cityId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityElderChangeRequests>>> = ({ signal }) => listCityElderChangeRequests(cityId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCityElderChangeRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listCityElderChangeRequests>>>
+export type ListCityElderChangeRequestsQueryError = unknown
+
+
+export function useListCityElderChangeRequests<TData = Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError = unknown>(
+ cityId: string,
+    params: undefined |  ListCityElderChangeRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityElderChangeRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listCityElderChangeRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityElderChangeRequests<TData = Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityElderChangeRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityElderChangeRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listCityElderChangeRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityElderChangeRequests<TData = Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityElderChangeRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List elder change requests (coordinators: pending by default; volunteers: own only)
+ */
+
+export function useListCityElderChangeRequests<TData = Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityElderChangeRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityElderChangeRequests>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListCityElderChangeRequestsQueryOptions(cityId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Volunteer submits a change request for an assigned elder (safe fields only)
+ */
+export const getCreateCityElderChangeRequestUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/elder-change-requests`
+}
+
+export const createCityElderChangeRequest = async (cityId: string,
+    createElderChangeRequestDto: CreateElderChangeRequestDto, options?: RequestInit): Promise<ElderChangeRequestResponseDto> => {
+  
+  return apiFetch<ElderChangeRequestResponseDto>(getCreateCityElderChangeRequestUrl(cityId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createElderChangeRequestDto,)
+  }
+);}
+
+
+
+
+export const getCreateCityElderChangeRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCityElderChangeRequest>>, TError,{cityId: string;data: CreateElderChangeRequestDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCityElderChangeRequest>>, TError,{cityId: string;data: CreateElderChangeRequestDto}, TContext> => {
+
+const mutationKey = ['createCityElderChangeRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCityElderChangeRequest>>, {cityId: string;data: CreateElderChangeRequestDto}> = (props) => {
+          const {cityId,data} = props ?? {};
+
+          return  createCityElderChangeRequest(cityId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCityElderChangeRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createCityElderChangeRequest>>>
+    export type CreateCityElderChangeRequestMutationBody = CreateElderChangeRequestDto
+    export type CreateCityElderChangeRequestMutationError = unknown
+
+    /**
+ * @summary Volunteer submits a change request for an assigned elder (safe fields only)
+ */
+export const useCreateCityElderChangeRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCityElderChangeRequest>>, TError,{cityId: string;data: CreateElderChangeRequestDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createCityElderChangeRequest>>,
+        TError,
+        {cityId: string;data: CreateElderChangeRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateCityElderChangeRequestMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get one elder change request (coordinators: city; volunteers: own)
+ */
+export const getGetCityElderChangeRequestUrl = (cityId: string,
+    requestId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/elder-change-requests/${requestId}`
+}
+
+export const getCityElderChangeRequest = async (cityId: string,
+    requestId: string, options?: RequestInit): Promise<ElderChangeRequestResponseDto> => {
+  
+  return apiFetch<ElderChangeRequestResponseDto>(getGetCityElderChangeRequestUrl(cityId,requestId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetCityElderChangeRequestQueryKey = (cityId?: string,
+    requestId?: string,) => {
+    return [
+    `/api/cities/${cityId}/elder-change-requests/${requestId}`
+    ] as const;
+    }
+
+    
+export const getGetCityElderChangeRequestQueryOptions = <TData = Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError = unknown>(cityId: string,
+    requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCityElderChangeRequestQueryKey(cityId,requestId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCityElderChangeRequest>>> = ({ signal }) => getCityElderChangeRequest(cityId,requestId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && requestId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCityElderChangeRequestQueryResult = NonNullable<Awaited<ReturnType<typeof getCityElderChangeRequest>>>
+export type GetCityElderChangeRequestQueryError = unknown
+
+
+export function useGetCityElderChangeRequest<TData = Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError = unknown>(
+ cityId: string,
+    requestId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCityElderChangeRequest>>,
+          TError,
+          Awaited<ReturnType<typeof getCityElderChangeRequest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCityElderChangeRequest<TData = Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError = unknown>(
+ cityId: string,
+    requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCityElderChangeRequest>>,
+          TError,
+          Awaited<ReturnType<typeof getCityElderChangeRequest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCityElderChangeRequest<TData = Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError = unknown>(
+ cityId: string,
+    requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get one elder change request (coordinators: city; volunteers: own)
+ */
+
+export function useGetCityElderChangeRequest<TData = Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError = unknown>(
+ cityId: string,
+    requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityElderChangeRequest>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetCityElderChangeRequestQueryOptions(cityId,requestId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Approve a pending request and apply the proposed elder field changes
+ */
+export const getApproveCityElderChangeRequestUrl = (cityId: string,
+    requestId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/elder-change-requests/${requestId}/approve`
+}
+
+export const approveCityElderChangeRequest = async (cityId: string,
+    requestId: string, options?: RequestInit): Promise<ElderChangeRequestResponseDto> => {
+  
+  return apiFetch<ElderChangeRequestResponseDto>(getApproveCityElderChangeRequestUrl(cityId,requestId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getApproveCityElderChangeRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCityElderChangeRequest>>, TError,{cityId: string;requestId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveCityElderChangeRequest>>, TError,{cityId: string;requestId: string}, TContext> => {
+
+const mutationKey = ['approveCityElderChangeRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveCityElderChangeRequest>>, {cityId: string;requestId: string}> = (props) => {
+          const {cityId,requestId} = props ?? {};
+
+          return  approveCityElderChangeRequest(cityId,requestId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveCityElderChangeRequestMutationResult = NonNullable<Awaited<ReturnType<typeof approveCityElderChangeRequest>>>
+    
+    export type ApproveCityElderChangeRequestMutationError = unknown
+
+    /**
+ * @summary Approve a pending request and apply the proposed elder field changes
+ */
+export const useApproveCityElderChangeRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCityElderChangeRequest>>, TError,{cityId: string;requestId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof approveCityElderChangeRequest>>,
+        TError,
+        {cityId: string;requestId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getApproveCityElderChangeRequestMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reject a pending elder change request (optional review note)
+ */
+export const getRejectCityElderChangeRequestUrl = (cityId: string,
+    requestId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/elder-change-requests/${requestId}/reject`
+}
+
+export const rejectCityElderChangeRequest = async (cityId: string,
+    requestId: string,
+    rejectElderChangeRequestDto?: RejectElderChangeRequestDto, options?: RequestInit): Promise<ElderChangeRequestResponseDto> => {
+  
+  return apiFetch<ElderChangeRequestResponseDto>(getRejectCityElderChangeRequestUrl(cityId,requestId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rejectElderChangeRequestDto,)
+  }
+);}
+
+
+
+
+export const getRejectCityElderChangeRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectCityElderChangeRequest>>, TError,{cityId: string;requestId: string;data: RejectElderChangeRequestDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectCityElderChangeRequest>>, TError,{cityId: string;requestId: string;data: RejectElderChangeRequestDto}, TContext> => {
+
+const mutationKey = ['rejectCityElderChangeRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectCityElderChangeRequest>>, {cityId: string;requestId: string;data: RejectElderChangeRequestDto}> = (props) => {
+          const {cityId,requestId,data} = props ?? {};
+
+          return  rejectCityElderChangeRequest(cityId,requestId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectCityElderChangeRequestMutationResult = NonNullable<Awaited<ReturnType<typeof rejectCityElderChangeRequest>>>
+    export type RejectCityElderChangeRequestMutationBody = RejectElderChangeRequestDto
+    export type RejectCityElderChangeRequestMutationError = unknown
+
+    /**
+ * @summary Reject a pending elder change request (optional review note)
+ */
+export const useRejectCityElderChangeRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectCityElderChangeRequest>>, TError,{cityId: string;requestId: string;data: RejectElderChangeRequestDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rejectCityElderChangeRequest>>,
+        TError,
+        {cityId: string;requestId: string;data: RejectElderChangeRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getRejectCityElderChangeRequestMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
