@@ -28,6 +28,13 @@ test.describe('Volunteer confirm and coordinator responses', () => {
 
     await expect(page.getByTestId('volunteer-day-page')).toBeVisible();
     await page.getByTestId('confirm-participation').click();
+    await expect(page.getByTestId('fireworks-thank-you')).toBeVisible();
+    await expect(page.getByTestId('fireworks-thank-you')).toHaveAttribute(
+      'data-thank-you-reason',
+      'confirmed'
+    );
+    await page.getByTestId('thank-you-continue').click();
+    await expect(page.getByTestId('fireworks-thank-you')).toHaveCount(0);
     await expect(page.getByTestId('confirm-thanks')).toBeVisible();
     expect(posted).toEqual([{ status: 'confirmed' }]);
   });

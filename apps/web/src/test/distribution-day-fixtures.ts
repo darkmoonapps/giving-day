@@ -85,6 +85,31 @@ export const volunteerDeliveryRivkah = {
   elder: ELDER_RIVKAH,
 };
 
+export const ELDER_YOSEF = {
+  id: '13131313-1313-4131-8131-131313131313',
+  fullName: 'Yosef Abraham',
+  street: '4 Park Ave',
+  houseNumber: '4',
+  entrance: null,
+  floor: null,
+  apartment: null,
+  addressNotes: null,
+  notes: null,
+  contacts: [],
+};
+
+export const DELIVERY_YOSEF_ID = '17171717-1717-4171-8171-171717171717';
+
+export const volunteerDeliveryYosef = {
+  id: DELIVERY_YOSEF_ID,
+  cityId: CITY_A_ID,
+  dayId: DAY_ID,
+  status: 'assigned' as const,
+  note: null,
+  notDeliveredReason: null,
+  elder: ELDER_YOSEF,
+};
+
 export const coordinatorDeliveryRivkah = {
   ...volunteerDeliveryRivkah,
   volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',

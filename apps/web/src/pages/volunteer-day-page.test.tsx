@@ -8,9 +8,36 @@ import {
   DAY_ID,
   createDayFetchMock,
   openDay,
+  volunteerDeliveryRivkah,
+  volunteerDeliveryYosef,
   volunteerUser,
 } from '../test/distribution-day-fixtures';
 import { renderApp } from '../test/render';
+
+function confirmedDay(): typeof openDay & {
+  myParticipation: {
+    id: string;
+    cityId: string;
+    dayId: string;
+    volunteerId: string;
+    status: 'confirmed';
+    respondedAt: string;
+    cancelReason: null;
+  };
+} {
+  return {
+    ...openDay,
+    myParticipation: {
+      id: '44444444-4444-4444-8444-444444444444',
+      cityId: CITY_A_ID,
+      dayId: DAY_ID,
+      volunteerId: volunteerUser().id,
+      status: 'confirmed',
+      respondedAt: '2026-10-29T10:00:00.000Z',
+      cancelReason: null,
+    },
+  };
+}
 
 describe('VolunteerDayPage', () => {
   beforeEach(() => {
@@ -56,7 +83,12 @@ describe('VolunteerDayPage', () => {
     expect(await screen.findByText('Bring a folding cart')).toBeInTheDocument();
     await user.click(await screen.findByTestId('confirm-participation'));
 
+    const fireworks = await screen.findByTestId('fireworks-thank-you');
+    expect(fireworks).toHaveAttribute('data-thank-you-reason', 'confirmed');
     expect(await screen.findByTestId('confirm-thanks')).toBeInTheDocument();
+    await user.click(screen.getByTestId('thank-you-continue'));
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
+    expect(screen.getByTestId('confirm-thanks')).toBeInTheDocument();
     const respondCall = fetchMock.mock.calls.find(
       (call) =>
         String(call[0]).includes('/participations') &&
@@ -103,6 +135,7 @@ describe('VolunteerDayPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('decline-thanks')).toBeInTheDocument();
     });
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
     const respondCall = fetchMock.mock.calls.find(
       (call) =>
         String(call[0]).includes('/participations') &&
@@ -119,18 +152,7 @@ describe('VolunteerDayPage', () => {
       createDayFetchMock({
         refresh: 'ok',
         user: volunteerUser(),
-        day: {
-          ...openDay,
-          myParticipation: {
-            id: '44444444-4444-4444-8444-444444444444',
-            cityId: CITY_A_ID,
-            dayId: DAY_ID,
-            volunteerId: volunteerUser().id,
-            status: 'confirmed',
-            respondedAt: '2026-10-29T10:00:00.000Z',
-            cancelReason: null,
-          },
-        },
+        day: confirmedDay(),
       })
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -141,6 +163,7 @@ describe('VolunteerDayPage', () => {
     expect(
       await screen.findByTestId('volunteer-day-deliveries')
     ).toBeInTheDocument();
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
     expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
     expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
     expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
@@ -168,18 +191,7 @@ describe('VolunteerDayPage', () => {
       createDayFetchMock({
         refresh: 'ok',
         user: volunteerUser(),
-        day: {
-          ...openDay,
-          myParticipation: {
-            id: '44444444-4444-4444-8444-444444444444',
-            cityId: CITY_A_ID,
-            dayId: DAY_ID,
-            volunteerId: volunteerUser().id,
-            status: 'confirmed',
-            respondedAt: '2026-10-29T10:00:00.000Z',
-            cancelReason: null,
-          },
-        },
+        day: confirmedDay(),
         volunteerDeliveries: [
           {
             id: '16161616-1616-4161-8161-161616161616',
@@ -241,5 +253,69 @@ describe('VolunteerDayPage', () => {
         notDeliveredReason: 'not_home',
       });
     });
+  });
+
+  it('shows fireworks thank-you after the last assigned package is delivered', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createDayFetchMock({
+          refresh: 'ok',
+          user: volunteerUser(),
+          day: confirmedDay(),
+          volunteerDeliveries: [
+            {
+              ...volunteerDeliveryRivkah,
+              status: 'picked',
+            },
+          ],
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+
+    expect(await screen.findByTestId('mark-delivered')).toBeInTheDocument();
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('mark-delivered'));
+
+    const fireworks = await screen.findByTestId('fireworks-thank-you');
+    expect(fireworks).toHaveAttribute('data-thank-you-reason', 'finished');
+    await user.click(screen.getByTestId('thank-you-continue'));
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
+  });
+
+  it('does not show fireworks thank-you when only some packages have a final status', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createDayFetchMock({
+          refresh: 'ok',
+          user: volunteerUser(),
+          day: confirmedDay(),
+          volunteerDeliveries: [
+            {
+              ...volunteerDeliveryRivkah,
+              status: 'picked',
+            },
+            volunteerDeliveryYosef,
+          ],
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+
+    expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+    await user.click(screen.getByTestId('mark-delivered'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Rivkah Levi')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
   });
 });

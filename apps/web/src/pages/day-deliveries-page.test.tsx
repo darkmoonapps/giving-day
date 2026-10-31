@@ -13,6 +13,8 @@ import {
   coordinatorUser,
   createDayFetchMock,
   openDay,
+  volunteerDeliveryRivkah,
+  volunteerDeliveryYosef,
   volunteerUser,
 } from '../test/distribution-day-fixtures';
 import { renderApp } from '../test/render';
@@ -65,6 +67,92 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByText('+972506666666')).toBeInTheDocument();
       expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
       expect(screen.queryByTestId('assign-delivery')).not.toBeInTheDocument();
+    });
+
+    it('shows fireworks thank-you after the last assigned package is delivered', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: volunteerUser(),
+            day: {
+              ...openDay,
+              myParticipation: {
+                id: '44444444-4444-4444-8444-444444444444',
+                cityId: CITY_A_ID,
+                dayId: DAY_ID,
+                volunteerId: volunteerUser().id,
+                status: 'confirmed',
+                respondedAt: '2026-10-29T10:00:00.000Z',
+                cancelReason: null,
+              },
+            },
+            volunteerDeliveries: [
+              {
+                ...volunteerDeliveryRivkah,
+                status: 'picked',
+              },
+            ],
+          })
+        )
+      );
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(await screen.findByTestId('mark-delivered')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('fireworks-thank-you')
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('mark-delivered'));
+
+      const fireworks = await screen.findByTestId('fireworks-thank-you');
+      expect(fireworks).toHaveAttribute('data-thank-you-reason', 'finished');
+    });
+
+    it('does not show fireworks thank-you for a partial delivery update', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: volunteerUser(),
+            day: {
+              ...openDay,
+              myParticipation: {
+                id: '44444444-4444-4444-8444-444444444444',
+                cityId: CITY_A_ID,
+                dayId: DAY_ID,
+                volunteerId: volunteerUser().id,
+                status: 'confirmed',
+                respondedAt: '2026-10-29T10:00:00.000Z',
+                cancelReason: null,
+              },
+            },
+            volunteerDeliveries: [
+              {
+                ...volunteerDeliveryRivkah,
+                status: 'picked',
+              },
+              volunteerDeliveryYosef,
+            ],
+          })
+        )
+      );
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+      await user.click(screen.getByTestId('mark-delivered'));
+      await waitFor(() => {
+        expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('fireworks-thank-you')
+      ).not.toBeInTheDocument();
     });
 
     it('asks the volunteer to confirm before showing elders', async () => {

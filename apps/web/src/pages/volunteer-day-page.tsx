@@ -22,6 +22,7 @@ import {
 import { useLanguage } from '../i18n/use-language';
 import { VolunteerAssignedDeliveries } from '../deliveries/volunteer-assigned-deliveries';
 import { AppChrome } from '../layout/app-chrome';
+import { ThankYouScreen } from '../thank-you/thank-you-screen';
 
 type VolunteerView = 'choose' | 'decline' | 'confirmed' | 'declined' | 'closed';
 
@@ -53,6 +54,7 @@ export function VolunteerDayPage(): JSX.Element {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [respondError, setRespondError] = useState(false);
+  const [showConfirmThanks, setShowConfirmThanks] = useState(false);
 
   const dayQuery = useGetDistributionDay(cityId ?? '', dayId ?? '', {
     query: { enabled: validIds },
@@ -85,6 +87,7 @@ export function VolunteerDayPage(): JSX.Element {
       {
         onSuccess: () => {
           setViewOverride('confirmed');
+          setShowConfirmThanks(true);
         },
       }
     );
@@ -128,6 +131,14 @@ export function VolunteerDayPage(): JSX.Element {
         </AppButton>
       }
     >
+      {showConfirmThanks ? (
+        <ThankYouScreen
+          reason="confirmed"
+          onDismiss={() => {
+            setShowConfirmThanks(false);
+          }}
+        />
+      ) : null}
       <Stack gap="lg" component="section" data-testid="volunteer-day-page">
         {!validIds || dayQuery.isError ? (
           <AppAlert color="red" title={tCommon('error.unexpected_title')}>
