@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DeliveryElder } from '@giving-day/shared';
 import {
   elderToChangeRequestForm,
+  emptyChangeRequestContact,
   parseChangeRequestForm,
   withPrimaryChangeRequestContact,
 } from './change-request-form';
@@ -98,6 +99,28 @@ describe('parseChangeRequestForm', () => {
         isPrimary: true,
       },
     ]);
+  });
+
+  it('attaches contact errors to the original row when a blank row comes first', () => {
+    const values = elderToChangeRequestForm(rivkah);
+    values.contacts = [
+      emptyChangeRequestContact(),
+      {
+        name: 'Dana Levi',
+        relation: 'child',
+        phone: 'not-a-holon-phone',
+        isPrimary: true,
+      },
+    ];
+
+    const parsed = parseChangeRequestForm(rivkah, values);
+
+    expect(parsed.success).toBe(false);
+    if (parsed.success) {
+      return;
+    }
+    expect(parsed.errors.contacts?.[0]).toBeUndefined();
+    expect(parsed.errors.contacts?.[1]).toEqual({ phone: 'phone_e164' });
   });
 
   it('keeps only one primary next-of-kin contact', () => {

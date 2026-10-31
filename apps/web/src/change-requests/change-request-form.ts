@@ -90,13 +90,8 @@ function issueMessage(message: string): string {
   return 'required';
 }
 
-function filledContacts(
-  contacts: ChangeRequestContactFormValue[]
-): ChangeRequestContactFormValue[] {
-  return contacts.filter(
-    (contact) =>
-      contact.name.trim().length > 0 || contact.phone.trim().length > 0
-  );
+function isFilledContact(contact: ChangeRequestContactFormValue): boolean {
+  return contact.name.trim().length > 0 || contact.phone.trim().length > 0;
 }
 
 function parseFormContacts(
@@ -104,11 +99,13 @@ function parseFormContacts(
 ):
   | { success: true; data: ElderContactInput[] }
   | { success: false; errors: ChangeRequestFormErrors } {
-  const filled = filledContacts(contacts);
   const parsed: ElderContactInput[] = [];
   const errors: ChangeRequestFormErrors = {};
 
-  filled.forEach((contact, index) => {
+  contacts.forEach((contact, index) => {
+    if (!isFilledContact(contact)) {
+      return;
+    }
     const result = elderContactInputSchema.safeParse(contact);
     if (result.success) {
       parsed.push(result.data);

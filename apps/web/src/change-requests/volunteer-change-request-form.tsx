@@ -12,7 +12,7 @@ import type {
 } from '@giving-day/shared';
 import { AppAlert, AppButton, AppText } from '@giving-day/ui';
 import type { TFunction } from 'i18next';
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CONTACT_RELATIONS } from '../elders/elder-form-values';
 import {
@@ -80,11 +80,13 @@ export function VolunteerChangeRequestForm({
     elderToChangeRequestForm(elder)
   );
   const [errors, setErrors] = useState<ChangeRequestFormErrors>({});
+  const [formElderId, setFormElderId] = useState(elder.id);
 
-  useEffect(() => {
+  if (formElderId !== elder.id) {
+    setFormElderId(elder.id);
     setValues(elderToChangeRequestForm(elder));
     setErrors({});
-  }, [elder]);
+  }
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
