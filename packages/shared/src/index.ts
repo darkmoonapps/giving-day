@@ -109,6 +109,16 @@ export {
   type OpenDistributionDay,
 } from './schemas/distribution-day';
 export {
+  dashboardDeliveryCountsSchema,
+  dashboardUnassignedElderSchema,
+  dashboardVolunteerCountsSchema,
+  distributionDayDashboardSchema,
+  type DashboardDeliveryCounts,
+  type DashboardUnassignedElder,
+  type DashboardVolunteerCounts,
+  type DistributionDayDashboard,
+} from './schemas/distribution-day-dashboard';
+export {
   CANCEL_REASON_MAX_LENGTH,
   dayParticipationCoordinatorRowSchema,
   dayParticipationsResponseSchema,

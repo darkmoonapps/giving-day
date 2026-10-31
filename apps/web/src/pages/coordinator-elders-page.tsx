@@ -9,7 +9,7 @@ import {
   LoadingState,
 } from '@giving-day/ui';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   useCreateCityElder,
   useDeactivateCityElder,
@@ -45,6 +45,7 @@ function elderAddress(elder: ElderResponseDto): string {
 
 export function CoordinatorEldersPage(): JSX.Element {
   const { cityId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSession();
   const { t } = useTranslation('admin');
@@ -53,8 +54,11 @@ export function CoordinatorEldersPage(): JSX.Element {
   const coordinatorCities =
     user === null ? [] : getActiveCoordinatorCities(user);
   const allowed = validId && coordinatorCities.includes(cityId ?? '');
+  const focusedElderId = searchParams.get('elderId') ?? undefined;
   const [showInactive, setShowInactive] = useState(false);
-  const [editingElderId, setEditingElderId] = useState<string | null>(null);
+  const [editingElderId, setEditingElderId] = useState<string | null>(
+    isUuid(focusedElderId) ? focusedElderId : null
+  );
   const [confirmingElderId, setConfirmingElderId] = useState<string | null>(
     null
   );

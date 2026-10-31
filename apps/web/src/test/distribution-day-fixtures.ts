@@ -170,6 +170,35 @@ export const coordinatorDeliveryUnmatched = {
   },
 };
 
+export const holonDayDashboard = {
+  dayId: DAY_ID,
+  cityId: CITY_A_ID,
+  date: '2026-11-15',
+  startTime: '09:00:00',
+  endTime: '14:00:00',
+  status: 'published' as const,
+  volunteers: {
+    total: 3,
+    confirmed: 1,
+    pending: 1,
+    declined: 1,
+  },
+  deliveries: {
+    unassigned: 1,
+    assigned: 1,
+    picked: 0,
+    delivered: 0,
+    notDelivered: 0,
+    cancelled: 0,
+  },
+  unassignedElders: [
+    {
+      elderId: '13131313-1313-4131-8131-131313131313',
+      fullName: 'Yosef Abraham',
+    },
+  ],
+};
+
 export interface DayFetchStub extends AuthFetchStub {
   day?: typeof openDay;
   listDays?: Array<typeof openDay>;
@@ -206,6 +235,7 @@ export interface DayFetchStub extends AuthFetchStub {
   changeRequests?: unknown[];
   createChangeRequest?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
+  dashboard?: typeof holonDayDashboard | 'error';
 }
 
 export function createDayFetchMock(
@@ -358,6 +388,18 @@ export function createDayFetchMock(
         myParticipation: participation as typeof currentDay.myParticipation,
       };
       return mockJsonResponse(participation);
+    }
+
+    if (
+      method === 'GET' &&
+      url.includes(
+        `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/dashboard`
+      )
+    ) {
+      if (options.dashboard === 'error') {
+        return mockJsonResponse({ message: 'error' }, 500);
+      }
+      return mockJsonResponse(options.dashboard ?? holonDayDashboard);
     }
 
     if (

@@ -567,4 +567,117 @@ describe('Distribution days HTTP authorization', () => {
         .expect(404);
     });
   });
+
+  describe('GET /api/cities/:cityId/distribution-days/:dayId/dashboard', () => {
+    it('lets a coordinator read day overview counts', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.cityMembership.findMany.mockResolvedValue([
+        { userId: volunteerA().id },
+        { userId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+        { userId: '99999999-9999-4999-8999-999999999999' },
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        {
+          volunteerId: volunteerA().id,
+          status: 'confirmed',
+        },
+        {
+          volunteerId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          status: 'declined',
+        },
+      ]);
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        {
+          status: 'assigned',
+          volunteerId: volunteerA().id,
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+          },
+        },
+        {
+          status: 'unassigned',
+          volunteerId: null,
+          elder: {
+            id: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+          },
+        },
+        {
+          status: 'picked',
+          volunteerId: volunteerA().id,
+          elder: {
+            id: '19191919-1919-4191-8191-191919191919',
+            fullName: 'Miriam Cohen',
+          },
+        },
+        {
+          status: 'delivered',
+          volunteerId: volunteerA().id,
+          elder: {
+            id: '20202020-2020-4202-8202-202020202020',
+            fullName: 'Sarah Mizrahi',
+          },
+        },
+        {
+          status: 'not_delivered',
+          volunteerId: volunteerA().id,
+          elder: {
+            id: '21212121-2121-4212-8212-212121212121',
+            fullName: 'David Cohen',
+          },
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/dashboard`
+        )
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        dayId: publishedDay.id,
+        cityId: CITY_A_ID,
+        date: '2026-11-15',
+        volunteers: {
+          total: 3,
+          confirmed: 1,
+          pending: 1,
+          declined: 1,
+        },
+        deliveries: {
+          unassigned: 1,
+          assigned: 1,
+          picked: 1,
+          delivered: 1,
+          notDelivered: 1,
+          cancelled: 0,
+        },
+        unassignedElders: [
+          {
+            elderId: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+          },
+        ],
+      });
+    });
+
+    it('forbids a volunteer from reading the dashboard', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/dashboard`
+        )
+        .expect(403);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      currentUser = coordinatorB();
+      await request(app.getHttpServer())
+        .get(
+          `/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}/dashboard`
+        )
+        .expect(404);
+    });
+  });
 });

@@ -908,6 +908,52 @@
         ]
       }
     },
+    "/api/cities/{cityId}/distribution-days/{dayId}/dashboard": {
+      "get": {
+        "operationId": "getDistributionDayDashboard",
+        "parameters": [
+          {
+            "name": "dayId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionDayDashboardDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read-only coordinator overview for a distribution day (counts, coverage, delivery progress)",
+        "tags": [
+          "distribution-days"
+        ]
+      }
+    },
     "/api/cities/{cityId}/distribution-days/{dayId}/participations": {
       "get": {
         "operationId": "listDayParticipations",
@@ -2644,6 +2690,149 @@
         },
         "required": [
           "days"
+        ]
+      },
+      "DashboardVolunteerCountsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 3
+          },
+          "confirmed": {
+            "type": "number",
+            "example": 1
+          },
+          "pending": {
+            "type": "number",
+            "example": 1
+          },
+          "declined": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "total",
+          "confirmed",
+          "pending",
+          "declined"
+        ]
+      },
+      "DashboardDeliveryCountsDto": {
+        "type": "object",
+        "properties": {
+          "unassigned": {
+            "type": "number",
+            "example": 1
+          },
+          "assigned": {
+            "type": "number",
+            "example": 1
+          },
+          "picked": {
+            "type": "number",
+            "example": 0
+          },
+          "delivered": {
+            "type": "number",
+            "example": 0
+          },
+          "notDelivered": {
+            "type": "number",
+            "example": 0
+          },
+          "cancelled": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "unassigned",
+          "assigned",
+          "picked",
+          "delivered",
+          "notDelivered",
+          "cancelled"
+        ]
+      },
+      "DashboardUnassignedElderDto": {
+        "type": "object",
+        "properties": {
+          "elderId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "13131313-1313-4131-8131-131313131313"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "Yosef Abraham"
+          }
+        },
+        "required": [
+          "elderId",
+          "fullName"
+        ]
+      },
+      "DistributionDayDashboardDto": {
+        "type": "object",
+        "properties": {
+          "dayId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "33333333-3333-4333-8333-333333333333"
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-11-15"
+          },
+          "startTime": {
+            "type": "string",
+            "example": "09:00:00"
+          },
+          "endTime": {
+            "type": "string",
+            "example": "14:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "in_progress",
+              "closed",
+              "cancelled"
+            ],
+            "example": "published"
+          },
+          "volunteers": {
+            "$ref": "#/components/schemas/DashboardVolunteerCountsDto"
+          },
+          "deliveries": {
+            "$ref": "#/components/schemas/DashboardDeliveryCountsDto"
+          },
+          "unassignedElders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardUnassignedElderDto"
+            }
+          }
+        },
+        "required": [
+          "dayId",
+          "cityId",
+          "date",
+          "startTime",
+          "endTime",
+          "status",
+          "volunteers",
+          "deliveries",
+          "unassignedElders"
         ]
       },
       "DayParticipationCoordinatorRowDto": {

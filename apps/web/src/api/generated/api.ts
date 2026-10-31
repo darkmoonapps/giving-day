@@ -371,6 +371,51 @@ export interface DistributionDaysResponseDto {
   days: DistributionDayResponseDto[];
 }
 
+export interface DashboardVolunteerCountsDto {
+  total: number;
+  confirmed: number;
+  pending: number;
+  declined: number;
+}
+
+export interface DashboardDeliveryCountsDto {
+  unassigned: number;
+  assigned: number;
+  picked: number;
+  delivered: number;
+  notDelivered: number;
+  cancelled: number;
+}
+
+export interface DashboardUnassignedElderDto {
+  elderId: string;
+  fullName: string;
+}
+
+export type DistributionDayDashboardDtoStatus = typeof DistributionDayDashboardDtoStatus[keyof typeof DistributionDayDashboardDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DistributionDayDashboardDtoStatus = {
+  draft: 'draft',
+  published: 'published',
+  in_progress: 'in_progress',
+  closed: 'closed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface DistributionDayDashboardDto {
+  dayId: string;
+  cityId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: DistributionDayDashboardDtoStatus;
+  volunteers: DashboardVolunteerCountsDto;
+  deliveries: DashboardDeliveryCountsDto;
+  unassignedElders: DashboardUnassignedElderDto[];
+}
+
 export type DayParticipationCoordinatorRowDtoResponseStatus = typeof DayParticipationCoordinatorRowDtoResponseStatus[keyof typeof DayParticipationCoordinatorRowDtoResponseStatus];
 
 
@@ -3596,6 +3641,115 @@ export const useCloseDistributionDay = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary Read-only coordinator overview for a distribution day (counts, coverage, delivery progress)
+ */
+export const getGetDistributionDayDashboardUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/dashboard`
+}
+
+export const getDistributionDayDashboard = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<DistributionDayDashboardDto> => {
+  
+  return apiFetch<DistributionDayDashboardDto>(getGetDistributionDayDashboardUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetDistributionDayDashboardQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}/dashboard`
+    ] as const;
+    }
+
+    
+export const getGetDistributionDayDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDistributionDayDashboardQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDistributionDayDashboard>>> = ({ signal }) => getDistributionDayDashboard(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDistributionDayDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getDistributionDayDashboard>>>
+export type GetDistributionDayDashboardQueryError = unknown
+
+
+export function useGetDistributionDayDashboard<TData = Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDistributionDayDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getDistributionDayDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDistributionDayDashboard<TData = Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDistributionDayDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getDistributionDayDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDistributionDayDashboard<TData = Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read-only coordinator overview for a distribution day (counts, coverage, delivery progress)
+ */
+
+export function useGetDistributionDayDashboard<TData = Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionDayDashboard>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDistributionDayDashboardQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary List each active volunteer's response for a distribution day (coordinators)
  */

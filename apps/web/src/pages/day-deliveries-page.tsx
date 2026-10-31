@@ -8,7 +8,7 @@ import {
   LoadingState,
 } from '@giving-day/ui';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   useAssignDayDelivery,
   useGetDistributionDay,
@@ -17,6 +17,10 @@ import {
   type DeliveryVolunteerDto,
 } from '../api/generated/api';
 import { CoordinatorDeliveriesTable } from '../deliveries/coordinator-deliveries-table';
+import {
+  EMPTY_DELIVERY_FILTERS,
+  UNASSIGNED_FILTER,
+} from '../deliveries/delivery-list-query';
 import { VolunteerAssignedDeliveries } from '../deliveries/volunteer-assigned-deliveries';
 import {
   formatDayHours,
@@ -42,9 +46,11 @@ function isCoordinatorDeliveries(
 function CoordinatorDeliveries({
   cityId,
   dayId,
+  needsVolunteer,
 }: {
   cityId: string;
   dayId: string;
+  needsVolunteer: boolean;
 }): JSX.Element {
   const { language } = useLanguage();
   const { t } = useTranslation('admin');
@@ -111,6 +117,11 @@ function CoordinatorDeliveries({
               assignableVolunteers={coordinatorPayload.assignableVolunteers}
               unassignedCount={coordinatorPayload.unassignedCount}
               assignPending={assignMutation.isPending}
+              initialFilters={
+                needsVolunteer
+                  ? { ...EMPTY_DELIVERY_FILTERS, status: UNASSIGNED_FILTER }
+                  : EMPTY_DELIVERY_FILTERS
+              }
               onAssign={(deliveryId, volunteerId) => {
                 assignMutation.mutate({
                   cityId,
@@ -181,10 +192,12 @@ function VolunteerDeliveries({
 
 export function DayDeliveriesPage(): JSX.Element {
   const { cityId, dayId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t: tCommon } = useTranslation('common');
   const { user } = useSession();
   const validIds = isUuid(cityId) && isUuid(dayId);
+  const needsVolunteer = searchParams.get('needsVolunteer') === '1';
   const isCoordinator =
     user !== null &&
     cityId !== undefined &&
@@ -209,7 +222,11 @@ export function DayDeliveriesPage(): JSX.Element {
           {tCommon('error.unexpected_body')}
         </AppAlert>
       ) : isCoordinator ? (
-        <CoordinatorDeliveries cityId={cityId} dayId={dayId} />
+        <CoordinatorDeliveries
+          cityId={cityId}
+          dayId={dayId}
+          needsVolunteer={needsVolunteer}
+        />
       ) : (
         <VolunteerDeliveries cityId={cityId} dayId={dayId} />
       )}

@@ -370,6 +370,34 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByTestId('deliveries-filter-empty')).toBeInTheDocument();
     });
 
+    it('opens the needs-a-volunteer filter from the dashboard query', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: coordinatorUser(),
+            coordinatorDeliveries: [
+              coordinatorDeliveryRivkah,
+              coordinatorDeliveryUnassigned,
+              coordinatorDeliveryUnmatched,
+            ],
+          })
+        )
+      );
+
+      renderApp(
+        `/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries?needsVolunteer=1`
+      );
+
+      expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-status')).toHaveValue('unassigned');
+      expect(screen.getByTestId('deliveries-filter-count')).toHaveTextContent(
+        'מוצגים 2 מתוך 3'
+      );
+      expect(screen.queryByText('Rivkah Levi')).not.toBeInTheDocument();
+    });
+
     it('shows a not-delivered note next to the delivery status', async () => {
       vi.stubGlobal(
         'fetch',

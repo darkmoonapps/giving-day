@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { CitySettingsPage } from '../pages/city-settings-page';
 import { CoordinatorChangeRequestsPage } from '../pages/coordinator-change-requests-page';
+import { CoordinatorDayDashboardPage } from '../pages/coordinator-day-dashboard-page';
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
@@ -48,6 +49,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <VolunteerDayPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/days/:dayId/dashboard"
+        element={
+          <ProtectedRoute>
+            <CoordinatorDayDashboardPage />
           </ProtectedRoute>
         }
       />

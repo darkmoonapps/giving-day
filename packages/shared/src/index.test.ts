@@ -11,6 +11,7 @@ import {
   healthResponseSchema,
   languageCodeSchema,
   normalizePhoneToE164,
+  distributionDayDashboardSchema,
   openDistributionDaySchema,
   parseDateOnly,
   respondToDistributionDaySchema,
@@ -48,6 +49,26 @@ describe('shared public exports', () => {
     expect(openDistributionDaySchema.parse({ date: '2026-11-15' }).date).toBe(
       '2026-11-15'
     );
+    expect(
+      distributionDayDashboardSchema.parse({
+        dayId: '33333333-3333-4333-8333-333333333333',
+        cityId: '11111111-1111-4111-8111-111111111111',
+        date: '2026-11-15',
+        startTime: '09:00:00',
+        endTime: '14:00:00',
+        status: 'published',
+        volunteers: { total: 1, confirmed: 1, pending: 0, declined: 0 },
+        deliveries: {
+          unassigned: 0,
+          assigned: 1,
+          picked: 0,
+          delivered: 0,
+          notDelivered: 0,
+          cancelled: 0,
+        },
+        unassignedElders: [],
+      }).volunteers.total
+    ).toBe(1);
     expect(
       respondToDistributionDaySchema.parse({
         status: 'declined',

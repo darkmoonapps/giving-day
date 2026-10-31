@@ -45,12 +45,14 @@ export function CoordinatorDeliveriesTable({
   assignableVolunteers,
   unassignedCount,
   assignPending,
+  initialFilters = EMPTY_DELIVERY_FILTERS,
   onAssign,
 }: {
   deliveries: DeliveryResponseDto[];
   assignableVolunteers: DeliveryVolunteerDto[];
   unassignedCount: number;
   assignPending: boolean;
+  initialFilters?: DeliveryListFilters;
   onAssign: (deliveryId: string, volunteerId: string | null) => void;
 }): JSX.Element {
   const { language } = useLanguage();
@@ -59,9 +61,7 @@ export function CoordinatorDeliveriesTable({
     column: null,
     direction: 'asc',
   });
-  const [filters, setFilters] = useState<DeliveryListFilters>(
-    EMPTY_DELIVERY_FILTERS
-  );
+  const [filters, setFilters] = useState<DeliveryListFilters>(initialFilters);
   const labels = useMemo<DeliveryListLabels>(
     () => ({
       locale: language,
