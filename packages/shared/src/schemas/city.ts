@@ -90,6 +90,44 @@ export const addCityCoordinatorSchema = z
     message: 'cities.user_id_or_email_required',
   });
 
+export const redeemJoinLinkRequestSchema = z.object({
+  token: z.string().trim().min(1).max(128),
+});
+
+export const redeemJoinLinkResultSchema = z.enum(['pending', 'already_active']);
+
+export const redeemedCityMembershipSchema = z.object({
+  membershipId: z.string().uuid(),
+  cityId: z.string().uuid(),
+  citySlug: z.string().min(1),
+  cityNameHe: z.string().min(1),
+  cityNameEn: z.string().min(1),
+  role: cityRoleSchema,
+  status: membershipStatusSchema,
+});
+
+export const redeemJoinLinkResponseSchema = z.object({
+  result: redeemJoinLinkResultSchema,
+  membership: redeemedCityMembershipSchema,
+});
+
+export const cityMembershipRecordSchema = z.object({
+  membershipId: z.string().uuid(),
+  userId: z.string().uuid(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  role: cityRoleSchema,
+  status: membershipStatusSchema,
+  createdAt: z.string().datetime(),
+  approvedAt: z.string().datetime().nullable(),
+});
+
+export const cityPendingMembershipsResponseSchema = z.object({
+  memberships: z.array(cityMembershipRecordSchema),
+});
+
 export type CityRole = z.infer<typeof cityRoleSchema>;
 export type MembershipStatus = z.infer<typeof membershipStatusSchema>;
 export type Locale = z.infer<typeof localeSchema>;
@@ -103,4 +141,16 @@ export type CityCoordinatorsResponse = z.infer<
   typeof cityCoordinatorsResponseSchema
 >;
 export type AddCityCoordinator = z.infer<typeof addCityCoordinatorSchema>;
+export type RedeemJoinLinkRequest = z.infer<typeof redeemJoinLinkRequestSchema>;
+export type RedeemJoinLinkResult = z.infer<typeof redeemJoinLinkResultSchema>;
+export type RedeemedCityMembership = z.infer<
+  typeof redeemedCityMembershipSchema
+>;
+export type RedeemJoinLinkResponse = z.infer<
+  typeof redeemJoinLinkResponseSchema
+>;
+export type CityMembershipRecord = z.infer<typeof cityMembershipRecordSchema>;
+export type CityPendingMembershipsResponse = z.infer<
+  typeof cityPendingMembershipsResponseSchema
+>;
 export type HttpsUrl = z.infer<typeof httpsUrlSchema>;

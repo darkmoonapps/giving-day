@@ -27,6 +27,8 @@ import type {
   CityCoordinatorsResponse,
   CityJoinLinkCreated,
   CityJoinLinksResponse,
+  CityMembershipRecord,
+  CityPendingMembershipsResponse,
   CitySettings,
 } from '@giving-day/shared';
 import type { UserWithMemberships } from '../abilities/ability.factory';
@@ -45,6 +47,10 @@ import {
   CityJoinLinksResponseDto,
 } from './dto/join-link-response.dto';
 import { CitySettingsResponseDto } from './dto/city-settings-response.dto';
+import {
+  CityMembershipRecordDto,
+  CityPendingMembershipsResponseDto,
+} from './dto/membership-response.dto';
 import { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
 
 @ApiTags('cities')
@@ -169,5 +175,57 @@ export class CitiesController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<void> {
     await this.citiesService.removeCoordinator(cityId, userId, user);
+  }
+
+  @Get(':cityId/memberships/pending')
+  @RequireAbilities({ action: 'read', subject: 'CityMembership' })
+  @ApiOperation({
+    operationId: 'listPendingCityMemberships',
+    summary:
+      'List pending join-link memberships waiting for coordinator approval',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: CityPendingMembershipsResponseDto })
+  async listPendingMemberships(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<CityPendingMembershipsResponse> {
+    return this.citiesService.listPendingMemberships(cityId, user);
+  }
+
+  @Post(':cityId/memberships/:membershipId/approve')
+  @HttpCode(HttpStatus.OK)
+  @RequireAbilities({ action: 'approve', subject: 'CityMembership' })
+  @ApiOperation({
+    operationId: 'approveCityMembership',
+    summary: 'Approve a pending city membership (one tap; grants city access)',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'membershipId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: CityMembershipRecordDto })
+  async approveMembership(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('membershipId', ParseUUIDPipe) membershipId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<CityMembershipRecord> {
+    return this.citiesService.approveMembership(cityId, membershipId, user);
+  }
+
+  @Post(':cityId/memberships/:membershipId/reject')
+  @HttpCode(HttpStatus.OK)
+  @RequireAbilities({ action: 'reject', subject: 'CityMembership' })
+  @ApiOperation({
+    operationId: 'rejectCityMembership',
+    summary: 'Reject a pending city membership (does not grant city access)',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'membershipId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: CityMembershipRecordDto })
+  async rejectMembership(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('membershipId', ParseUUIDPipe) membershipId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<CityMembershipRecord> {
+    return this.citiesService.rejectMembership(cityId, membershipId, user);
   }
 }

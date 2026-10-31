@@ -10,6 +10,8 @@ export const VOLUNTEER_A_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 export const VOLUNTEER_B_ID = '99999999-9999-4999-8999-999999999999';
 export const SUPER_ADMIN_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 export const COORDINATOR_B_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+export const APPLICANT_ID = '12121212-1212-4121-8121-121212121212';
+export const NOT_ONBOARDED_ID = '13131313-1313-4131-8131-131313131313';
 
 function membership(
   overrides: Partial<CityMembership> &
@@ -151,5 +153,28 @@ export function pendingVolunteer(): UserWithMemberships {
         approvedAt: null,
       }),
     ],
+  });
+}
+
+export function onboardedApplicant(): UserWithMemberships {
+  return user({
+    id: APPLICANT_ID,
+    firstName: 'Tamar',
+    lastName: 'Shalev',
+    email: 'tamar.shalev@example.com',
+    phone: '+972506666666',
+    memberships: [],
+  });
+}
+
+export function notOnboardedUser(): UserWithMemberships {
+  return user({
+    id: NOT_ONBOARDED_ID,
+    firstName: null,
+    lastName: null,
+    phone: null,
+    email: 'new.user@example.com',
+    onboardedAt: null,
+    memberships: [],
   });
 }

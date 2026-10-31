@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,11 +10,14 @@ import { AbilityFactory } from '../abilities/ability.factory';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  APPLICANT_ID,
   CITY_A_ID,
   CITY_B_ID,
   COORDINATOR_A_ID,
   coordinatorA,
   coordinatorB,
+  notOnboardedUser,
+  onboardedApplicant,
   pendingVolunteer,
   superAdmin,
   volunteerA,
@@ -63,11 +67,13 @@ describe('CitiesService', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       updateMany: vi.fn(),
+      update: vi.fn(),
       create: vi.fn(),
     },
     cityMembership: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
@@ -306,6 +312,18 @@ describe('CitiesService', () => {
       ).resolves.toBeNull();
     });
 
+    it('does not look up an invite that has reached maxUses', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue({
+        ...invite,
+        maxUses: 1,
+        usedCount: 1,
+      });
+
+      await expect(
+        service.findActiveInviteByRawToken('fake-join-token')
+      ).resolves.toBeNull();
+    });
+
     it('forbids volunteers from reading or rotating links', async () => {
       await expect(
         service.listJoinLinks(CITY_A_ID, volunteerA())
@@ -502,6 +520,325 @@ describe('CitiesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('join-link redemption and approval', () => {
+    const holonCity = {
+      ...city,
+      isActive: true,
+    };
+
+    const volunteerInvite = {
+      id: 'invite-volunteer',
+      cityId: CITY_A_ID,
+      role: 'volunteer' as const,
+      tokenHash: hashJoinToken('fake-join-token'),
+      createdById: COORDINATOR_A_ID,
+      expiresAt: null,
+      maxUses: null,
+      usedCount: 0,
+      revokedAt: null,
+      createdAt: new Date('2026-10-01T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T09:00:00.000Z'),
+    };
+
+    const pendingMembership = {
+      id: '99999999-9999-4999-8999-999999999999',
+      cityId: CITY_A_ID,
+      userId: APPLICANT_ID,
+      role: 'volunteer' as const,
+      status: 'pending' as const,
+      inviteId: volunteerInvite.id,
+      approvedById: null,
+      approvedAt: null,
+      homeArea: null,
+      coordinatorNotes: null,
+      createdAt: new Date('2026-10-28T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-28T09:00:00.000Z'),
+      user: {
+        id: APPLICANT_ID,
+        firstName: 'Tamar',
+        lastName: 'Shalev',
+        email: 'tamar.shalev@example.com',
+        phone: '+972506666666',
+        archivedAt: null,
+      },
+    };
+
+    it('creates a pending membership and never grants access from the link alone', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue(null);
+      mockPrisma.cityMembership.create.mockResolvedValue(pendingMembership);
+      mockPrisma.cityInvite.update.mockResolvedValue({
+        ...volunteerInvite,
+        usedCount: 1,
+      });
+
+      const result = await service.redeemJoinLink(
+        'fake-join-token',
+        onboardedApplicant()
+      );
+
+      expect(result).toEqual({
+        result: 'pending',
+        membership: {
+          membershipId: pendingMembership.id,
+          cityId: CITY_A_ID,
+          citySlug: 'holon',
+          cityNameHe: 'חולון',
+          cityNameEn: 'Holon',
+          role: 'volunteer',
+          status: 'pending',
+        },
+      });
+      expect(mockPrisma.cityMembership.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          status: 'pending',
+          role: 'volunteer',
+          inviteId: volunteerInvite.id,
+        }),
+      });
+      expect(mockPrisma.cityInvite.update).toHaveBeenCalledWith({
+        where: { id: volunteerInvite.id },
+        data: { usedCount: { increment: 1 } },
+      });
+    });
+
+    it('returns the existing pending membership without incrementing usedCount', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue(pendingMembership);
+
+      const result = await service.redeemJoinLink(
+        'fake-join-token',
+        onboardedApplicant()
+      );
+
+      expect(result.result).toBe('pending');
+      expect(result.membership.status).toBe('pending');
+      expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
+      expect(mockPrisma.cityInvite.update).not.toHaveBeenCalled();
+    });
+
+    it('returns already_active for a member who already has access', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue({
+        ...pendingMembership,
+        userId: COORDINATOR_A_ID,
+        role: 'coordinator',
+        status: 'active',
+        approvedAt: new Date('2026-10-01T09:00:00.000Z'),
+      });
+
+      const result = await service.redeemJoinLink(
+        'fake-join-token',
+        coordinatorA()
+      );
+
+      expect(result.result).toBe('already_active');
+      expect(result.membership.status).toBe('active');
+      expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
+      expect(mockPrisma.cityInvite.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects revoked and unknown tokens', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue({
+        ...volunteerInvite,
+        revokedAt: new Date('2026-10-02T09:00:00.000Z'),
+      });
+
+      await expect(
+        service.redeemJoinLink('fake-join-token', onboardedApplicant())
+      ).rejects.toMatchObject({
+        constructor: NotFoundException,
+        message: 'cities.invalid_join_token',
+      });
+
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(null);
+      await expect(
+        service.redeemJoinLink('unknown-token', onboardedApplicant())
+      ).rejects.toMatchObject({ message: 'cities.invalid_join_token' });
+    });
+
+    it('rejects a user who has not finished onboarding', async () => {
+      await expect(
+        service.redeemJoinLink('fake-join-token', notOnboardedUser())
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockPrisma.cityInvite.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('reopens a removed membership as pending', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(volunteerInvite);
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findUnique.mockResolvedValue({
+        ...pendingMembership,
+        status: 'removed',
+      });
+      mockPrisma.cityMembership.update.mockResolvedValue(pendingMembership);
+      mockPrisma.cityInvite.update.mockResolvedValue({
+        ...volunteerInvite,
+        usedCount: 1,
+      });
+
+      const result = await service.redeemJoinLink(
+        'fake-join-token',
+        onboardedApplicant()
+      );
+
+      expect(result.result).toBe('pending');
+      expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
+        where: { id: pendingMembership.id },
+        data: expect.objectContaining({
+          status: 'pending',
+          approvedById: null,
+          approvedAt: null,
+        }),
+      });
+      expect(mockPrisma.cityInvite.update).toHaveBeenCalled();
+    });
+
+    it('lists pending memberships for a city coordinator', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findMany.mockResolvedValue([pendingMembership]);
+
+      const result = await service.listPendingMemberships(
+        CITY_A_ID,
+        coordinatorA()
+      );
+
+      expect(result.memberships).toHaveLength(1);
+      expect(result.memberships[0]?.firstName).toBe('Tamar');
+      expect(result.memberships[0]?.status).toBe('pending');
+      expect(JSON.stringify(result)).not.toContain('fake-join-token');
+    });
+
+    it('approves a pending membership without granting access from the link alone', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findFirst.mockResolvedValue(pendingMembership);
+      mockPrisma.cityMembership.update.mockResolvedValue({
+        ...pendingMembership,
+        status: 'active',
+        approvedById: COORDINATOR_A_ID,
+        approvedAt: new Date('2026-10-28T10:00:00.000Z'),
+      });
+
+      const result = await service.approveMembership(
+        CITY_A_ID,
+        pendingMembership.id,
+        coordinatorA()
+      );
+
+      expect(result.status).toBe('active');
+      expect(result.approvedAt).toBe('2026-10-28T10:00:00.000Z');
+      expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
+        where: { id: pendingMembership.id },
+        data: expect.objectContaining({
+          status: 'active',
+          approvedById: COORDINATOR_A_ID,
+        }),
+        include: expect.any(Object),
+      });
+    });
+
+    it('rejects a pending membership so the leaked link still grants no access', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findFirst.mockResolvedValue(pendingMembership);
+      mockPrisma.cityMembership.update.mockResolvedValue({
+        ...pendingMembership,
+        status: 'removed',
+      });
+
+      const result = await service.rejectMembership(
+        CITY_A_ID,
+        pendingMembership.id,
+        coordinatorA()
+      );
+
+      expect(result.status).toBe('removed');
+      expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
+        where: { id: pendingMembership.id },
+        data: {
+          status: 'removed',
+          approvedById: null,
+          approvedAt: null,
+        },
+        include: expect.any(Object),
+      });
+    });
+
+    it('refuses to approve a membership that is not pending', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findFirst.mockResolvedValue({
+        ...pendingMembership,
+        status: 'active',
+      });
+
+      await expect(
+        service.approveMembership(
+          CITY_A_ID,
+          pendingMembership.id,
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('forbids volunteers from listing, approving, or rejecting', async () => {
+      await expect(
+        service.listPendingMemberships(CITY_A_ID, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.approveMembership(CITY_A_ID, pendingMembership.id, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.rejectMembership(CITY_A_ID, pendingMembership.id, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      await expect(
+        service.listPendingMemberships(CITY_A_ID, coordinatorB())
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.approveMembership(
+          CITY_A_ID,
+          pendingMembership.id,
+          coordinatorB()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.rejectMembership(
+          CITY_A_ID,
+          pendingMembership.id,
+          coordinatorB()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('lets a super admin approve a pending coordinator membership', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(holonCity);
+      mockPrisma.cityMembership.findFirst.mockResolvedValue({
+        ...pendingMembership,
+        role: 'coordinator',
+      });
+      mockPrisma.cityMembership.update.mockResolvedValue({
+        ...pendingMembership,
+        role: 'coordinator',
+        status: 'active',
+        approvedById: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        approvedAt: new Date('2026-10-28T10:00:00.000Z'),
+      });
+
+      const result = await service.approveMembership(
+        CITY_A_ID,
+        pendingMembership.id,
+        superAdmin()
+      );
+
+      expect(result.status).toBe('active');
+      expect(result.role).toBe('coordinator');
     });
   });
 });

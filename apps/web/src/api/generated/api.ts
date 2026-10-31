@@ -144,6 +144,100 @@ export interface CityCoordinatorsResponseDto {
   coordinators: CityCoordinatorDto[];
 }
 
+export type CityMembershipRecordDtoRole = typeof CityMembershipRecordDtoRole[keyof typeof CityMembershipRecordDtoRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityMembershipRecordDtoRole = {
+  coordinator: 'coordinator',
+  volunteer: 'volunteer',
+} as const;
+
+export type CityMembershipRecordDtoStatus = typeof CityMembershipRecordDtoStatus[keyof typeof CityMembershipRecordDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityMembershipRecordDtoStatus = {
+  pending: 'pending',
+  active: 'active',
+  paused: 'paused',
+  removed: 'removed',
+} as const;
+
+export interface CityMembershipRecordDto {
+  membershipId: string;
+  userId: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  role: CityMembershipRecordDtoRole;
+  status: CityMembershipRecordDtoStatus;
+  createdAt: string;
+  /** @nullable */
+  approvedAt: string | null;
+}
+
+export interface CityPendingMembershipsResponseDto {
+  memberships: CityMembershipRecordDto[];
+}
+
+export interface RedeemJoinLinkDto {
+  /**
+   * @minLength 1
+   * @maxLength 128
+   */
+  token: string;
+}
+
+export type RedeemedCityMembershipDtoRole = typeof RedeemedCityMembershipDtoRole[keyof typeof RedeemedCityMembershipDtoRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const RedeemedCityMembershipDtoRole = {
+  coordinator: 'coordinator',
+  volunteer: 'volunteer',
+} as const;
+
+export type RedeemedCityMembershipDtoStatus = typeof RedeemedCityMembershipDtoStatus[keyof typeof RedeemedCityMembershipDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const RedeemedCityMembershipDtoStatus = {
+  pending: 'pending',
+  active: 'active',
+  paused: 'paused',
+  removed: 'removed',
+} as const;
+
+export interface RedeemedCityMembershipDto {
+  membershipId: string;
+  cityId: string;
+  citySlug: string;
+  cityNameHe: string;
+  cityNameEn: string;
+  role: RedeemedCityMembershipDtoRole;
+  status: RedeemedCityMembershipDtoStatus;
+}
+
+export type RedeemJoinLinkResponseDtoResult = typeof RedeemJoinLinkResponseDtoResult[keyof typeof RedeemJoinLinkResponseDtoResult];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const RedeemJoinLinkResponseDtoResult = {
+  pending: 'pending',
+  already_active: 'already_active',
+} as const;
+
+export interface RedeemJoinLinkResponseDto {
+  result: RedeemJoinLinkResponseDtoResult;
+  membership: RedeemedCityMembershipDto;
+}
+
 export interface VapidPublicKeyDto {
   /** @nullable */
   publicKey: string | null;
@@ -2115,6 +2209,325 @@ export const useRemoveCityCoordinator = <TError = unknown,
       > => {
 
       const mutationOptions = getRemoveCityCoordinatorMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List pending join-link memberships waiting for coordinator approval
+ */
+export const getListPendingCityMembershipsUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/memberships/pending`
+}
+
+export const listPendingCityMemberships = async (cityId: string, options?: RequestInit): Promise<CityPendingMembershipsResponseDto> => {
+  
+  return apiFetch<CityPendingMembershipsResponseDto>(getListPendingCityMembershipsUrl(cityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListPendingCityMembershipsQueryKey = (cityId?: string,) => {
+    return [
+    `/api/cities/${cityId}/memberships/pending`
+    ] as const;
+    }
+
+    
+export const getListPendingCityMembershipsQueryOptions = <TData = Awaited<ReturnType<typeof listPendingCityMemberships>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPendingCityMembershipsQueryKey(cityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPendingCityMemberships>>> = ({ signal }) => listPendingCityMemberships(cityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPendingCityMembershipsQueryResult = NonNullable<Awaited<ReturnType<typeof listPendingCityMemberships>>>
+export type ListPendingCityMembershipsQueryError = unknown
+
+
+export function useListPendingCityMemberships<TData = Awaited<ReturnType<typeof listPendingCityMemberships>>, TError = unknown>(
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPendingCityMemberships>>,
+          TError,
+          Awaited<ReturnType<typeof listPendingCityMemberships>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPendingCityMemberships<TData = Awaited<ReturnType<typeof listPendingCityMemberships>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPendingCityMemberships>>,
+          TError,
+          Awaited<ReturnType<typeof listPendingCityMemberships>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPendingCityMemberships<TData = Awaited<ReturnType<typeof listPendingCityMemberships>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List pending join-link memberships waiting for coordinator approval
+ */
+
+export function useListPendingCityMemberships<TData = Awaited<ReturnType<typeof listPendingCityMemberships>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPendingCityMemberships>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListPendingCityMembershipsQueryOptions(cityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Approve a pending city membership (one tap; grants city access)
+ */
+export const getApproveCityMembershipUrl = (cityId: string,
+    membershipId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/memberships/${membershipId}/approve`
+}
+
+export const approveCityMembership = async (cityId: string,
+    membershipId: string, options?: RequestInit): Promise<CityMembershipRecordDto> => {
+  
+  return apiFetch<CityMembershipRecordDto>(getApproveCityMembershipUrl(cityId,membershipId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getApproveCityMembershipMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCityMembership>>, TError,{cityId: string;membershipId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveCityMembership>>, TError,{cityId: string;membershipId: string}, TContext> => {
+
+const mutationKey = ['approveCityMembership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveCityMembership>>, {cityId: string;membershipId: string}> = (props) => {
+          const {cityId,membershipId} = props ?? {};
+
+          return  approveCityMembership(cityId,membershipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveCityMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof approveCityMembership>>>
+    
+    export type ApproveCityMembershipMutationError = unknown
+
+    /**
+ * @summary Approve a pending city membership (one tap; grants city access)
+ */
+export const useApproveCityMembership = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCityMembership>>, TError,{cityId: string;membershipId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof approveCityMembership>>,
+        TError,
+        {cityId: string;membershipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getApproveCityMembershipMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reject a pending city membership (does not grant city access)
+ */
+export const getRejectCityMembershipUrl = (cityId: string,
+    membershipId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/memberships/${membershipId}/reject`
+}
+
+export const rejectCityMembership = async (cityId: string,
+    membershipId: string, options?: RequestInit): Promise<CityMembershipRecordDto> => {
+  
+  return apiFetch<CityMembershipRecordDto>(getRejectCityMembershipUrl(cityId,membershipId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getRejectCityMembershipMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectCityMembership>>, TError,{cityId: string;membershipId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectCityMembership>>, TError,{cityId: string;membershipId: string}, TContext> => {
+
+const mutationKey = ['rejectCityMembership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectCityMembership>>, {cityId: string;membershipId: string}> = (props) => {
+          const {cityId,membershipId} = props ?? {};
+
+          return  rejectCityMembership(cityId,membershipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectCityMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof rejectCityMembership>>>
+    
+    export type RejectCityMembershipMutationError = unknown
+
+    /**
+ * @summary Reject a pending city membership (does not grant city access)
+ */
+export const useRejectCityMembership = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectCityMembership>>, TError,{cityId: string;membershipId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rejectCityMembership>>,
+        TError,
+        {cityId: string;membershipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRejectCityMembershipMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Redeem a city join token as a pending membership (coordinator approval is still required)
+ */
+export const getRedeemCityJoinLinkUrl = () => {
+
+
+  
+
+  return `/api/join`
+}
+
+export const redeemCityJoinLink = async (redeemJoinLinkDto: RedeemJoinLinkDto, options?: RequestInit): Promise<RedeemJoinLinkResponseDto> => {
+  
+  return apiFetch<RedeemJoinLinkResponseDto>(getRedeemCityJoinLinkUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      redeemJoinLinkDto,)
+  }
+);}
+
+
+
+
+export const getRedeemCityJoinLinkMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemCityJoinLink>>, TError,{data: RedeemJoinLinkDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof redeemCityJoinLink>>, TError,{data: RedeemJoinLinkDto}, TContext> => {
+
+const mutationKey = ['redeemCityJoinLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemCityJoinLink>>, {data: RedeemJoinLinkDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  redeemCityJoinLink(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RedeemCityJoinLinkMutationResult = NonNullable<Awaited<ReturnType<typeof redeemCityJoinLink>>>
+    export type RedeemCityJoinLinkMutationBody = RedeemJoinLinkDto
+    export type RedeemCityJoinLinkMutationError = unknown
+
+    /**
+ * @summary Redeem a city join token as a pending membership (coordinator approval is still required)
+ */
+export const useRedeemCityJoinLink = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemCityJoinLink>>, TError,{data: RedeemJoinLinkDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof redeemCityJoinLink>>,
+        TError,
+        {data: RedeemJoinLinkDto},
+        TContext
+      > => {
+
+      const mutationOptions = getRedeemCityJoinLinkMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

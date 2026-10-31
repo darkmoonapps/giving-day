@@ -101,6 +101,7 @@ describe('AbilityFactory', () => {
       expect(ability.can('read', 'CityMembership')).toBe(true);
       expect(ability.can('create', 'CityMembership')).toBe(true);
       expect(ability.can('approve', 'CityMembership')).toBe(true);
+      expect(ability.can('reject', 'CityMembership')).toBe(true);
       expect(ability.can('update', 'CityMembership')).toBe(true);
       expect(ability.can('delete', 'CityMembership')).toBe(true);
     });
@@ -150,6 +151,24 @@ describe('AbilityFactory', () => {
       expect(
         ability.can(
           'delete',
+          subject('CityMembership', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can('approve', subject('CityMembership', { cityId }))
+      ).toBe(true);
+      expect(ability.can('reject', subject('CityMembership', { cityId }))).toBe(
+        true
+      );
+      expect(
+        ability.can(
+          'approve',
+          subject('CityMembership', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can(
+          'reject',
           subject('CityMembership', { cityId: 'city-other' })
         )
       ).toBe(false);
@@ -312,6 +331,7 @@ describe('AbilityFactory', () => {
       const ability = factory.createForUser(volunteerUser);
 
       expect(ability.can('approve', 'CityMembership')).toBe(false);
+      expect(ability.can('reject', 'CityMembership')).toBe(false);
     });
 
     it('should not allow volunteer to reassign deliveries', () => {
