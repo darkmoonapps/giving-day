@@ -183,7 +183,11 @@ export class DayDeliveriesResponseDto {
   @ApiProperty({ type: [DeliveryResponseDto] })
   deliveries!: DeliveryResponseDto[];
 
-  @ApiPropertyOptional({ type: [DeliveryVolunteerDto] })
+  @ApiPropertyOptional({
+    type: [DeliveryVolunteerDto],
+    description:
+      'Volunteers who confirmed participation for this distribution day',
+  })
   assignableVolunteers?: DeliveryVolunteerDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1 })

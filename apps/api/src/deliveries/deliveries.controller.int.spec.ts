@@ -117,6 +117,7 @@ describe('Deliveries HTTP authorization', () => {
     },
     dayParticipation: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn().mockResolvedValue(null),
       upsert: vi.fn(),
     },
@@ -207,6 +208,10 @@ describe('Deliveries HTTP authorization', () => {
     );
     mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+    mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+      volunteerId: VOLUNTEER_B_ID,
+    });
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
     mockPrisma.cityMembership.findUnique.mockResolvedValue({
       role: 'volunteer',
@@ -233,9 +238,9 @@ describe('Deliveries HTTP authorization', () => {
     it('lets a coordinator list all deliveries including unassigned', async () => {
       currentUser = coordinatorA();
       mockPrisma.delivery.findMany.mockResolvedValue([assignedRivkah]);
-      mockPrisma.cityMembership.findMany.mockResolvedValue([
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
         {
-          user: {
+          volunteer: {
             id: VOLUNTEER_A_ID,
             firstName: 'Yonatan',
             lastName: 'Bar',
@@ -247,10 +252,25 @@ describe('Deliveries HTTP authorization', () => {
         .get(`/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries`)
         .expect(200);
 
+      expect(mockPrisma.dayParticipation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
       expect(response.body.unassignedCount).toBe(0);
       expect(response.body.deliveries[0].elder.fullName).toBe('Rivkah Levi');
       expect(response.body.deliveries[0].volunteerId).toBe(VOLUNTEER_A_ID);
-      expect(response.body.assignableVolunteers).toHaveLength(1);
+      expect(response.body.assignableVolunteers).toEqual([
+        {
+          id: VOLUNTEER_A_ID,
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+        },
+      ]);
     });
 
     it('lets a confirmed volunteer see only their assigned deliveries', async () => {
@@ -311,6 +331,21 @@ describe('Deliveries HTTP authorization', () => {
         .expect(200);
 
       expect(response.body.volunteerId).toBe(VOLUNTEER_B_ID);
+    });
+
+    it('rejects assigning a volunteer who has not confirmed for the day', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .patch(
+          `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries/${DELIVERY_RIVKAH_ID}`
+        )
+        .send({ volunteerId: VOLUNTEER_B_ID })
+        .expect(400);
+
+      expect(response.body.message).toBe('deliveries.invalid_volunteer');
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
     it('lets a coordinator unassign a delivery', async () => {

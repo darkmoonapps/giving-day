@@ -357,13 +357,14 @@ export interface DayDeliveriesResponseDto {
   dayId: string;
   cityId: string;
   deliveries: DeliveryResponseDto[];
+  /** Volunteers who confirmed participation for this distribution day */
   assignableVolunteers?: DeliveryVolunteerDto[];
   unassignedCount?: number;
 }
 
 export interface AssignDeliveryDto {
   /**
-   * Active city volunteer to assign, or null to put the delivery on the needs-a-volunteer list
+   * Volunteer who confirmed for this distribution day, or null to put the delivery on the needs-a-volunteer list
    * @nullable
    */
   volunteerId: string | null;

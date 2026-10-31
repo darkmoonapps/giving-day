@@ -335,6 +335,7 @@ describe('Distribution days HTTP authorization', () => {
 
       expect(response.body.status).toBe('confirmed');
       expect(response.body.volunteerId).toBe(volunteerA().id);
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
     it('lets a volunteer decline with a reason', async () => {
@@ -364,6 +365,19 @@ describe('Distribution days HTTP authorization', () => {
 
       expect(response.body.status).toBe('declined');
       expect(response.body.cancelReason).toBe('Family event in Holon');
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith({
+        where: {
+          cityId: CITY_A_ID,
+          dayId: publishedDay.id,
+          volunteerId: volunteerA().id,
+          status: { in: ['assigned', 'picked'] },
+        },
+        data: {
+          volunteerId: null,
+          status: 'unassigned',
+          assignedAt: null,
+        },
+      });
     });
 
     it('rejects a decline without a reason', async () => {
