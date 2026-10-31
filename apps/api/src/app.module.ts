@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { CitiesModule } from './cities/cities.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
 import { DistributionDaysModule } from './distribution-days/distribution-days.module';
+import { EldersModule } from './elders/elders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     NotificationsModule,
     DistributionDaysModule,
     DeliveriesModule,
+    EldersModule,
   ],
 })
 export class AppModule {}

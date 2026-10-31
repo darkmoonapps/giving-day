@@ -2,7 +2,11 @@ import { subject } from '@casl/ability';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AbilityFactory } from '../abilities/ability.factory';
 import type { UserWithMemberships } from '../abilities/ability.factory';
-import { assertActiveVolunteerInCity, assertCanOnCity } from './city-access';
+import {
+  assertActiveVolunteerInCity,
+  assertCanManageOnCity,
+  assertCanOnCity,
+} from './city-access';
 
 describe('assertCanOnCity', () => {
   const factory = new AbilityFactory();
@@ -148,6 +152,91 @@ describe('assertCanOnCity', () => {
         ability,
         'read',
         'Delivery',
+        '22222222-2222-4222-8222-222222222222'
+      );
+    }).toThrow(NotFoundException);
+  });
+
+  it('allows a coordinator to manage elders in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-1',
+            cityId,
+            userId: 'user-id',
+            role: 'coordinator',
+            status: 'active',
+            inviteId: null,
+            approvedById: null,
+            approvedAt: new Date(),
+            homeArea: null,
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanManageOnCity(ability, 'Elder', cityId);
+    }).not.toThrow();
+  });
+
+  it('forbids a volunteer from managing elders in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-2',
+            cityId,
+            userId: 'user-id',
+            role: 'volunteer',
+            status: 'active',
+            inviteId: null,
+            approvedById: 'coord-id',
+            approvedAt: new Date(),
+            homeArea: 'North',
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanManageOnCity(ability, 'Elder', cityId);
+    }).toThrow(ForbiddenException);
+  });
+
+  it('hides another city elders list with 404', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-1',
+            cityId,
+            userId: 'user-id',
+            role: 'coordinator',
+            status: 'active',
+            inviteId: null,
+            approvedById: null,
+            approvedAt: new Date(),
+            homeArea: null,
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanManageOnCity(
+        ability,
+        'Elder',
         '22222222-2222-4222-8222-222222222222'
       );
     }).toThrow(NotFoundException);

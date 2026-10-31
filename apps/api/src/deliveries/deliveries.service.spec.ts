@@ -231,6 +231,33 @@ describe('DeliveriesService', () => {
       expect(count).toBe(1);
     });
 
+    it('ignores deactivated and non-active elders when prefilling deliveries', async () => {
+      mockPrisma.match.findMany.mockResolvedValue([]);
+
+      const count = await service.prefillFromPermanentMatches(
+        mockPrisma as never,
+        {
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          actorId: COORDINATOR_A_ID,
+        }
+      );
+
+      expect(mockPrisma.match.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            elder: {
+              cityId: CITY_A_ID,
+              status: 'active',
+              archivedAt: null,
+            },
+          }),
+        })
+      );
+      expect(count).toBe(0);
+      expect(mockPrisma.delivery.createMany).not.toHaveBeenCalled();
+    });
+
     it('skips prefill when there are no current permanent matches', async () => {
       const count = await service.prefillFromPermanentMatches(
         mockPrisma as never,
