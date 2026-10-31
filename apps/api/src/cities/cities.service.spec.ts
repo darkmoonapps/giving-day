@@ -324,6 +324,45 @@ describe('CitiesService', () => {
       ).resolves.toBeNull();
     });
 
+    it('previews a valid join token with Holon names and no secret', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(invite);
+      mockPrisma.city.findUnique.mockResolvedValue({
+        ...city,
+        isActive: true,
+      });
+
+      const preview = await service.previewJoinLink('fake-join-token');
+
+      expect(preview).toEqual({
+        cityId: CITY_A_ID,
+        citySlug: 'holon',
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        role: 'volunteer',
+      });
+      expect(JSON.stringify(preview)).not.toContain('fake-join-token');
+      expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
+    });
+
+    it('does not preview a revoked or unknown join token', async () => {
+      mockPrisma.cityInvite.findUnique.mockResolvedValue({
+        ...invite,
+        revokedAt: new Date('2026-10-02T09:00:00.000Z'),
+      });
+
+      await expect(
+        service.previewJoinLink('fake-join-token')
+      ).rejects.toMatchObject({
+        constructor: NotFoundException,
+        message: 'cities.invalid_join_token',
+      });
+
+      mockPrisma.cityInvite.findUnique.mockResolvedValue(null);
+      await expect(
+        service.previewJoinLink('unknown-token')
+      ).rejects.toMatchObject({ message: 'cities.invalid_join_token' });
+    });
+
     it('forbids volunteers from reading or rotating links', async () => {
       await expect(
         service.listJoinLinks(CITY_A_ID, volunteerA())
@@ -616,7 +655,7 @@ describe('CitiesService', () => {
         onboardedApplicant()
       );
 
-      expect(result.result).toBe('pending');
+      expect(result.result).toBe('already_pending');
       expect(result.membership.status).toBe('pending');
       expect(mockPrisma.cityMembership.create).not.toHaveBeenCalled();
       expect(mockPrisma.cityInvite.update).not.toHaveBeenCalled();
@@ -688,7 +727,8 @@ describe('CitiesService', () => {
         onboardedApplicant()
       );
 
-      expect(result.result).toBe('pending');
+      expect(result.result).toBe('rejected');
+      expect(result.membership.status).toBe('pending');
       expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
         where: { id: pendingMembership.id },
         data: expect.objectContaining({

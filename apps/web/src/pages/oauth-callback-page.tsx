@@ -2,6 +2,7 @@ import { LoadingState } from '@giving-day/ui';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/session-provider';
+import { postAuthPath } from '../join/join-token-storage';
 import { AppChrome } from '../layout/app-chrome';
 
 export function OAuthCallbackPage(): JSX.Element {
@@ -9,7 +10,7 @@ export function OAuthCallbackPage(): JSX.Element {
   const { status } = useSession();
 
   if (status === 'ready') {
-    return <Navigate to="/" replace />;
+    return <Navigate to={postAuthPath()} replace />;
   }
 
   if (status === 'needs_onboarding') {

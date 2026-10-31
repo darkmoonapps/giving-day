@@ -3,7 +3,17 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { i18n } from './i18n';
 import { clearAccessToken } from './auth/access-token';
+import {
+  clearPersistedJoinToken,
+  persistJoinToken,
+} from './join/join-token-storage';
 import { createAuthFetchMock, fakeUser } from './test/auth-fixtures';
+import {
+  FAKE_JOIN_TOKEN,
+  createJoinFetchMock,
+  holonRedeemResponse,
+  onboardedJoinUser,
+} from './test/join-fixtures';
 import { renderApp } from './test/render';
 
 describe('App routes', () => {
@@ -17,6 +27,7 @@ describe('App routes', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     clearAccessToken();
+    clearPersistedJoinToken();
     await i18n.changeLanguage('he');
   });
 
@@ -114,6 +125,46 @@ describe('App routes', () => {
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
   });
 
+  it('keeps an unauthenticated visitor on the public join landing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createJoinFetchMock({
+          auth: { refresh: 'unauthorized' },
+        })
+      )
+    );
+
+    renderApp(`/join/${FAKE_JOIN_TOKEN}`);
+
+    expect(
+      await screen.findByRole('heading', { name: 'הצטרפות לחולון' })
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('join-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('returns an onboarded OAuth callback to the stored join link', async () => {
+    persistJoinToken(FAKE_JOIN_TOKEN);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createJoinFetchMock({
+          auth: {
+            refresh: 'ok',
+            user: onboardedJoinUser(),
+          },
+          redeem: holonRedeemResponse('pending'),
+        })
+      )
+    );
+
+    renderApp('/auth/callback');
+
+    expect(await screen.findByTestId('join-waiting')).toBeInTheDocument();
+    expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
+  });
+
   it('finishes OAuth callback into home for an onboarded user', async () => {
     vi.stubGlobal(
       'fetch',
@@ -184,6 +235,7 @@ describe('onboarding form', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     clearAccessToken();
+    clearPersistedJoinToken();
     await i18n.changeLanguage('he');
   });
 

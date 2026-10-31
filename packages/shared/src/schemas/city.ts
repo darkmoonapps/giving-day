@@ -94,7 +94,20 @@ export const redeemJoinLinkRequestSchema = z.object({
   token: z.string().trim().min(1).max(128),
 });
 
-export const redeemJoinLinkResultSchema = z.enum(['pending', 'already_active']);
+export const joinLinkPreviewSchema = z.object({
+  cityId: z.string().uuid(),
+  citySlug: z.string().min(1),
+  cityNameHe: z.string().min(1),
+  cityNameEn: z.string().min(1),
+  role: cityRoleSchema,
+});
+
+export const redeemJoinLinkResultSchema = z.enum([
+  'pending',
+  'already_pending',
+  'already_active',
+  'rejected',
+]);
 
 export const redeemedCityMembershipSchema = z.object({
   membershipId: z.string().uuid(),
@@ -142,6 +155,7 @@ export type CityCoordinatorsResponse = z.infer<
 >;
 export type AddCityCoordinator = z.infer<typeof addCityCoordinatorSchema>;
 export type RedeemJoinLinkRequest = z.infer<typeof redeemJoinLinkRequestSchema>;
+export type JoinLinkPreview = z.infer<typeof joinLinkPreviewSchema>;
 export type RedeemJoinLinkResult = z.infer<typeof redeemJoinLinkResultSchema>;
 export type RedeemedCityMembership = z.infer<
   typeof redeemedCityMembershipSchema

@@ -556,6 +556,38 @@
         ]
       }
     },
+    "/api/join/{token}": {
+      "get": {
+        "operationId": "previewCityJoinLink",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Raw city join token from the shareable URL",
+            "schema": {
+              "example": "fake-join-token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinLinkPreviewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Preview which city and role a join token belongs to without creating a membership",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
     "/api/join": {
       "post": {
         "operationId": "redeemCityJoinLink",
@@ -1860,6 +1892,43 @@
           "memberships"
         ]
       },
+      "JoinLinkPreviewDto": {
+        "type": "object",
+        "properties": {
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "citySlug": {
+            "type": "string",
+            "example": "holon"
+          },
+          "cityNameHe": {
+            "type": "string",
+            "example": "חולון"
+          },
+          "cityNameEn": {
+            "type": "string",
+            "example": "Holon"
+          },
+          "role": {
+            "type": "string",
+            "example": "volunteer",
+            "enum": [
+              "coordinator",
+              "volunteer"
+            ]
+          }
+        },
+        "required": [
+          "cityId",
+          "citySlug",
+          "cityNameHe",
+          "cityNameEn",
+          "role"
+        ]
+      },
       "RedeemJoinLinkDto": {
         "type": "object",
         "properties": {
@@ -1936,7 +2005,9 @@
             "example": "pending",
             "enum": [
               "pending",
-              "already_active"
+              "already_pending",
+              "already_active",
+              "rejected"
             ]
           },
           "membership": {

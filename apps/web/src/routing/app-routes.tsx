@@ -4,6 +4,7 @@ import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
 import { DayDeliveriesPage } from '../pages/day-deliveries-page';
 import { HomePage } from '../pages/home-page';
+import { JoinPage } from '../pages/join-page';
 import { LoginPage } from '../pages/login-page';
 import { OAuthCallbackPage } from '../pages/oauth-callback-page';
 import { OnboardingPage } from '../pages/onboarding-page';
@@ -22,6 +23,7 @@ export function AppRoutes(): JSX.Element {
         }
       />
       <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      <Route path="/join/:token" element={<JoinPage />} />
       <Route
         path="/onboarding"
         element={

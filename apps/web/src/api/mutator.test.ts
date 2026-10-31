@@ -93,4 +93,31 @@ describe('apiFetch', () => {
 
     await expect(apiFetch('/api/health')).rejects.toBeInstanceOf(ApiError);
   });
+
+  it('reads NestJS error keys from a JSON error body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(
+          {
+            statusCode: 404,
+            message: 'cities.invalid_join_token',
+          },
+          404
+        )
+      )
+    );
+
+    try {
+      await apiFetch('/api/join/unknown-token');
+      throw new Error('expected ApiError');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({
+        status: 404,
+        code: 'cities.invalid_join_token',
+        message: 'cities.invalid_join_token',
+      });
+    }
+  });
 });

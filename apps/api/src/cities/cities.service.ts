@@ -14,6 +14,7 @@ import {
   citySettingsExtraSchema,
   citySettingsSchema,
   httpsUrlSchema,
+  joinLinkPreviewSchema,
   redeemJoinLinkResponseSchema,
   type CityCoordinator,
   type CityCoordinatorsResponse,
@@ -22,6 +23,7 @@ import {
   type CityMembershipRecord,
   type CityPendingMembershipsResponse,
   type CitySettings,
+  type JoinLinkPreview,
   type RedeemJoinLinkResponse,
 } from '@giving-day/shared';
 import {
@@ -272,6 +274,41 @@ export class CitiesService {
     return this.isInviteRedeemable(invite) ? invite : null;
   }
 
+  async previewJoinLink(rawToken: string): Promise<JoinLinkPreview> {
+    const token = rawToken.trim();
+    if (!token || token.length > 128) {
+      throw new NotFoundException('cities.invalid_join_token');
+    }
+
+    const invite = await this.findActiveInviteByRawToken(token);
+    if (!invite) {
+      throw new NotFoundException('cities.invalid_join_token');
+    }
+
+    const city = await this.prisma.city.findUnique({
+      where: { id: invite.cityId },
+      select: {
+        id: true,
+        slug: true,
+        nameHe: true,
+        nameEn: true,
+        archivedAt: true,
+        isActive: true,
+      },
+    });
+    if (!this.isCityJoinable(city)) {
+      throw new NotFoundException('cities.invalid_join_token');
+    }
+
+    return joinLinkPreviewSchema.parse({
+      cityId: city.id,
+      citySlug: city.slug,
+      cityNameHe: city.nameHe,
+      cityNameEn: city.nameEn,
+      role: invite.role,
+    });
+  }
+
   async redeemJoinLink(
     rawToken: string,
     actor: UserWithMemberships
@@ -337,7 +374,27 @@ export class CitiesService {
                 where: { id: existing.id },
                 data: { role: invite.role, inviteId: invite.id },
               });
-          return { result: 'pending' as const, membership, city };
+          return { result: 'already_pending' as const, membership, city };
+        }
+
+        if (existing?.status === 'removed') {
+          const membership = await tx.cityMembership.update({
+            where: { id: existing.id },
+            data: {
+              cityId: invite.cityId,
+              userId: actor.id,
+              role: invite.role,
+              status: 'pending' as const,
+              inviteId: invite.id,
+              approvedById: null,
+              approvedAt: null,
+            },
+          });
+          await tx.cityInvite.update({
+            where: { id: invite.id },
+            data: { usedCount: { increment: 1 } },
+          });
+          return { result: 'rejected' as const, membership, city };
         }
 
         const pendingData = {
@@ -744,7 +801,7 @@ export class CitiesService {
       return this.toRedeemedMembershipDto('already_active', existing, city);
     }
     if (existing.status === 'pending') {
-      return this.toRedeemedMembershipDto('pending', existing, city);
+      return this.toRedeemedMembershipDto('already_pending', existing, city);
     }
 
     throw new ConflictException('cities.already_member');
