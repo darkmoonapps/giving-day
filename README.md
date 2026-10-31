@@ -80,7 +80,7 @@ The defaults are configured for local development and should work out of the box
 
 **Web environment variables:**
 
-- `VITE_API_URL`: API origin (Vite proxy target in development; fetch prefix in production)
+- `VITE_API_URL`: API origin (Vite proxy target in development; fetch prefix in production). For Cloudflare Pages deploys, set the same name as a GitHub Actions repository variable to the Render origin (no trailing slash). There is no in-repo production default; an empty value keeps relative `/api` URLs.
 - `VITE_SENTRY_DSN`: optional EU Sentry DSN. Empty disables Sentry
 
 Hosted setup (Cloudflare Pages, Render, Neon, Sentry EU) is documented in
@@ -224,7 +224,10 @@ Also:
 - **Deploy API** (`.github/workflows/deploy-api.yml`): `prisma migrate deploy`
   then Render deploy hook (ADR 0018)
 - **Deploy Web** (`.github/workflows/deploy-web.yml`): build and upload to
-  Cloudflare Pages
+  Cloudflare Pages. Requires secrets `CLOUDFLARE_API_TOKEN` and
+  `CLOUDFLARE_ACCOUNT_ID`. Set variable `VITE_API_URL` to the Render API
+  origin (no trailing slash) so production fetches are not relative `/api`
+  paths. `CLOUDFLARE_PAGES_PROJECT` defaults to `giving-day` when unset.
 - **Keep awake** (`.github/workflows/keep-awake.yml`): ping `/health` every
   10 minutes inside the Jerusalem daytime window
 

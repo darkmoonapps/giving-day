@@ -96,7 +96,10 @@ a 30-day month, which stays under 750. See the keep-awake notes below.
 1. Create a free Cloudflare account at
    [dash.cloudflare.com](https://dash.cloudflare.com/).
 2. **Workers & Pages → Create → Pages → Direct Upload**. Name the project
-   (store that name as GitHub variable `CLOUDFLARE_PAGES_PROJECT`).
+   (`giving-day` matches the live `https://giving-day.pages.dev` hostname).
+   Store a different name as GitHub variable `CLOUDFLARE_PAGES_PROJECT` if
+   needed; `deploy-web.yml` defaults to `giving-day` when that variable is
+   unset so `--project-name` cannot be empty.
 3. Do **not** connect Git-based Pages builds. GitHub Actions builds the app
    and uploads `apps/web/dist` with Wrangler, which avoids the Pages
    Git-build quota.
@@ -151,29 +154,29 @@ Open the repository → **Settings → Secrets and variables → Actions**.
 Store **values** only in the GitHub UI. This repository contains **names**,
 never values.
 
-| Secret                   | Used by          | Purpose                                                   |
-| ------------------------ | ---------------- | --------------------------------------------------------- |
-| `DATABASE_URL`           | `deploy-api.yml` | Neon direct connection string for `prisma migrate deploy` |
-| `RENDER_DEPLOY_HOOK_URL` | `deploy-api.yml` | Render deploy hook that starts a new API deploy           |
-| `CLOUDFLARE_API_TOKEN`   | `deploy-web.yml` | Pages direct upload                                       |
-| `CLOUDFLARE_ACCOUNT_ID`  | `deploy-web.yml` | Cloudflare account that owns the Pages project            |
-| `SENTRY_AUTH_TOKEN`      | `deploy-web.yml` | Upload web source maps to Sentry EU                       |
-| `VITE_SENTRY_DSN`        | `deploy-web.yml` | Web EU DSN baked in at build time                         |
+| Secret                   | Used by          | Purpose                                                                                         |
+| ------------------------ | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | `deploy-api.yml` | Neon direct connection string for `prisma migrate deploy`                                       |
+| `RENDER_DEPLOY_HOOK_URL` | `deploy-api.yml` | Render deploy hook that starts a new API deploy                                                 |
+| `CLOUDFLARE_API_TOKEN`   | `deploy-web.yml` | Pages direct upload. The job fails before Wrangler if this is empty.                            |
+| `CLOUDFLARE_ACCOUNT_ID`  | `deploy-web.yml` | Cloudflare account that owns the Pages project. The job fails before Wrangler if this is empty. |
+| `SENTRY_AUTH_TOKEN`      | `deploy-web.yml` | Upload web source maps to Sentry EU                                                             |
+| `VITE_SENTRY_DSN`        | `deploy-web.yml` | Web EU DSN baked in at build time                                                               |
 
 `GITHUB_TOKEN` is provided by GitHub. Do not add it yourself.
 
 ### Repository variables
 
-| Variable                   | Used by          | Purpose                                                                                  |
-| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
-| `VITE_API_URL`             | `deploy-web.yml` | Render API origin, for example `https://giving-day-api.onrender.com` (no trailing slash) |
-| `CLOUDFLARE_PAGES_PROJECT` | `deploy-web.yml` | Cloudflare Pages project name                                                            |
-| `SENTRY_ORG`               | `deploy-web.yml` | Sentry organization slug                                                                 |
-| `SENTRY_PROJECT`           | `deploy-web.yml` | Sentry **web** project slug                                                              |
-| `SENTRY_URL`               | `deploy-web.yml` | Optional. Default `https://de.sentry.io`                                                 |
-| `API_HEALTH_URL`           | `keep-awake.yml` | Full health URL, for example `https://giving-day-api.onrender.com/health`                |
-| `KEEPAWAKE_START`          | `keep-awake.yml` | Inclusive start (`YYYY-MM-DD` or ISO-8601 datetime)                                      |
-| `KEEPAWAKE_END`            | `keep-awake.yml` | Inclusive end (`YYYY-MM-DD` or ISO-8601 datetime)                                        |
+| Variable                   | Used by          | Purpose                                                                                                                                                                                                            |
+| -------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_API_URL`             | `deploy-web.yml` | Render API origin, for example `https://giving-day-api.onrender.com` (no trailing slash). Required for production fetches; an empty value is not defaulted in CI and the web build then uses relative `/api` URLs. |
+| `CLOUDFLARE_PAGES_PROJECT` | `deploy-web.yml` | Cloudflare Pages project name. Optional; defaults to `giving-day`                                                                                                                                                  |
+| `SENTRY_ORG`               | `deploy-web.yml` | Sentry organization slug                                                                                                                                                                                           |
+| `SENTRY_PROJECT`           | `deploy-web.yml` | Sentry **web** project slug                                                                                                                                                                                        |
+| `SENTRY_URL`               | `deploy-web.yml` | Optional. Default `https://de.sentry.io`                                                                                                                                                                           |
+| `API_HEALTH_URL`           | `keep-awake.yml` | Full health URL, for example `https://giving-day-api.onrender.com/health`                                                                                                                                          |
+| `KEEPAWAKE_START`          | `keep-awake.yml` | Inclusive start (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                |
+| `KEEPAWAKE_END`            | `keep-awake.yml` | Inclusive end (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                  |
 
 ### Render dashboard environment variables
 
@@ -228,7 +231,8 @@ On push to `master`:
 1. Build the web app with `VITE_API_URL` and `VITE_SENTRY_DSN`
 2. Upload source maps to Sentry EU when `SENTRY_AUTH_TOKEN` is set
 3. Delete `*.map` files from `apps/web/dist`
-4. `wrangler pages deploy` to Cloudflare Pages
+4. `wrangler pages deploy` to Cloudflare Pages (`packageManager: npm` so
+   wrangler-action does not run `pnpm add` at the workspace root)
 
 ### `Keep awake` (`.github/workflows/keep-awake.yml`)
 

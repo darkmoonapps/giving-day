@@ -1,3 +1,23 @@
+# Deploy the web PWA to Cloudflare Pages on push to master (or workflow_dispatch).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   Edit Cloudflare Pages token
+#   CLOUDFLARE_ACCOUNT_ID  Account that owns the Pages project
+#
+# Required repository variable for a working production API:
+#   VITE_API_URL           Render API origin, no trailing slash
+#                          (example: https://giving-day-api.onrender.com)
+#                          Empty is allowed by Vite but bakes relative /api
+#                          URLs; this workflow does not invent a default.
+#
+# Optional:
+#   CLOUDFLARE_PAGES_PROJECT  Pages project name. Defaults to giving-day
+#                             (https://giving-day.pages.dev) when unset.
+#   VITE_SENTRY_DSN, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL
+#
+# Wrangler is installed with npm, not pnpm. wrangler-action infers pnpm from
+# pnpm-lock.yaml and then runs `pnpm add wrangler@4` at the workspace root,
+# which fails with ERR_PNPM_ADDING_TO_ROOT.
 name: Deploy Web
 
 on:
@@ -27,6 +47,42 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Require Cloudflare deploy credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=0
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo '::error::CLOUDFLARE_API_TOKEN secret is missing. Add it under Settings → Secrets and variables → Actions.'
+            missing=1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo '::error::CLOUDFLARE_ACCOUNT_ID secret is missing. Add it under Settings → Secrets and variables → Actions.'
+            missing=1
+          fi
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Resolve Cloudflare Pages project name
+        id: pages
+        env:
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          project="${CLOUDFLARE_PAGES_PROJECT:-giving-day}"
+          if [ -z "${project}" ]; then
+            echo '::error::CLOUDFLARE_PAGES_PROJECT resolved empty; set the repository variable or rely on the giving-day default.'
+            exit 1
+          fi
+          echo "name=${project}" >> "${GITHUB_OUTPUT}"
+
+      - name: Warn if production API URL is unset
+        run: |
+          if [ -z "${VITE_API_URL}" ]; then
+            echo '::warning::Repository variable VITE_API_URL is empty. The production web build will use relative /api URLs instead of the Render API origin. Set Settings → Secrets and variables → Actions → Variables → VITE_API_URL (no trailing slash).'
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -73,5 +129,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/web/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          packageManager: npm
+          wranglerVersion: '4'
+          command: pages deploy apps/web/dist --project-name=${{ steps.pages.outputs.name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
