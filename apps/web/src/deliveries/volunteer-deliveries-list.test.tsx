@@ -48,6 +48,8 @@ describe('VolunteerDeliveriesList', () => {
         deliveries={[delivery]}
         pending={false}
         error={false}
+        cityName="Holon"
+        centerAddress="10 Warehouse Rd, Holon"
         onUpdateStatus={onUpdateStatus}
       />
     );
@@ -82,6 +84,8 @@ describe('VolunteerDeliveriesList', () => {
         deliveries={[delivery]}
         pending={false}
         error={false}
+        cityName="Holon"
+        centerAddress="10 Warehouse Rd, Holon"
         pendingElderIds={new Set([delivery.elder.id])}
         onSuggestCorrection={onSuggestCorrection}
         onUpdateStatus={vi.fn()}
@@ -91,5 +95,61 @@ describe('VolunteerDeliveriesList', () => {
     expect(screen.getByTestId('change-request-pending')).toBeInTheDocument();
     await user.click(screen.getByTestId('suggest-correction'));
     expect(onSuggestCorrection).toHaveBeenCalledWith(delivery.elder.id);
+  });
+
+  it('offers a Navigate menu for each Holon address and the distribution center', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <VolunteerDeliveriesList
+        deliveries={[delivery]}
+        pending={false}
+        error={false}
+        cityName="Holon"
+        centerAddress="10 Warehouse Rd, Holon"
+        onUpdateStatus={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('navigate-center-menu')).toBeInTheDocument();
+    await user.click(screen.getByTestId('navigate-menu'));
+    const google = await screen.findByTestId('navigate-menu-google');
+    expect(google.getAttribute('href')).toContain(
+      encodeURIComponent('12 Example St 12, Holon')
+    );
+    expect(screen.getByTestId('navigate-menu-hints')).toHaveTextContent(
+      'כניסה B'
+    );
+    expect(google.getAttribute('href')).not.toContain(
+      encodeURIComponent('כניסה')
+    );
+  });
+
+  it('hides navigation when the elder has no usable address and the center is unset', () => {
+    renderWithProviders(
+      <VolunteerDeliveriesList
+        deliveries={[
+          {
+            ...delivery,
+            elder: {
+              ...delivery.elder,
+              street: '  ',
+              houseNumber: '',
+              entrance: null,
+            },
+          },
+        ]}
+        pending={false}
+        error={false}
+        cityName="Holon"
+        centerAddress="  "
+        onUpdateStatus={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('navigate-menu')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('navigate-center-menu')
+    ).not.toBeInTheDocument();
   });
 });

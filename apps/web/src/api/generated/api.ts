@@ -570,6 +570,10 @@ export interface DeliveryResponseDto {
 export interface DayDeliveriesResponseDto {
   dayId: string;
   cityId: string;
+  cityNameHe: string;
+  cityNameEn: string;
+  /** Distribution center address from city settings; empty when not configured */
+  centerAddress: string;
   deliveries: DeliveryResponseDto[];
   /** Volunteers who confirmed participation for this distribution day */
   assignableVolunteers?: DeliveryVolunteerDto[];

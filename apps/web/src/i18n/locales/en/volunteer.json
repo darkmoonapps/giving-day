@@ -82,5 +82,12 @@
   "next_of_kin_name": "Contact name",
   "next_of_kin_relation": "Relation",
   "next_of_kin_phone": "Contact phone",
-  "next_of_kin_primary": "Primary contact"
+  "next_of_kin_primary": "Primary contact",
+  "navigate_menu": "Navigate",
+  "navigate_center_menu": "Navigate to distribution center",
+  "navigate_google": "Google Maps",
+  "navigate_apple": "Apple Maps",
+  "navigate_waze": "Waze",
+  "navigate_to_elder": "Navigate to {{name}}",
+  "building_code_label": "Code"
 }

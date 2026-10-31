@@ -49,6 +49,20 @@ type PrefillRow = {
   assignedAt: Date | null;
 };
 
+type CityNavigationRecord = {
+  id: string;
+  archivedAt: Date | null;
+  nameHe: string;
+  nameEn: string;
+  settings: { centerAddress: string } | null;
+};
+
+type ListNavigation = {
+  cityNameHe: string;
+  cityNameEn: string;
+  centerAddress: string;
+};
+
 const ELDER_SELECT = {
   id: true,
   fullName: true,
@@ -248,14 +262,15 @@ export class DeliveriesService {
   ): Promise<DayDeliveriesResponse> {
     const ability = this.abilityFactory.createForUser(actor);
     assertCanOnCity(ability, 'read', 'Delivery', cityId);
-    await this.requireCity(cityId);
+    const city = await this.requireCity(cityId);
     await this.requireDay(cityId, dayId);
+    const navigation = this.toListNavigation(city);
 
     if (this.canSeeInternal(actor, cityId)) {
-      return this.listForCoordinator(cityId, dayId);
+      return this.listForCoordinator(cityId, dayId, navigation);
     }
 
-    return this.listForVolunteer(cityId, dayId, actor.id);
+    return this.listForVolunteer(cityId, dayId, actor.id, navigation);
   }
 
   async assign(
@@ -445,7 +460,8 @@ export class DeliveriesService {
 
   private async listForCoordinator(
     cityId: string,
-    dayId: string
+    dayId: string,
+    navigation: ListNavigation
   ): Promise<CoordinatorDeliveriesResponse> {
     const [deliveries, confirmed] = await Promise.all([
       this.prisma.delivery.findMany({
@@ -474,6 +490,7 @@ export class DeliveriesService {
     return coordinatorDeliveriesResponseSchema.parse({
       dayId,
       cityId,
+      ...navigation,
       unassignedCount: sorted.filter((row) => row.volunteerId === null).length,
       assignableVolunteers: confirmed.map((row) => row.volunteer),
       deliveries: sorted.map((row) => this.toCoordinatorDelivery(row)),
@@ -483,7 +500,8 @@ export class DeliveriesService {
   private async listForVolunteer(
     cityId: string,
     dayId: string,
-    volunteerId: string
+    volunteerId: string,
+    navigation: ListNavigation
   ): Promise<VolunteerDeliveriesResponse> {
     const participation = await this.prisma.dayParticipation.findUnique({
       where: {
@@ -499,6 +517,7 @@ export class DeliveriesService {
       return volunteerDeliveriesResponseSchema.parse({
         dayId,
         cityId,
+        ...navigation,
         deliveries: [],
       });
     }
@@ -519,6 +538,7 @@ export class DeliveriesService {
     return volunteerDeliveriesResponseSchema.parse({
       dayId,
       cityId,
+      ...navigation,
       deliveries: this.sortDeliveries(deliveries).map((row) =>
         this.toVolunteerDelivery(row)
       ),
@@ -564,13 +584,29 @@ export class DeliveriesService {
     };
   }
 
-  private async requireCity(cityId: string): Promise<void> {
+  private async requireCity(cityId: string): Promise<CityNavigationRecord> {
     const city = await this.prisma.city.findUnique({
       where: { id: cityId },
+      select: {
+        id: true,
+        archivedAt: true,
+        nameHe: true,
+        nameEn: true,
+        settings: { select: { centerAddress: true } },
+      },
     });
     if (!city || city.archivedAt) {
       throw new NotFoundException('cities.not_found');
     }
+    return city;
+  }
+
+  private toListNavigation(city: CityNavigationRecord): ListNavigation {
+    return {
+      cityNameHe: city.nameHe,
+      cityNameEn: city.nameEn,
+      centerAddress: city.settings?.centerAddress.trim() ?? '',
+    };
   }
 
   private async requireDay(

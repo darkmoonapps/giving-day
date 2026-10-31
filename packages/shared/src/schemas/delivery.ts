@@ -82,6 +82,9 @@ export const coordinatorDeliverySchema = volunteerDeliverySchema.extend({
 export const volunteerDeliveriesResponseSchema = z.object({
   dayId: z.string().uuid(),
   cityId: z.string().uuid(),
+  cityNameHe: z.string(),
+  cityNameEn: z.string(),
+  centerAddress: z.string(),
   deliveries: z.array(volunteerDeliverySchema),
 });
 

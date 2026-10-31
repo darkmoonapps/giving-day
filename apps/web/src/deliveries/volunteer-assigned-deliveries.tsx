@@ -10,11 +10,13 @@ import {
 } from '../api/generated/api';
 import { VolunteerChangeRequestForm } from '../change-requests/volunteer-change-request-form';
 import { pendingElderIds } from '../change-requests/change-request-view';
+import { useLanguage } from '../i18n/use-language';
 import {
   areAllDeliveriesFinished,
   deliveriesJustFinished,
 } from '../thank-you/delivery-completion';
 import { ThankYouScreen } from '../thank-you/thank-you-screen';
+import { localizedCityName } from './navigation-links';
 import { VolunteerDeliveriesList } from './volunteer-deliveries-list';
 
 export function VolunteerAssignedDeliveries({
@@ -26,6 +28,7 @@ export function VolunteerAssignedDeliveries({
 }): JSX.Element {
   const { t } = useTranslation('volunteer');
   const { t: tCommon } = useTranslation('common');
+  const { language } = useLanguage();
   const [showFinishedThanks, setShowFinishedThanks] = useState(false);
   const [editingElderId, setEditingElderId] = useState<string | null>(null);
   const [submittedElderIds, setSubmittedElderIds] = useState<string[]>([]);
@@ -104,6 +107,12 @@ export function VolunteerAssignedDeliveries({
         deliveries={deliveriesQuery.data.deliveries}
         pending={updateMutation.isPending}
         error={updateMutation.isError}
+        cityName={localizedCityName(
+          deliveriesQuery.data.cityNameHe,
+          deliveriesQuery.data.cityNameEn,
+          language
+        )}
+        centerAddress={deliveriesQuery.data.centerAddress}
         pendingElderIds={pendingIds}
         onSuggestCorrection={setEditingElderId}
         onUpdateStatus={(deliveryId, data) => {

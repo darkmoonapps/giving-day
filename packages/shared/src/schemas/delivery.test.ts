@@ -57,6 +57,9 @@ describe('volunteerDeliveriesResponseSchema', () => {
     const payload = {
       dayId: DAY_ID,
       cityId: CITY_ID,
+      cityNameHe: 'חולון',
+      cityNameEn: 'Holon',
+      centerAddress: '10 Warehouse Rd, Holon',
       deliveries: [
         {
           id: DELIVERY_ID,
@@ -73,6 +76,19 @@ describe('volunteerDeliveriesResponseSchema', () => {
     expect(volunteerDeliveriesResponseSchema.parse(payload)).toEqual(payload);
     expect(payload.deliveries[0]?.elder.contacts[0]?.name).toBe('Tamar Levi');
   });
+
+  it('allows an empty distribution center address when settings omit one', () => {
+    const payload = {
+      dayId: DAY_ID,
+      cityId: CITY_ID,
+      cityNameHe: 'חולון',
+      cityNameEn: 'Holon',
+      centerAddress: '',
+      deliveries: [],
+    };
+
+    expect(volunteerDeliveriesResponseSchema.parse(payload)).toEqual(payload);
+  });
 });
 
 describe('coordinatorDeliveriesResponseSchema', () => {
@@ -80,6 +96,9 @@ describe('coordinatorDeliveriesResponseSchema', () => {
     const payload = {
       dayId: DAY_ID,
       cityId: CITY_ID,
+      cityNameHe: 'חולון',
+      cityNameEn: 'Holon',
+      centerAddress: '10 Warehouse Rd, Holon',
       unassignedCount: 1,
       assignableVolunteers: [
         {
