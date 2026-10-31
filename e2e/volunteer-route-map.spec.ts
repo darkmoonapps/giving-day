@@ -42,15 +42,29 @@ const yosefElder = {
   contacts: [],
 };
 
+function isOsmTileUrl(url: URL): boolean {
+  return (
+    url.protocol === 'https:' &&
+    (url.hostname === 'tile.openstreetmap.org' ||
+      url.hostname.endsWith('.tile.openstreetmap.org'))
+  );
+}
+
+function isNominatimUrl(url: URL): boolean {
+  return (
+    url.protocol === 'https:' && url.hostname === 'nominatim.openstreetmap.org'
+  );
+}
+
 async function stubMapNetwork(page: Page): Promise<void> {
-  await page.route(/tile\.openstreetmap\.org/, async (route) => {
+  await page.route(isOsmTileUrl, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'image/png',
       body: EMPTY_PNG,
     });
   });
-  await page.route(/nominatim\.openstreetmap\.org/, async (route) => {
+  await page.route(isNominatimUrl, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
