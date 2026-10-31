@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   CITY_DEFAULT_THEME,
   addCityCoordinatorSchema,
+  citySchema,
+  createCitySchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinkStatusSchema,
   cityMembershipRecordSchema,
@@ -31,6 +33,50 @@ describe('city schemas', () => {
     logoUrl: null,
     extra: { mapZoom: 14 },
   };
+
+  it('accepts a new city payload and lowercases the slug', () => {
+    expect(
+      createCitySchema.parse({
+        slug: 'Example-City',
+        nameHe: ' עיר דוגמה ',
+        nameEn: ' Example City ',
+      })
+    ).toEqual({
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+    });
+  });
+
+  it('rejects a slug that is not URL-safe', () => {
+    expect(
+      createCitySchema.safeParse({
+        slug: 'Holon City',
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+      }).success
+    ).toBe(false);
+    expect(
+      createCitySchema.safeParse({
+        slug: 'חולון',
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+      }).success
+    ).toBe(false);
+  });
+
+  it('accepts a created city response', () => {
+    const created = {
+      id: '22222222-2222-4222-8222-222222222222',
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Asia/Jerusalem',
+      isActive: true,
+    };
+
+    expect(citySchema.parse(created)).toEqual(created);
+  });
 
   it('accepts city settings with fake Holon center data', () => {
     expect(citySettingsSchema.parse(settings)).toEqual(settings);

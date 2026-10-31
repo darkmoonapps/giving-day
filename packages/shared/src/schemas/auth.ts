@@ -155,6 +155,16 @@ export function getActiveCoordinatorCities(user: AuthUser): string[] {
     .map((membership) => membership.cityId);
 }
 
+export function isSuperAdmin(user: AuthUser): boolean {
+  return user.isSuperAdmin === true;
+}
+
+export function canManageCitySettings(user: AuthUser, cityId: string): boolean {
+  return (
+    isSuperAdmin(user) || getActiveCoordinatorCities(user).includes(cityId)
+  );
+}
+
 export function toOnboardingRequest(
   values: OnboardingFormValues
 ): OnboardingRequest {

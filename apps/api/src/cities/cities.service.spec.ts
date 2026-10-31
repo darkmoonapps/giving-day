@@ -57,7 +57,7 @@ describe('CitiesService', () => {
   };
 
   const mockPrisma = {
-    city: { findUnique: vi.fn() },
+    city: { findUnique: vi.fn(), create: vi.fn() },
     citySettings: {
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -111,6 +111,115 @@ describe('CitiesService', () => {
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
     );
+  });
+
+  describe('createCity', () => {
+    const createdCity = {
+      id: '22222222-2222-4222-8222-222222222222',
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Asia/Jerusalem',
+      isActive: true,
+      archivedAt: null,
+    };
+
+    it('creates a city and default settings for a super admin', async () => {
+      mockPrisma.city.create.mockResolvedValue(createdCity);
+      mockPrisma.citySettings.create.mockResolvedValue({
+        ...settingsRow,
+        cityId: createdCity.id,
+      });
+
+      const result = await service.createCity(
+        {
+          slug: 'Example-City',
+          nameHe: ' עיר דוגמה ',
+          nameEn: ' Example City ',
+        },
+        superAdmin()
+      );
+
+      expect(result).toEqual({
+        id: createdCity.id,
+        slug: 'example-city',
+        nameHe: 'עיר דוגמה',
+        nameEn: 'Example City',
+        timezone: 'Asia/Jerusalem',
+        isActive: true,
+      });
+      expect(mockPrisma.city.create).toHaveBeenCalledWith({
+        data: {
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+          timezone: 'Asia/Jerusalem',
+        },
+      });
+      expect(mockPrisma.citySettings.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          cityId: createdCity.id,
+          centerAddress: '-',
+          centerLat: 0,
+          centerLng: 0,
+          defaultTheme: 'wisteria-mint',
+          defaultLocale: 'he',
+          extra: {},
+        }),
+      });
+    });
+
+    it('returns 409 when the slug is already taken', async () => {
+      mockPrisma.city.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['slug'] },
+        })
+      );
+
+      await expect(
+        service.createCity(
+          {
+            slug: 'holon',
+            nameHe: 'חולון',
+            nameEn: 'Holon',
+          },
+          superAdmin()
+        )
+      ).rejects.toMatchObject({
+        constructor: ConflictException,
+        message: 'cities.duplicate_slug',
+      });
+    });
+
+    it('forbids a city coordinator from creating a city', async () => {
+      await expect(
+        service.createCity(
+          {
+            slug: 'example-city',
+            nameHe: 'עיר דוגמה',
+            nameEn: 'Example City',
+          },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockPrisma.city.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid slug before writing', async () => {
+      await expect(
+        service.createCity(
+          {
+            slug: 'Holon City',
+            nameHe: 'חולון',
+            nameEn: 'Holon',
+          },
+          superAdmin()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.city.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('getSettings', () => {

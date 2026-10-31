@@ -3,9 +3,11 @@ import {
   authUserSchema,
   birthDateInputValue,
   e164PhoneSchema,
+  canManageCitySettings,
   getActiveCoordinatorCities,
   getActiveVolunteerCities,
   getUserDisplayName,
+  isSuperAdmin,
   isUserOnboarded,
   meResponseSchema,
   normalizePhoneToE164,
@@ -241,5 +243,18 @@ describe('auth user helpers', () => {
     expect(getActiveCoordinatorCities(user)).toEqual([
       '22222222-2222-4222-8222-222222222222',
     ]);
+    expect(
+      canManageCitySettings(user, '22222222-2222-4222-8222-222222222222')
+    ).toBe(true);
+    expect(
+      canManageCitySettings(user, '11111111-1111-4111-8111-111111111111')
+    ).toBe(false);
+    expect(isSuperAdmin(user)).toBe(false);
+    expect(
+      canManageCitySettings(
+        { ...user, isSuperAdmin: true },
+        '11111111-1111-4111-8111-111111111111'
+      )
+    ).toBe(true);
   });
 });

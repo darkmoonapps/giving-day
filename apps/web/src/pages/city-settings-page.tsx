@@ -1,5 +1,5 @@
 import { NativeSelect, Paper, Stack, TextInput } from '@mantine/core';
-import { getActiveCoordinatorCities } from '@giving-day/shared';
+import { canManageCitySettings } from '@giving-day/shared';
 import {
   AppAlert,
   AppButton,
@@ -58,9 +58,8 @@ export function CitySettingsPage(): JSX.Element {
   const { t: tCommon } = useTranslation('common');
   const { t: tValidation } = useTranslation('validation');
   const validId = isUuid(cityId);
-  const coordinatorCities =
-    user === null ? [] : getActiveCoordinatorCities(user);
-  const allowed = validId && coordinatorCities.includes(cityId ?? '');
+  const allowed =
+    validId && user !== null && canManageCitySettings(user, cityId ?? '');
 
   const [values, setValues] = useState<CitySettingsFormValues | null>(null);
   const [errors, setErrors] = useState<CitySettingsFormFieldErrors>({});

@@ -15,6 +15,7 @@ export interface StubUserOptions {
   phone?: string | null;
   email?: string | null;
   birthDate?: string | null;
+  isSuperAdmin?: boolean;
   memberships?: StubMembership[];
 }
 
@@ -29,6 +30,7 @@ function fakeUserPayload(options: StubUserOptions): Record<string, unknown> {
     birthDate:
       options.birthDate === undefined ? '1990-03-15' : options.birthDate,
     locale: 'he',
+    isSuperAdmin: options.isSuperAdmin === true,
     onboardedAt: options.onboarded ? '2026-10-28T08:00:00.000Z' : null,
     memberships: options.memberships ?? [],
   };

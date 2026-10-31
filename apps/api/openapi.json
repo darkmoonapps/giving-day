@@ -158,6 +158,43 @@
         ]
       }
     },
+    "/api/cities": {
+      "post": {
+        "operationId": "createCity",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a city (super admin only)",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
     "/api/cities/{cityId}/settings": {
       "get": {
         "operationId": "getCitySettings",
@@ -1868,6 +1905,71 @@
           "status",
           "timestamp",
           "database"
+        ]
+      },
+      "CreateCityDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "example-city",
+            "description": "URL-safe unique city key"
+          },
+          "nameHe": {
+            "type": "string",
+            "example": "עיר דוגמה"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Example City"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Asia/Jerusalem"
+          }
+        },
+        "required": [
+          "slug",
+          "nameHe",
+          "nameEn"
+        ]
+      },
+      "CityResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "slug": {
+            "type": "string",
+            "example": "example-city"
+          },
+          "nameHe": {
+            "type": "string",
+            "example": "עיר דוגמה"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Example City"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Asia/Jerusalem"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "nameHe",
+          "nameEn",
+          "timezone",
+          "isActive"
         ]
       },
       "CitySettingsResponseDto": {

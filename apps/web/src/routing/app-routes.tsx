@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { CitySettingsPage } from '../pages/city-settings-page';
+import { CreateCityPage } from '../pages/create-city-page';
 import { CoordinatorChangeRequestsPage } from '../pages/coordinator-change-requests-page';
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
@@ -40,6 +41,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cities/new"
+        element={
+          <ProtectedRoute>
+            <CreateCityPage />
           </ProtectedRoute>
         }
       />

@@ -17,6 +17,47 @@ export const timeOfDaySchema = z
 
 export const CITY_DEFAULT_THEME = 'wisteria-mint';
 export const GIVING_DAY_THEME_ATTRIBUTE = 'data-giving-day-theme';
+export const DEFAULT_CITY_TIMEZONE = 'Asia/Jerusalem';
+export const DEFAULT_CITY_CENTER_ADDRESS = '-';
+export const DEFAULT_CITY_CENTER_LAT = 0;
+export const DEFAULT_CITY_CENTER_LNG = 0;
+export const CITY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const CITY_SLUG_MAX_LENGTH = 64;
+export const CITY_NAME_MAX_LENGTH = 200;
+
+export const citySlugSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.toLowerCase())
+  .pipe(
+    z
+      .string()
+      .min(2, 'required')
+      .max(CITY_SLUG_MAX_LENGTH, 'required')
+      .regex(CITY_SLUG_PATTERN, 'invalid_slug')
+  );
+
+export const cityNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'required')
+  .max(CITY_NAME_MAX_LENGTH, 'required');
+
+export const createCitySchema = z.object({
+  slug: citySlugSchema,
+  nameHe: cityNameSchema,
+  nameEn: cityNameSchema,
+  timezone: z.string().trim().min(1).max(100).optional(),
+});
+
+export const citySchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string().min(1),
+  nameHe: z.string().min(1),
+  nameEn: z.string().min(1),
+  timezone: z.string().min(1),
+  isActive: z.boolean(),
+});
 
 export const citySettingsExtraSchema = z.record(z.string(), z.unknown());
 
@@ -144,6 +185,9 @@ export const cityPendingMembershipsResponseSchema = z.object({
   memberships: z.array(cityMembershipRecordSchema),
 });
 
+export type CitySlug = z.infer<typeof citySlugSchema>;
+export type CreateCity = z.infer<typeof createCitySchema>;
+export type City = z.infer<typeof citySchema>;
 export type CityRole = z.infer<typeof cityRoleSchema>;
 export type MembershipStatus = z.infer<typeof membershipStatusSchema>;
 export type Locale = z.infer<typeof localeSchema>;

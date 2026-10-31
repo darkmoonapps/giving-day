@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CITY_DEFAULT_THEME,
   COLOR_SCHEME_STORAGE_KEY,
+  createCitySchema,
   GIVING_DAY_THEME_ATTRIBUTE,
   citySettingsSchema,
   colorSchemePreferenceSchema,
@@ -37,6 +38,13 @@ describe('shared public exports', () => {
     expect(colorSchemePreferenceSchema.parse('auto')).toBe('auto');
     expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
     expect(CITY_DEFAULT_THEME).toBe('wisteria-mint');
+    expect(
+      createCitySchema.parse({
+        slug: 'example-city',
+        nameHe: 'עיר דוגמה',
+        nameEn: 'Example City',
+      }).slug
+    ).toBe('example-city');
     expect(GIVING_DAY_THEME_ATTRIBUTE).toBe('data-giving-day-theme');
     expect(SENTRY_SEND_DEFAULT_PII).toBe(false);
     expect(citySettingsSchema.shape.defaultTheme).toBeDefined();

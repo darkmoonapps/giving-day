@@ -23,6 +23,17 @@ export function volunteerUser(overrides: Partial<AuthUser> = {}): AuthUser {
   });
 }
 
+export function superAdminUser(overrides: Partial<AuthUser> = {}): AuthUser {
+  return fakeUser({
+    firstName: 'Super',
+    lastName: 'Admin',
+    onboardedAt: '2026-10-28T08:00:00.000Z',
+    isSuperAdmin: true,
+    memberships: [],
+    ...overrides,
+  });
+}
+
 export function coordinatorUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return fakeUser({
     firstName: 'Noa',

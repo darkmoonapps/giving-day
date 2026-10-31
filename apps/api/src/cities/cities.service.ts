@@ -6,16 +6,24 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CITY_DEFAULT_THEME,
+  DEFAULT_CITY_CENTER_ADDRESS,
+  DEFAULT_CITY_CENTER_LAT,
+  DEFAULT_CITY_CENTER_LNG,
+  DEFAULT_CITY_TIMEZONE,
   cityCoordinatorsResponseSchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinksResponseSchema,
   cityMembershipRecordSchema,
   cityPendingMembershipsResponseSchema,
+  citySchema,
   citySettingsExtraSchema,
   citySettingsSchema,
+  createCitySchema,
   httpsUrlSchema,
   joinLinkPreviewSchema,
   redeemJoinLinkResponseSchema,
+  type City as CityDto,
   type CityCoordinator,
   type CityCoordinatorsResponse,
   type CityJoinLinkCreated,
@@ -43,6 +51,7 @@ import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCanOnCity } from './city-access';
 import type { AddCoordinatorDto } from './dto/add-coordinator.dto';
+import type { CreateCityDto } from './dto/create-city.dto';
 import type { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
 import { generateJoinToken, hashJoinToken, joinLinkUrl } from './join-token';
 
@@ -74,6 +83,64 @@ export class CitiesService {
     private readonly abilityFactory: AbilityFactory,
     private readonly authService: AuthService
   ) {}
+
+  async createCity(
+    dto: CreateCityDto,
+    actor: UserWithMemberships
+  ): Promise<CityDto> {
+    const ability = this.abilityFactory.createForUser(actor);
+    if (ability.cannot('create', 'City')) {
+      throw new ForbiddenException('auth.insufficient_permissions');
+    }
+
+    const parsed = createCitySchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException(
+        parsed.error.issues[0]?.message ?? 'cities.invalid'
+      );
+    }
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const city = await tx.city.create({
+          data: {
+            slug: parsed.data.slug,
+            nameHe: parsed.data.nameHe,
+            nameEn: parsed.data.nameEn,
+            timezone: parsed.data.timezone ?? DEFAULT_CITY_TIMEZONE,
+          },
+        });
+
+        await tx.citySettings.create({
+          data: {
+            cityId: city.id,
+            centerAddress: DEFAULT_CITY_CENTER_ADDRESS,
+            centerLat: DEFAULT_CITY_CENTER_LAT,
+            centerLng: DEFAULT_CITY_CENTER_LNG,
+            defaultStartTime: this.parseTime('09:00:00'),
+            defaultEndTime: this.parseTime('14:00:00'),
+            confirmReminderAfterHours: 24,
+            unpickedPushMinutesBeforeEnd: 60,
+            missingFinalStatusWaitHours: 72,
+            defaultLocale: 'he',
+            defaultTheme: CITY_DEFAULT_THEME,
+            orgName: null,
+            logoUrl: null,
+            extra: {},
+          },
+        });
+
+        return city;
+      });
+
+      return this.toCityDto(created);
+    } catch (error: unknown) {
+      if (this.isDuplicateSlugError(error)) {
+        throw new ConflictException('cities.duplicate_slug');
+      }
+      throw error;
+    }
+  }
 
   async getSettings(
     cityId: string,
@@ -843,6 +910,37 @@ export class CitiesService {
         ? membership.approvedAt.toISOString()
         : null,
     });
+  }
+
+  private toCityDto(city: City): CityDto {
+    return citySchema.parse({
+      id: city.id,
+      slug: city.slug,
+      nameHe: city.nameHe,
+      nameEn: city.nameEn,
+      timezone: city.timezone,
+      isActive: city.isActive,
+    });
+  }
+
+  private isDuplicateSlugError(error: unknown): boolean {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
+    ) {
+      return false;
+    }
+
+    const target = error.meta?.target;
+    if (typeof target === 'string') {
+      return target.includes('slug');
+    }
+    if (Array.isArray(target)) {
+      return target.some(
+        (value) => typeof value === 'string' && value.includes('slug')
+      );
+    }
+    return true;
   }
 
   private toSettingsDto(settings: PrismaCitySettings): CitySettings {
