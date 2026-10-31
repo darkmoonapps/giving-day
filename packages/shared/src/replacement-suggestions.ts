@@ -110,7 +110,7 @@ function normalize(value: string): string {
   return value
     .normalize('NFKC')
     .toLowerCase()
-    .replace(/[''`״׳"]/g, '')
+    .replace(/['\u2018\u2019`״׳"]/g, '')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }

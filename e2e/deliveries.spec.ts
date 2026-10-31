@@ -430,13 +430,13 @@ test.describe('Distribution day deliveries', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(
       page.getByTestId(`replacement-suggestions-${DELIVERY_UNASSIGNED_ID}`)
-    ).toContainText('הצעות לפי קרבה');
+    ).toContainText('מתנדבים מוצעים, הקרובים קודם');
 
     await page.getByRole('button', { name: 'English' }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
     await expect(
       page.getByTestId(`replacement-suggestions-${DELIVERY_UNASSIGNED_ID}`)
-    ).toContainText('Suggested nearby');
+    ).toContainText('Suggested volunteers, closest first');
 
     await page
       .getByTestId(

@@ -335,7 +335,7 @@ describe('DayDeliveriesPage', () => {
         screen.getByTestId(
           `replacement-suggestions-${coordinatorDeliveryUnmatched.id}`
         )
-      ).toHaveTextContent('הצעות לפי קרבה');
+      ).toHaveTextContent('מתנדבים מוצעים, הקרובים קודם');
 
       await user.click(screen.getByRole('button', { name: 'English' }));
 
@@ -351,7 +351,7 @@ describe('DayDeliveriesPage', () => {
         screen.getByTestId(
           `replacement-suggestions-${coordinatorDeliveryUnmatched.id}`
         )
-      ).toHaveTextContent('Suggested nearby');
+      ).toHaveTextContent('Suggested volunteers, closest first');
     });
 
     it('sorts and filters the coordinator deliveries list on the client', async () => {

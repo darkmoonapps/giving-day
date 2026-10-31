@@ -80,6 +80,21 @@ describe('proximityScore', () => {
     ).toBe(1);
   });
 
+  it('strips ASCII and curly apostrophes so contracted names still match', () => {
+    expect(
+      proximityScore('Givatayim', {
+        street: "Giv'atayim",
+        addressNotes: null,
+      })
+    ).toBe(3);
+    expect(
+      proximityScore('Givatayim', {
+        street: 'Giv\u2019atayim',
+        addressNotes: null,
+      })
+    ).toBe(3);
+  });
+
   it('scores a known home-area with no text match above a missing one', () => {
     expect(
       proximityScore('Neve Erez', {

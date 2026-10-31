@@ -47,7 +47,7 @@
   "sort_desc": "{{column}}, sorted descending. Activate to clear sort",
   "assign_volunteer": "Assign volunteer",
   "assign_error": "We could not save that assignment. Try again.",
-  "replacement_suggestions": "Suggested nearby",
+  "replacement_suggestions": "Suggested volunteers, closest first",
   "assign_suggested_volunteer": "Assign {{name}}",
   "assign_suggested_volunteer_area": "Assign {{name}} ({{area}})",
   "unnamed_elder": "Elder",
