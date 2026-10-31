@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { isUsableCoord, type RouteCoord } from '@giving-day/shared';
-import type { Geocoder } from './geocoding.tokens';
+import type { GeocodeOutcome, Geocoder } from './geocoding.tokens';
 
 const NOMINATIM_SEARCH_PATH = '/search';
 const DEFAULT_NOMINATIM_URL = 'https://nominatim.openstreetmap.org';
@@ -17,8 +17,8 @@ interface NominatimSearchHit {
 @Injectable()
 export class NominatimGeocoder implements Geocoder {
   private readonly logger = new Logger(NominatimGeocoder.name);
-  private readonly cache = new Map<string, RouteCoord | null>();
-  private readonly inFlight = new Map<string, Promise<RouteCoord | null>>();
+  private readonly cache = new Map<string, GeocodeOutcome>();
+  private readonly inFlight = new Map<string, Promise<GeocodeOutcome>>();
   private nextAllowedAt = 0;
 
   constructor(
@@ -27,10 +27,10 @@ export class NominatimGeocoder implements Geocoder {
     private readonly wait: (ms: number) => Promise<void> = sleep
   ) {}
 
-  async geocode(query: string): Promise<RouteCoord | null> {
+  async geocode(query: string): Promise<GeocodeOutcome> {
     const normalized = query.trim();
     if (normalized.length === 0) {
-      return null;
+      return { kind: 'no_hit' };
     }
 
     const cached = this.cache.get(normalized);
@@ -50,7 +50,7 @@ export class NominatimGeocoder implements Geocoder {
     return request;
   }
 
-  private async lookup(query: string): Promise<RouteCoord | null> {
+  private async lookup(query: string): Promise<GeocodeOutcome> {
     await this.respectRateLimit();
 
     const url = new URL(
@@ -71,20 +71,20 @@ export class NominatimGeocoder implements Geocoder {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       if (!response.ok) {
-        this.cache.set(query, null);
-        return null;
+        return { kind: 'transient' };
       }
 
       const payload: unknown = await response.json();
       const coord = firstUsableHit(payload);
-      this.cache.set(query, coord);
-      return coord;
+      const outcome: GeocodeOutcome =
+        coord === null ? { kind: 'no_hit' } : { kind: 'hit', coord };
+      this.cache.set(query, outcome);
+      return outcome;
     } catch (error: unknown) {
       this.logger.warn(
         `Nominatim lookup failed for a Holon address query: ${errorMessage(error)}`
       );
-      this.cache.set(query, null);
-      return null;
+      return { kind: 'transient' };
     }
   }
 

@@ -177,7 +177,7 @@ describe('Volunteer route HTTP authorization', () => {
     });
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
     mockPrisma.delivery.findMany.mockResolvedValue([]);
-    geocode.mockResolvedValue(null);
+    geocode.mockResolvedValue({ kind: 'no_hit' });
   });
 
   it('rejects an unauthenticated caller', async () => {

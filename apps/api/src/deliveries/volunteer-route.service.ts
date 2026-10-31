@@ -13,8 +13,18 @@ import {
   type UserWithMemberships,
 } from '../abilities/ability.factory';
 import { assertCanOnCity } from '../cities/city-access';
-import { GEOCODER, type Geocoder } from '../geocoding/geocoding.tokens';
+import {
+  GEOCODER,
+  type GeocodeOutcome,
+  type Geocoder,
+} from '../geocoding/geocoding.tokens';
 import { PrismaService } from '../prisma/prisma.service';
+
+export const MAX_LIVE_GEOCODES_PER_REQUEST = 3;
+
+interface LiveGeocodeBudget {
+  remaining: number;
+}
 
 const ROUTE_ELDER_SELECT = {
   id: true,
@@ -104,8 +114,15 @@ export class VolunteerRouteService {
       : [];
 
     const cityNameEn = city.nameEn;
-    const center = await this.resolveCenter(city);
-    const resolvedStops = await this.resolveStops(deliveries, cityNameEn);
+    const liveGeocodeBudget: LiveGeocodeBudget = {
+      remaining: MAX_LIVE_GEOCODES_PER_REQUEST,
+    };
+    const center = await this.resolveCenter(city, liveGeocodeBudget);
+    const resolvedStops = await this.resolveStops(
+      deliveries,
+      cityNameEn,
+      liveGeocodeBudget
+    );
     const ordered = orderStopsNearestNeighbor(
       center.placed ? { lat: center.lat ?? 0, lng: center.lng ?? 0 } : null,
       resolvedStops.map((stop) => ({
@@ -175,7 +192,8 @@ export class VolunteerRouteService {
   }
 
   private async resolveCenter(
-    city: CityRouteRecord
+    city: CityRouteRecord,
+    budget: LiveGeocodeBudget
   ): Promise<VolunteerDayRoute['center']> {
     const address = city.settings?.centerAddress.trim() ?? '';
     const stored = toCoord(
@@ -195,16 +213,16 @@ export class VolunteerRouteService {
       return { address, lat: null, lng: null, placed: false };
     }
 
-    const geocoded = await this.geocoder.geocode(address);
-    if (!isUsableCoord(geocoded)) {
+    const outcome = await this.liveGeocode(address, budget);
+    if (outcome === null || outcome.kind !== 'hit') {
       return { address, lat: null, lng: null, placed: false };
     }
 
-    await this.persistCenter(city.id, geocoded);
+    await this.persistCenter(city.id, outcome.coord);
     return {
       address,
-      lat: geocoded.lat,
-      lng: geocoded.lng,
+      lat: outcome.coord.lat,
+      lng: outcome.coord.lng,
       placed: true,
     };
   }
@@ -228,7 +246,8 @@ export class VolunteerRouteService {
 
   private async resolveStops(
     deliveries: RouteDelivery[],
-    cityNameEn: string
+    cityNameEn: string,
+    budget: LiveGeocodeBudget
   ): Promise<Array<{ delivery: RouteDelivery; coord: RouteCoord | null }>> {
     const sorted = [...deliveries].sort((left, right) =>
       left.elder.fullName.localeCompare(right.elder.fullName, 'he')
@@ -241,7 +260,7 @@ export class VolunteerRouteService {
     for (const delivery of sorted) {
       resolved.push({
         delivery,
-        coord: await this.resolveElderCoord(delivery.elder, cityNameEn),
+        coord: await this.resolveElderCoord(delivery.elder, cityNameEn, budget),
       });
     }
 
@@ -250,7 +269,8 @@ export class VolunteerRouteService {
 
   private async resolveElderCoord(
     elder: RouteElder,
-    cityNameEn: string
+    cityNameEn: string,
+    budget: LiveGeocodeBudget
   ): Promise<RouteCoord | null> {
     const stored = toCoord(elder.lat, elder.lng);
     if (
@@ -276,9 +296,30 @@ export class VolunteerRouteService {
       return null;
     }
 
-    const geocoded = await this.geocoder.geocode(query);
-    await this.persistElderGeocode(elder.id, geocoded);
-    return geocoded;
+    const outcome = await this.liveGeocode(query, budget);
+    if (outcome === null) {
+      return null;
+    }
+    if (outcome.kind === 'hit') {
+      await this.persistElderGeocode(elder.id, outcome.coord);
+      return outcome.coord;
+    }
+    if (outcome.kind === 'no_hit') {
+      await this.persistElderGeocode(elder.id, null);
+      return null;
+    }
+    return null;
+  }
+
+  private async liveGeocode(
+    query: string,
+    budget: LiveGeocodeBudget
+  ): Promise<GeocodeOutcome | null> {
+    if (budget.remaining <= 0) {
+      return null;
+    }
+    budget.remaining -= 1;
+    return this.geocoder.geocode(query);
   }
 
   private async persistElderGeocode(
