@@ -165,6 +165,16 @@ export {
 } from './delivery';
 
 export {
+  routeCoordSchema,
+  volunteerDayRouteSchema,
+  volunteerRouteCenterSchema,
+  volunteerRouteStopSchema,
+  type VolunteerDayRoute,
+  type VolunteerRouteCenter,
+  type VolunteerRouteStop,
+} from './route';
+
+export {
   createPermanentMatchSchema,
   endPermanentMatchSchema,
   matchElderSummarySchema,

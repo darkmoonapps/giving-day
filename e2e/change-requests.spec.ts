@@ -101,8 +101,9 @@ test.describe('Elder change requests', () => {
     await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByTestId('volunteer-deliveries-page')).toBeVisible();
-    await expect(page.getByText('Rivkah Levi')).toBeVisible();
-    await expect(page.getByText('12 Example St 12')).toBeVisible();
+    const card = page.getByTestId('volunteer-delivery-card');
+    await expect(card.getByText('Rivkah Levi')).toBeVisible();
+    await expect(card.getByText('12 Example St 12')).toBeVisible();
     await expect(page.getByTestId('elder-next-of-kin')).toBeVisible();
 
     await page.getByTestId('suggest-correction').click();

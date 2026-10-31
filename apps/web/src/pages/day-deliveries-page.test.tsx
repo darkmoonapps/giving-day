@@ -57,11 +57,10 @@ describe('DayDeliveriesPage', () => {
       expect(
         await screen.findByTestId('volunteer-deliveries-page')
       ).toBeInTheDocument();
-      expect(
-        await screen.findByTestId('volunteer-deliveries-list')
-      ).toBeInTheDocument();
-      expect(screen.getByText('Rivkah Levi')).toBeInTheDocument();
-      expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(list).toBeInTheDocument();
+      expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
+      expect(within(list).getByText('12 Example St 12')).toBeInTheDocument();
       expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
       expect(screen.getByText(/Tamar Levi/)).toBeInTheDocument();
       expect(screen.getByText('+972506666666')).toBeInTheDocument();
@@ -145,13 +144,51 @@ describe('DayDeliveriesPage', () => {
 
       renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
 
-      expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(within(list).getByText('Yosef Abraham')).toBeInTheDocument();
       await user.click(screen.getByTestId('mark-delivered'));
       await waitFor(() => {
         expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
       });
       expect(
         screen.queryByTestId('fireworks-thank-you')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the volunteer delivery list while the route is still loading', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: volunteerUser(),
+            day: {
+              ...openDay,
+              myParticipation: {
+                id: '44444444-4444-4444-8444-444444444444',
+                cityId: CITY_A_ID,
+                dayId: DAY_ID,
+                volunteerId: volunteerUser().id,
+                status: 'confirmed',
+                respondedAt: '2026-10-29T10:00:00.000Z',
+                cancelReason: null,
+              },
+            },
+            volunteerRoute: 'pending',
+          })
+        )
+      );
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(list).toBeInTheDocument();
+      expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('volunteer-route-panel')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('volunteer-route-error')
       ).not.toBeInTheDocument();
     });
 

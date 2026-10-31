@@ -164,7 +164,11 @@ test.describe('Volunteer fireworks thank-you', () => {
     });
 
     await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
-    await expect(page.getByText('Yosef Abraham')).toBeVisible();
+    await expect(
+      page
+        .getByTestId('volunteer-delivery-card')
+        .filter({ hasText: 'Yosef Abraham' })
+    ).toBeVisible();
     await page.getByTestId('mark-delivered').click();
     await expect(page.getByTestId('mark-picked')).toBeVisible();
     await expect(page.getByTestId('fireworks-thank-you')).toHaveCount(0);

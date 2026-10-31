@@ -171,6 +171,27 @@ export async function stubDistributionDayApi(
     cityNameHe?: string;
     cityNameEn?: string;
     centerAddress?: string;
+    volunteerRoute?: {
+      dayId: string;
+      cityId: string;
+      cityNameHe: string;
+      cityNameEn: string;
+      center: {
+        address: string;
+        lat: number | null;
+        lng: number | null;
+        placed: boolean;
+      };
+      stops: Array<{
+        deliveryId: string;
+        visitOrder: number | null;
+        placed: boolean;
+        lat: number | null;
+        lng: number | null;
+        status: string;
+        elder: StubDeliveryElder;
+      }>;
+    };
     dashboard?: {
       dayId: string;
       cityId: string;
@@ -391,6 +412,44 @@ export async function stubDistributionDayApi(
           ],
         },
       });
+      return;
+    }
+
+    if (method === 'GET' && url.pathname.endsWith('/route')) {
+      const navigation = {
+        cityNameHe: options.cityNameHe ?? 'חולון',
+        cityNameEn: options.cityNameEn ?? 'Holon',
+        centerAddress: options.centerAddress ?? '10 Warehouse Rd, Holon',
+      };
+      await jsonFulfill(
+        route,
+        options.volunteerRoute ?? {
+          dayId: DAY_ID,
+          cityId: CITY_A_ID,
+          cityNameHe: navigation.cityNameHe,
+          cityNameEn: navigation.cityNameEn,
+          center: {
+            address: navigation.centerAddress,
+            lat: 32.0114,
+            lng: 34.7748,
+            placed: navigation.centerAddress.trim().length > 0,
+          },
+          stops: volunteerDeliveries.map((delivery, index) => {
+            const placed =
+              delivery.elder.street.trim().length > 0 &&
+              delivery.elder.houseNumber.trim().length > 0;
+            return {
+              deliveryId: delivery.id,
+              visitOrder: placed ? index + 1 : null,
+              placed,
+              lat: placed ? 32.0188 + index * 0.007 : null,
+              lng: placed ? 34.7792 + index * 0.011 : null,
+              status: delivery.status,
+              elder: delivery.elder,
+            };
+          }),
+        }
+      );
       return;
     }
 

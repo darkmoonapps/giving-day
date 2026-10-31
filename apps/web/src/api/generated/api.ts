@@ -658,6 +658,55 @@ export interface UpdateDeliveryStatusDto {
   notDeliveredReason?: UpdateDeliveryStatusDtoNotDeliveredReason;
 }
 
+export interface VolunteerRouteCenterDto {
+  /** Distribution center address from city settings */
+  address: string;
+  /** @nullable */
+  lat: number | null;
+  /** @nullable */
+  lng: number | null;
+  /** False when the center address could not be placed on the map */
+  placed: boolean;
+}
+
+export type VolunteerRouteStopDtoStatus = typeof VolunteerRouteStopDtoStatus[keyof typeof VolunteerRouteStopDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const VolunteerRouteStopDtoStatus = {
+  unassigned: 'unassigned',
+  assigned: 'assigned',
+  picked: 'picked',
+  delivered: 'delivered',
+  not_delivered: 'not_delivered',
+  cancelled: 'cancelled',
+} as const;
+
+export interface VolunteerRouteStopDto {
+  deliveryId: string;
+  /**
+   * 1-based suggested visit order; null when the stop is unplaced
+   * @nullable
+   */
+  visitOrder: number | null;
+  placed: boolean;
+  /** @nullable */
+  lat: number | null;
+  /** @nullable */
+  lng: number | null;
+  status: VolunteerRouteStopDtoStatus;
+  elder: DeliveryElderDto;
+}
+
+export interface VolunteerDayRouteResponseDto {
+  dayId: string;
+  cityId: string;
+  cityNameHe: string;
+  cityNameEn: string;
+  center: VolunteerRouteCenterDto;
+  stops: VolunteerRouteStopDto[];
+}
+
 export type ElderContactResponseDtoRelation = typeof ElderContactResponseDtoRelation[keyof typeof ElderContactResponseDtoRelation];
 
 
@@ -4305,6 +4354,115 @@ export const useUpdateDayDeliveryStatus = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary Volunteer's own assigned deliveries as a suggested nearest-neighbor route from the city distribution center
+ */
+export const getGetVolunteerDayRouteUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/route`
+}
+
+export const getVolunteerDayRoute = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<VolunteerDayRouteResponseDto> => {
+  
+  return apiFetch<VolunteerDayRouteResponseDto>(getGetVolunteerDayRouteUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetVolunteerDayRouteQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}/route`
+    ] as const;
+    }
+
+    
+export const getGetVolunteerDayRouteQueryOptions = <TData = Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVolunteerDayRouteQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVolunteerDayRoute>>> = ({ signal }) => getVolunteerDayRoute(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetVolunteerDayRouteQueryResult = NonNullable<Awaited<ReturnType<typeof getVolunteerDayRoute>>>
+export type GetVolunteerDayRouteQueryError = unknown
+
+
+export function useGetVolunteerDayRoute<TData = Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVolunteerDayRoute>>,
+          TError,
+          Awaited<ReturnType<typeof getVolunteerDayRoute>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVolunteerDayRoute<TData = Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVolunteerDayRoute>>,
+          TError,
+          Awaited<ReturnType<typeof getVolunteerDayRoute>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVolunteerDayRoute<TData = Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Volunteer's own assigned deliveries as a suggested nearest-neighbor route from the city distribution center
+ */
+
+export function useGetVolunteerDayRoute<TData = Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVolunteerDayRoute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetVolunteerDayRouteQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary List elders for a city (coordinators and super admins; excludes archived by default)
  */

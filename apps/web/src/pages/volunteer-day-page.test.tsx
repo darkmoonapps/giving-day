@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { clearAccessToken } from '../auth/access-token';
 import { i18n } from '../i18n';
@@ -164,8 +164,9 @@ describe('VolunteerDayPage', () => {
       await screen.findByTestId('volunteer-day-deliveries')
     ).toBeInTheDocument();
     expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
-    expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
-    expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
+    const list = await screen.findByTestId('volunteer-deliveries-list');
+    expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
+    expect(within(list).getByText('12 Example St 12')).toBeInTheDocument();
     expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Tamar Levi/ })).toHaveAttribute(
       'href',
@@ -309,11 +310,12 @@ describe('VolunteerDayPage', () => {
 
     renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
 
-    expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+    const list = await screen.findByTestId('volunteer-deliveries-list');
+    expect(within(list).getByText('Yosef Abraham')).toBeInTheDocument();
     await user.click(screen.getByTestId('mark-delivered'));
 
     await waitFor(() => {
-      expect(screen.getByText('Rivkah Levi')).toBeInTheDocument();
+      expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('fireworks-thank-you')).not.toBeInTheDocument();
     expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
@@ -332,7 +334,8 @@ describe('VolunteerDayPage', () => {
 
     renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
 
-    expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
+    const list = await screen.findByTestId('volunteer-deliveries-list');
+    expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
     await user.click(screen.getByTestId('suggest-correction'));
     expect(
       await screen.findByTestId('change-request-modal')

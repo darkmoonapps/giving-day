@@ -188,6 +188,26 @@ export {
   type VolunteerDeliveryStatus,
 } from './schemas/delivery';
 export {
+  routeCoordSchema,
+  volunteerDayRouteSchema,
+  volunteerRouteCenterSchema,
+  volunteerRouteStopSchema,
+  type VolunteerDayRoute,
+  type VolunteerRouteCenter,
+  type VolunteerRouteStop,
+} from './schemas/route';
+export {
+  buildGeocodeQuery,
+  haversineKm,
+  isFiniteCoord,
+  isUnsetDefaultCoord,
+  isUsableCoord,
+  orderStopsNearestNeighbor,
+  type OrderedRouteStop,
+  type RouteCoord,
+  type RouteStopInput,
+} from './route/nearest-neighbor';
+export {
   REPLACEMENT_SUGGESTION_LIMIT,
   proximityScore,
   rankReplacementSuggestions,

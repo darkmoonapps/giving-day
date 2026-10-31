@@ -15,6 +15,93 @@ export const HOLON_NAVIGATION = {
   centerAddress: '10 Warehouse Rd, Holon',
 };
 
+export const HOLON_CENTER_COORD = { lat: 32.0114, lng: 34.7748 };
+export const RIVKAH_COORD = { lat: 32.0188, lng: 34.7792 };
+export const YOSEF_COORD = { lat: 32.026, lng: 34.79 };
+
+export function holonVolunteerRoute(
+  deliveries: Array<{
+    id: string;
+    status: string;
+    elder: {
+      id: string;
+      fullName: string;
+      street: string;
+      houseNumber: string;
+      entrance: string | null;
+      floor: string | null;
+      apartment: string | null;
+      addressNotes: string | null;
+      notes: string | null;
+      contacts: Array<{
+        name: string;
+        relation:
+          | 'child'
+          | 'spouse'
+          | 'sibling'
+          | 'caregiver'
+          | 'social_worker'
+          | 'neighbor'
+          | 'other';
+        phone: string;
+        isPrimary: boolean;
+      }>;
+    };
+  }>
+): {
+  dayId: string;
+  cityId: string;
+  cityNameHe: string;
+  cityNameEn: string;
+  center: {
+    address: string;
+    lat: number;
+    lng: number;
+    placed: boolean;
+  };
+  stops: Array<{
+    deliveryId: string;
+    visitOrder: number | null;
+    placed: boolean;
+    lat: number | null;
+    lng: number | null;
+    status: string;
+    elder: (typeof deliveries)[number]['elder'];
+  }>;
+} {
+  return {
+    dayId: DAY_ID,
+    cityId: CITY_A_ID,
+    ...HOLON_NAVIGATION,
+    center: {
+      address: HOLON_NAVIGATION.centerAddress,
+      ...HOLON_CENTER_COORD,
+      placed: true,
+    },
+    stops: deliveries.map((delivery, index) => {
+      const hasAddress =
+        delivery.elder.street.trim().length > 0 &&
+        delivery.elder.houseNumber.trim().length > 0;
+      const knownCoord =
+        delivery.elder.id === '12121212-1212-4121-8121-121212121212'
+          ? RIVKAH_COORD
+          : delivery.elder.id === '13131313-1313-4131-8131-131313131313'
+            ? YOSEF_COORD
+            : null;
+      const placed = hasAddress && knownCoord !== null;
+      return {
+        deliveryId: delivery.id,
+        visitOrder: placed ? index + 1 : null,
+        placed,
+        lat: placed ? knownCoord.lat : null,
+        lng: placed ? knownCoord.lng : null,
+        status: delivery.status,
+        elder: delivery.elder,
+      };
+    }),
+  };
+}
+
 export function volunteerUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return fakeUser({
     onboardedAt: '2026-10-28T08:00:00.000Z',
@@ -281,6 +368,7 @@ export interface DayFetchStub extends AuthFetchStub {
   createChangeRequest?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
   dashboard?: typeof holonDayDashboard | 'error';
+  volunteerRoute?: ReturnType<typeof holonVolunteerRoute> | 'error' | 'pending';
 }
 
 export function createDayFetchMock(
@@ -363,6 +451,23 @@ export function createDayFetchMock(
         volunteerId: body.volunteerId ?? null,
         status: body.volunteerId === null ? 'unassigned' : 'assigned',
       });
+    }
+
+    if (
+      method === 'GET' &&
+      url.includes(`/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/route`)
+    ) {
+      if (options.volunteerRoute === 'error') {
+        return mockJsonResponse({ message: 'error' }, 500);
+      }
+      if (options.volunteerRoute === 'pending') {
+        return new Promise(() => {
+          return;
+        });
+      }
+      return mockJsonResponse(
+        options.volunteerRoute ?? holonVolunteerRoute(volunteerRows)
+      );
     }
 
     if (
