@@ -1,7 +1,13 @@
 import { DEFAULT_THEME, mergeMantineTheme } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
 import { appTheme } from './app-theme';
-import { mint, renderedLightBadges, themeTokens, wisteria } from './colors';
+import {
+  mint,
+  renderedDarkBadges,
+  renderedLightBadges,
+  themeTokens,
+  wisteria,
+} from './colors';
 import { contrastRatio, meetsWcagAaText, meetsWcagAaUi } from './contrast';
 
 const theme = mergeMantineTheme(DEFAULT_THEME, appTheme);
@@ -32,20 +38,54 @@ describe('Wisteria & mint contrast', () => {
     ).toBe(true);
   });
 
+  it('points light badges at CSS variables so both schemes pick up tokens', () => {
+    expect(resolvedLightBadge('mint')).toEqual({
+      color: 'var(--mantine-color-mint-light-color)',
+      background: 'var(--mantine-color-mint-light)',
+    });
+    expect(resolvedLightBadge('red')).toEqual({
+      color: 'var(--mantine-color-red-light-color)',
+      background: 'var(--mantine-color-red-light)',
+    });
+  });
+
   it('meets WCAG AA for the light badges Mantine actually renders', () => {
-    const mintBadge = resolvedLightBadge('mint');
-    const redBadge = resolvedLightBadge('red');
+    expect(renderedLightBadges.mint.color).toBe(mint[7]);
+    expect(renderedLightBadges.mint.color).not.toBe(mint[6]);
 
-    expect(mintBadge).toEqual(renderedLightBadges.mint);
-    expect(redBadge).toEqual(renderedLightBadges.red);
-    expect(mintBadge.color).toBe(mint[7]);
-    expect(mintBadge.color).not.toBe(mint[6]);
-
-    expect(meetsWcagAaText(mintBadge.color, mintBadge.background)).toBe(true);
-    expect(meetsWcagAaText(redBadge.color, redBadge.background)).toBe(true);
     expect(
-      contrastRatio(mintBadge.color, mintBadge.background)
+      meetsWcagAaText(
+        renderedLightBadges.mint.color,
+        renderedLightBadges.mint.background
+      )
+    ).toBe(true);
+    expect(
+      meetsWcagAaText(
+        renderedLightBadges.red.color,
+        renderedLightBadges.red.background
+      )
+    ).toBe(true);
+    expect(
+      contrastRatio(
+        renderedLightBadges.mint.color,
+        renderedLightBadges.mint.background
+      )
     ).toBeGreaterThan(contrastRatio(mint[6], mint[1]));
+  });
+
+  it('meets WCAG AA for dark-theme mint and danger badges', () => {
+    expect(
+      meetsWcagAaText(
+        renderedDarkBadges.mint.color,
+        renderedDarkBadges.mint.background
+      )
+    ).toBe(true);
+    expect(
+      meetsWcagAaText(
+        renderedDarkBadges.red.color,
+        renderedDarkBadges.red.background
+      )
+    ).toBe(true);
   });
 
   it('meets WCAG AA for light-theme primary buttons', () => {

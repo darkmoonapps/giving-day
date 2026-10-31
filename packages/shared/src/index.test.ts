@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CITY_DEFAULT_THEME,
   COLOR_SCHEME_STORAGE_KEY,
+  GIVING_DAY_THEME_ATTRIBUTE,
   citySettingsSchema,
   colorSchemePreferenceSchema,
   createSentryInitConfig,
@@ -34,6 +36,8 @@ describe('shared public exports', () => {
     expect(getDirection('en')).toBe('ltr');
     expect(colorSchemePreferenceSchema.parse('auto')).toBe('auto');
     expect(COLOR_SCHEME_STORAGE_KEY).toBe('giving-day-ui');
+    expect(CITY_DEFAULT_THEME).toBe('wisteria-mint');
+    expect(GIVING_DAY_THEME_ATTRIBUTE).toBe('data-giving-day-theme');
     expect(SENTRY_SEND_DEFAULT_PII).toBe(false);
     expect(citySettingsSchema.shape.defaultTheme).toBeDefined();
     expect(e164PhoneSchema.parse('+972501234567')).toBe('+972501234567');

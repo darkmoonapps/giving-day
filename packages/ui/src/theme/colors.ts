@@ -83,3 +83,19 @@ export const renderedLightBadges = {
     background: MANTINE_RED_1,
   },
 } as const;
+
+export const renderedDarkBadges = {
+  mint: {
+    color: themeTokens.dark.successText,
+    background: themeTokens.dark.successBackground,
+  },
+  red: {
+    color: '#FFC9C9',
+    background: '#5C1A1A',
+  },
+} as const;
+
+export const SEMANTIC_COLORS = {
+  success: 'mint',
+  delivered: 'mint',
+} as const;

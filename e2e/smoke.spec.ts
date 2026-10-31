@@ -41,13 +41,56 @@ test.describe('Smoke Test', () => {
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   });
 
-  test('should persist a dark color scheme choice', async ({ page }) => {
+  test('should persist a dark color scheme choice after reload in RTL', async ({
+    page,
+  }) => {
     await page.goto('/');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'he');
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-giving-day-theme',
+      'wisteria-mint'
+    );
 
     await page.getByRole('button', { name: 'כהה' }).click();
     await expect(page.locator('html')).toHaveAttribute(
       'data-mantine-color-scheme',
       'dark'
+    );
+
+    await page.reload();
+
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-mantine-color-scheme',
+      'dark'
+    );
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'he');
+    await expect(page.getByRole('heading', { name: 'התחברות' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'כהה' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  test('should keep the color scheme toggle usable in English LTR', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    await page.getByRole('button', { name: 'Dark' }).click();
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-mantine-color-scheme',
+      'dark'
+    );
+    await expect(page.getByRole('button', { name: 'Dark' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
     );
   });
 

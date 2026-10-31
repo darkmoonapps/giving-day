@@ -14,6 +14,8 @@ import {
   holonRedeemResponse,
   onboardedJoinUser,
 } from './test/join-fixtures';
+import { COLOR_SCHEME_STORAGE_KEY } from '@giving-day/shared';
+import { useUiStore } from './stores/ui-store';
 import { renderApp } from './test/render';
 
 describe('App routes', () => {
@@ -28,6 +30,8 @@ describe('App routes', () => {
     vi.unstubAllGlobals();
     clearAccessToken();
     clearPersistedJoinToken();
+    useUiStore.setState({ colorScheme: 'auto' });
+    window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY);
     await i18n.changeLanguage('he');
   });
 
@@ -45,6 +49,27 @@ describe('App routes', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'שפה' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'ערכת צבע' })).toBeInTheDocument();
+  });
+
+  it('saves a dark color scheme choice locally', async () => {
+    const user = userEvent.setup();
+    renderApp('/');
+
+    await screen.findByRole('heading', { name: 'התחברות' });
+    await user.click(screen.getByRole('button', { name: 'כהה' }));
+
+    expect(useUiStore.getState().colorScheme).toBe('dark');
+    expect(window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)).toContain(
+      '"colorScheme":"dark"'
+    );
+    expect(document.documentElement).toHaveAttribute(
+      'data-mantine-color-scheme',
+      'dark'
+    );
+    expect(document.documentElement).toHaveAttribute(
+      'data-giving-day-theme',
+      'wisteria-mint'
+    );
   });
 
   it('switches visible login copy from Hebrew to English', async () => {
@@ -236,6 +261,8 @@ describe('onboarding form', () => {
     vi.unstubAllGlobals();
     clearAccessToken();
     clearPersistedJoinToken();
+    useUiStore.setState({ colorScheme: 'auto' });
+    window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY);
     await i18n.changeLanguage('he');
   });
 
