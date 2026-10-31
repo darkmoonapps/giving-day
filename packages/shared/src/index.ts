@@ -122,6 +122,7 @@ export {
   type VolunteerResponseStatus,
 } from './schemas/participation';
 export {
+  DELIVERY_NOTE_MAX_LENGTH,
   assignDeliverySchema,
   contactRelationSchema,
   coordinatorDeliveriesResponseSchema,
@@ -131,8 +132,11 @@ export {
   deliveryElderSchema,
   deliveryStatusSchema,
   deliveryVolunteerSchema,
+  notDeliveredReasonSchema,
+  updateDeliveryStatusSchema,
   volunteerDeliveriesResponseSchema,
   volunteerDeliverySchema,
+  volunteerDeliveryStatusSchema,
   isCoordinatorDeliveriesResponse,
   type AssignDelivery,
   type ContactRelation,
@@ -143,8 +147,11 @@ export {
   type DeliveryElderContact,
   type DeliveryStatus,
   type DeliveryVolunteer,
+  type NotDeliveredReason,
+  type UpdateDeliveryStatus,
   type VolunteerDeliveriesResponse,
   type VolunteerDelivery,
+  type VolunteerDeliveryStatus,
 } from './schemas/delivery';
 export {
   createPermanentMatchSchema,

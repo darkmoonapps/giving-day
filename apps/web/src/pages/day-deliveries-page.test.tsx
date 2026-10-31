@@ -6,6 +6,7 @@ import { i18n } from '../i18n';
 import {
   CITY_A_ID,
   DAY_ID,
+  coordinatorDeliveryNotDelivered,
   coordinatorDeliveryRivkah,
   coordinatorDeliveryUnassigned,
   coordinatorDeliveryUnmatched,
@@ -62,6 +63,7 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
       expect(screen.getByText(/Tamar Levi/)).toBeInTheDocument();
       expect(screen.getByText('+972506666666')).toBeInTheDocument();
+      expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
       expect(screen.queryByTestId('assign-delivery')).not.toBeInTheDocument();
     });
 
@@ -278,6 +280,28 @@ describe('DayDeliveriesPage', () => {
         'unassigned'
       );
       expect(screen.getByTestId('deliveries-filter-empty')).toBeInTheDocument();
+    });
+
+    it('shows a not-delivered note next to the delivery status', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: coordinatorUser(),
+            coordinatorDeliveries: [coordinatorDeliveryNotDelivered],
+          })
+        )
+      );
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(await screen.findByTestId('delivery-status')).toHaveTextContent(
+        'לא נמסר'
+      );
+      expect(screen.getByTestId('not-delivered-note')).toHaveTextContent(
+        'Elder was not home in Holon'
+      );
     });
   });
 });

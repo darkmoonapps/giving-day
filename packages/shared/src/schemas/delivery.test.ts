@@ -3,6 +3,7 @@ import {
   assignDeliverySchema,
   coordinatorDeliveriesResponseSchema,
   isCoordinatorDeliveriesResponse,
+  updateDeliveryStatusSchema,
   volunteerDeliveriesResponseSchema,
 } from './delivery';
 
@@ -62,6 +63,8 @@ describe('volunteerDeliveriesResponseSchema', () => {
           cityId: CITY_ID,
           dayId: DAY_ID,
           status: 'assigned' as const,
+          note: null,
+          notDeliveredReason: null,
           elder,
         },
       ],
@@ -91,6 +94,8 @@ describe('coordinatorDeliveriesResponseSchema', () => {
           cityId: CITY_ID,
           dayId: DAY_ID,
           status: 'unassigned' as const,
+          note: null,
+          notDeliveredReason: null,
           volunteerId: null,
           matchId: MATCH_ID,
           assignedAt: null,
@@ -102,5 +107,58 @@ describe('coordinatorDeliveriesResponseSchema', () => {
 
     expect(coordinatorDeliveriesResponseSchema.parse(payload)).toEqual(payload);
     expect(isCoordinatorDeliveriesResponse(payload)).toBe(true);
+  });
+});
+
+describe('updateDeliveryStatusSchema', () => {
+  it('accepts picked and delivered without a note', () => {
+    expect(updateDeliveryStatusSchema.parse({ status: 'picked' })).toEqual({
+      status: 'picked',
+    });
+    expect(updateDeliveryStatusSchema.parse({ status: 'delivered' })).toEqual({
+      status: 'delivered',
+    });
+  });
+
+  it('requires a note and reason for not delivered', () => {
+    expect(
+      updateDeliveryStatusSchema.parse({
+        status: 'not_delivered',
+        note: '  Elder was not home in Holon  ',
+        notDeliveredReason: 'not_home',
+      })
+    ).toEqual({
+      status: 'not_delivered',
+      note: 'Elder was not home in Holon',
+      notDeliveredReason: 'not_home',
+    });
+    expect(
+      updateDeliveryStatusSchema.safeParse({ status: 'not_delivered' }).success
+    ).toBe(false);
+    expect(
+      updateDeliveryStatusSchema.safeParse({
+        status: 'not_delivered',
+        note: '   ',
+        notDeliveredReason: 'not_home',
+      }).success
+    ).toBe(false);
+    expect(
+      updateDeliveryStatusSchema.safeParse({
+        status: 'not_delivered',
+        note: 'Elder was not home',
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects coordinator-only or skipped statuses', () => {
+    expect(
+      updateDeliveryStatusSchema.safeParse({ status: 'assigned' }).success
+    ).toBe(false);
+    expect(
+      updateDeliveryStatusSchema.safeParse({ status: 'unassigned' }).success
+    ).toBe(false);
+    expect(
+      updateDeliveryStatusSchema.safeParse({ status: 'cancelled' }).success
+    ).toBe(false);
   });
 });

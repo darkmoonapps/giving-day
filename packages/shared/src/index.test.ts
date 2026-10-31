@@ -13,6 +13,7 @@ import {
   parseDateOnly,
   respondToDistributionDaySchema,
   assignDeliverySchema,
+  updateDeliveryStatusSchema,
   createElderSchema,
   createPermanentMatchSchema,
   SENTRY_SEND_DEFAULT_PII,
@@ -51,6 +52,9 @@ describe('shared public exports', () => {
     expect(templateKeySchema.parse('day_invite')).toBe('day_invite');
     expect(assignDeliverySchema.parse({ volunteerId: null }).volunteerId).toBe(
       null
+    );
+    expect(updateDeliveryStatusSchema.parse({ status: 'picked' }).status).toBe(
+      'picked'
     );
     expect(
       createElderSchema.parse({

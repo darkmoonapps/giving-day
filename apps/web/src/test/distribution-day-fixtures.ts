@@ -80,6 +80,8 @@ export const volunteerDeliveryRivkah = {
   cityId: CITY_A_ID,
   dayId: DAY_ID,
   status: 'assigned' as const,
+  note: null,
+  notDeliveredReason: null,
   elder: ELDER_RIVKAH,
 };
 
@@ -93,6 +95,13 @@ export const coordinatorDeliveryRivkah = {
     firstName: 'Yonatan',
     lastName: 'Bar',
   },
+};
+
+export const coordinatorDeliveryNotDelivered = {
+  ...coordinatorDeliveryRivkah,
+  status: 'not_delivered' as const,
+  note: 'Elder was not home in Holon',
+  notDeliveredReason: 'not_home' as const,
 };
 
 export const coordinatorDeliveryUnassigned = {
@@ -149,9 +158,14 @@ export interface DayFetchStub extends AuthFetchStub {
   }>;
   respond?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
-  volunteerDeliveries?: Array<typeof volunteerDeliveryRivkah>;
+  volunteerDeliveries?: Array<
+    Omit<typeof volunteerDeliveryRivkah, 'status'> & {
+      status: 'assigned' | 'picked' | 'delivered' | 'not_delivered';
+    }
+  >;
   coordinatorDeliveries?: Array<
     | typeof coordinatorDeliveryRivkah
+    | typeof coordinatorDeliveryNotDelivered
     | typeof coordinatorDeliveryUnassigned
     | typeof coordinatorDeliveryUnmatched
   >;
@@ -162,6 +176,8 @@ export interface DayFetchStub extends AuthFetchStub {
   }>;
   assign?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
+  updateStatus?:
+    ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
 }
 
 export function createDayFetchMock(
@@ -169,6 +185,7 @@ export function createDayFetchMock(
 ): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   const authMock = createAuthFetchMock(options);
   let currentDay = options.day ?? openDay;
+  let volunteerRows = options.volunteerDeliveries ?? [volunteerDeliveryRivkah];
 
   return async (
     input: RequestInfo | URL,
@@ -176,6 +193,51 @@ export function createDayFetchMock(
   ): Promise<Response> => {
     const url = String(input);
     const method = init?.method ?? 'GET';
+
+    if (
+      method === 'PATCH' &&
+      url.includes(
+        `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries/`
+      ) &&
+      url.includes('/status')
+    ) {
+      if (options.updateStatus === 'error') {
+        return mockJsonResponse({ message: 'error' }, 500);
+      }
+      const body =
+        typeof init?.body === 'string'
+          ? (JSON.parse(init.body) as Record<string, unknown>)
+          : {};
+      if (typeof options.updateStatus === 'function') {
+        return mockJsonResponse(options.updateStatus(body));
+      }
+      const nextStatus =
+        body.status === 'picked' ||
+        body.status === 'delivered' ||
+        body.status === 'not_delivered' ||
+        body.status === 'assigned'
+          ? body.status
+          : 'assigned';
+      volunteerRows = volunteerRows.map((row) =>
+        url.includes(row.id)
+          ? {
+              ...row,
+              status: nextStatus,
+              note: typeof body.note === 'string' ? body.note : row.note,
+              notDeliveredReason:
+                typeof body.notDeliveredReason === 'string'
+                  ? body.notDeliveredReason
+                  : row.notDeliveredReason,
+            }
+          : row
+      );
+      return mockJsonResponse(
+        volunteerRows.find((row) => url.includes(row.id)) ?? {
+          ...volunteerDeliveryRivkah,
+          status: nextStatus,
+        }
+      );
+    }
 
     if (
       method === 'PATCH' &&
@@ -231,7 +293,7 @@ export function createDayFetchMock(
       return mockJsonResponse({
         dayId: DAY_ID,
         cityId: CITY_A_ID,
-        deliveries: options.volunteerDeliveries ?? [volunteerDeliveryRivkah],
+        deliveries: volunteerRows,
       });
     }
 

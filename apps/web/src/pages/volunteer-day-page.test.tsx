@@ -7,6 +7,7 @@ import {
   CITY_A_ID,
   DAY_ID,
   createDayFetchMock,
+  openDay,
   volunteerUser,
 } from '../test/distribution-day-fixtures';
 import { renderApp } from '../test/render';
@@ -110,6 +111,135 @@ describe('VolunteerDayPage', () => {
     expect(JSON.parse(String(respondCall?.[1]?.body))).toEqual({
       status: 'declined',
       cancelReason: 'Family event in Holon',
+    });
+  });
+
+  it('lists assigned deliveries after confirm and lets the volunteer mark picked', async () => {
+    const fetchMock = vi.fn(
+      createDayFetchMock({
+        refresh: 'ok',
+        user: volunteerUser(),
+        day: {
+          ...openDay,
+          myParticipation: {
+            id: '44444444-4444-4444-8444-444444444444',
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            volunteerId: volunteerUser().id,
+            status: 'confirmed',
+            respondedAt: '2026-10-29T10:00:00.000Z',
+            cancelReason: null,
+          },
+        },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+
+    expect(
+      await screen.findByTestId('volunteer-day-deliveries')
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
+    expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
+    expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Tamar Levi/ })).toHaveAttribute(
+      'href',
+      'tel:+972506666666'
+    );
+
+    await user.click(screen.getByTestId('mark-picked'));
+
+    await waitFor(() => {
+      const statusCall = fetchMock.mock.calls.find(
+        (call) =>
+          String(call[0]).includes('/status') && call[1]?.method === 'PATCH'
+      );
+      expect(statusCall).toBeDefined();
+      expect(JSON.parse(String(statusCall?.[1]?.body))).toEqual({
+        status: 'picked',
+      });
+    });
+  });
+
+  it('opens a notes popup when marking a picked package not delivered', async () => {
+    const fetchMock = vi.fn(
+      createDayFetchMock({
+        refresh: 'ok',
+        user: volunteerUser(),
+        day: {
+          ...openDay,
+          myParticipation: {
+            id: '44444444-4444-4444-8444-444444444444',
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            volunteerId: volunteerUser().id,
+            status: 'confirmed',
+            respondedAt: '2026-10-29T10:00:00.000Z',
+            cancelReason: null,
+          },
+        },
+        volunteerDeliveries: [
+          {
+            id: '16161616-1616-4161-8161-161616161616',
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            status: 'picked',
+            note: null,
+            notDeliveredReason: null,
+            elder: {
+              id: '12121212-1212-4121-8121-121212121212',
+              fullName: 'Rivkah Levi',
+              street: '12 Example St',
+              houseNumber: '12',
+              entrance: 'B',
+              floor: '3',
+              apartment: '7',
+              addressNotes: 'Knock loudly',
+              notes: 'Entrance is around the back',
+              contacts: [
+                {
+                  name: 'Tamar Levi',
+                  relation: 'child',
+                  phone: '+972506666666',
+                  isPrimary: true,
+                },
+              ],
+            },
+          },
+        ],
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+
+    await user.click(await screen.findByTestId('mark-not-delivered'));
+    await user.click(await screen.findByTestId('submit-not-delivered'));
+    expect(await screen.findAllByText('שדה חובה')).toHaveLength(2);
+
+    await user.selectOptions(
+      screen.getByTestId('not-delivered-reason'),
+      'not_home'
+    );
+    await user.type(
+      screen.getByTestId('not-delivered-note'),
+      'Elder was not home in Holon'
+    );
+    await user.click(screen.getByTestId('submit-not-delivered'));
+
+    await waitFor(() => {
+      const statusCall = fetchMock.mock.calls.find(
+        (call) =>
+          String(call[0]).includes('/status') && call[1]?.method === 'PATCH'
+      );
+      expect(JSON.parse(String(statusCall?.[1]?.body))).toEqual({
+        status: 'not_delivered',
+        note: 'Elder was not home in Holon',
+        notDeliveredReason: 'not_home',
+      });
     });
   });
 });

@@ -302,9 +302,19 @@ export function CoordinatorDeliveriesTable({
                           {t('needs_volunteer')}
                         </AppBadge>
                       ) : (
-                        <AppText data-testid="delivery-status">
-                          {t(DELIVERY_STATUS_I18N_KEYS[delivery.status])}
-                        </AppText>
+                        <Stack gap={4}>
+                          <AppText data-testid="delivery-status">
+                            {t(DELIVERY_STATUS_I18N_KEYS[delivery.status])}
+                          </AppText>
+                          {delivery.status === 'not_delivered' &&
+                          delivery.note !== null &&
+                          delivery.note !== undefined &&
+                          delivery.note.length > 0 ? (
+                            <AppText size="sm" data-testid="not-delivered-note">
+                              {t('not_delivered_note')}: {delivery.note}
+                            </AppText>
+                          ) : null}
+                        </Stack>
                       )}
                     </Table.Td>
                   </Table.Tr>

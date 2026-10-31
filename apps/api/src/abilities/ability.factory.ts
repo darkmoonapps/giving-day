@@ -160,7 +160,7 @@ export class AbilityFactory {
       });
 
       can('read', 'Delivery', { cityId: { in: volunteerCities } });
-      can('update', 'Delivery', { volunteerId: user.id });
+      can('update', 'Delivery', { cityId: { in: volunteerCities } });
     }
 
     return build();

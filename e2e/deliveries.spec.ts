@@ -63,6 +63,158 @@ test.describe('Distribution day deliveries', () => {
     await expect(page.getByTestId('elder-next-of-kin')).toBeVisible();
     await expect(page.getByText('Tamar Levi')).toBeVisible();
     await expect(page.getByText('+972506666666')).toBeVisible();
+    await expect(page.getByTestId('mark-picked')).toBeVisible();
+  });
+
+  test('confirmed volunteer works through pickup and not-delivered on the day page', async ({
+    page,
+  }) => {
+    const updates: Record<string, unknown>[] = [];
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'volunteer',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      onUpdateStatus: (body) => updates.push(body),
+      myParticipation: {
+        id: '44444444-4444-4444-8444-444444444444',
+        cityId: CITY_A_ID,
+        dayId: DAY_ID,
+        volunteerId: '11111111-1111-4111-8111-111111111111',
+        status: 'confirmed',
+        respondedAt: '2026-10-29T10:00:00.000Z',
+        cancelReason: null,
+      },
+      volunteerDeliveries: [
+        {
+          id: '16161616-1616-4161-8161-161616161616',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'assigned',
+          note: null,
+          notDeliveredReason: null,
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+            street: '12 Example St',
+            houseNumber: '12',
+            entrance: 'B',
+            floor: '3',
+            apartment: '7',
+            addressNotes: 'Knock loudly',
+            notes: 'Entrance is around the back',
+            contacts: [
+              {
+                name: 'Tamar Levi',
+                relation: 'child',
+                phone: '+972506666666',
+                isPrimary: true,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
+    await expect(page.getByTestId('volunteer-day-page')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByTestId('volunteer-day-deliveries')).toBeVisible();
+    await expect(page.getByText('Rivkah Levi')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /Tamar Levi/ })
+    ).toHaveAttribute('href', 'tel:+972506666666');
+
+    await page.getByTestId('mark-picked').click();
+    await expect.poll(() => updates).toEqual([{ status: 'picked' }]);
+    await expect(page.getByTestId('mark-delivered')).toBeVisible();
+
+    await page.getByTestId('mark-not-delivered').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByTestId('not-delivered-reason').selectOption('not_home');
+    await page
+      .getByTestId('not-delivered-note')
+      .fill('Elder was not home in Holon');
+    await page.getByTestId('submit-not-delivered').click();
+    await expect
+      .poll(() => updates)
+      .toEqual([
+        { status: 'picked' },
+        {
+          status: 'not_delivered',
+          note: 'Elder was not home in Holon',
+          notDeliveredReason: 'not_home',
+        },
+      ]);
+  });
+
+  test('coordinator sees not-delivered status and note', async ({ page }) => {
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      coordinatorDeliveries: [
+        {
+          id: '16161616-1616-4161-8161-161616161616',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'not_delivered',
+          note: 'Elder was not home in Holon',
+          notDeliveredReason: 'not_home',
+          volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          matchId: '14141414-1414-4141-8141-141414141414',
+          assignedAt: '2026-10-28T09:00:00.000Z',
+          volunteer: {
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+          },
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+            street: '12 Example St',
+            houseNumber: '12',
+            entrance: 'B',
+            floor: '3',
+            apartment: '7',
+            addressNotes: 'Knock loudly',
+            notes: 'Entrance is around the back',
+            contacts: [],
+          },
+        },
+      ],
+    });
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+    await expect(page.getByTestId('coordinator-deliveries-page')).toBeVisible();
+    await expect(page.getByTestId('delivery-status')).toHaveText('לא נמסר');
+    await expect(page.getByTestId('not-delivered-note')).toContainText(
+      'Elder was not home in Holon'
+    );
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.getByTestId('delivery-status')).toHaveText(
+      'Not delivered'
+    );
+    await expect(page.getByTestId('not-delivered-note')).toContainText(
+      'Elder was not home in Holon'
+    );
   });
 
   test('coordinator assigns an unassigned delivery', async ({ page }) => {

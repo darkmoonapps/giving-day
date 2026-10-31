@@ -20,6 +20,7 @@ import {
   isUuid,
 } from '../distribution-days/format-day';
 import { useLanguage } from '../i18n/use-language';
+import { VolunteerAssignedDeliveries } from '../deliveries/volunteer-assigned-deliveries';
 import { AppChrome } from '../layout/app-chrome';
 
 type VolunteerView = 'choose' | 'decline' | 'confirmed' | 'declined' | 'closed';
@@ -179,7 +180,17 @@ export function VolunteerDayPage(): JSX.Element {
                 <AppTitle order={2}>{t('thanks_title')}</AppTitle>
                 <AppText>{t('thanks_body')}</AppText>
                 <AppText aria-hidden="true">🎉</AppText>
+                {cityId !== undefined && dayId !== undefined ? (
+                  <Stack gap="sm" data-testid="volunteer-day-deliveries">
+                    <AppTitle order={2}>{t('deliveries_title')}</AppTitle>
+                    <VolunteerAssignedDeliveries
+                      cityId={cityId}
+                      dayId={dayId}
+                    />
+                  </Stack>
+                ) : null}
                 <AppButton
+                  variant="light"
                   onClick={() => {
                     if (cityId !== undefined && dayId !== undefined) {
                       void navigate(

@@ -31,6 +31,7 @@
   "delivery_status_delivered": "נמסר",
   "delivery_status_not_delivered": "לא נמסר",
   "delivery_status_cancelled": "בוטל",
+  "not_delivered_note": "הערת אי-מסירה",
   "filter_elder": "סינון לפי שם מבוגר/ת",
   "filter_address": "סינון לפי כתובת",
   "filter_volunteer": "סינון לפי מתנדב/ת",
