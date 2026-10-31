@@ -18,13 +18,15 @@ import {
 } from '../api/generated/api';
 import {
   JOIN_LINK_ROLES,
-  clearRevealedJoinLinkUrl,
+  clearRevealedJoinLink,
   copyText,
   formatJoinLinkCreatedAt,
   joinLinkForRole,
-  readRevealedJoinLinkUrl,
+  readRevealedJoinLink,
+  revealedJoinLinkMatchesStatus,
   visibleJoinLinkUrl,
-  writeRevealedJoinLinkUrl,
+  writeRevealedJoinLink,
+  type RevealedJoinLink,
 } from '../cities/city-join-links';
 import { useLanguage } from '../i18n/use-language';
 
@@ -40,7 +42,7 @@ interface CityJoinLinksSectionProps {
 interface JoinLinkRoleCardProps {
   role: CityRole;
   status: CityJoinLinkStatusDto | undefined;
-  revealedUrl: string | null;
+  revealed: RevealedJoinLink | null;
   confirming: boolean;
   regenerating: boolean;
   regenerateFailed: boolean;
@@ -54,7 +56,7 @@ interface JoinLinkRoleCardProps {
 function JoinLinkRoleCard({
   role,
   status,
-  revealedUrl,
+  revealed,
   confirming,
   regenerating,
   regenerateFailed,
@@ -67,7 +69,7 @@ function JoinLinkRoleCard({
   const { t } = useTranslation('admin');
   const { language } = useLanguage();
   const active = status?.active === true;
-  const url = visibleJoinLinkUrl(active, revealedUrl);
+  const url = visibleJoinLinkUrl(revealed, status);
   const createdAt = status?.createdAt ?? null;
 
   return (
@@ -184,12 +186,12 @@ export function CityJoinLinksSection({
   const { t } = useTranslation('admin');
   const { t: tCommon } = useTranslation('common');
   const queryClient = useQueryClient();
-  const [revealed, setRevealed] = useState<Record<CityRole, string | null>>(
-    () => ({
-      volunteer: readRevealedJoinLinkUrl(cityId, 'volunteer'),
-      coordinator: readRevealedJoinLinkUrl(cityId, 'coordinator'),
-    })
-  );
+  const [revealed, setRevealed] = useState<
+    Record<CityRole, RevealedJoinLink | null>
+  >(() => ({
+    volunteer: readRevealedJoinLink(cityId, 'volunteer'),
+    coordinator: readRevealedJoinLink(cityId, 'coordinator'),
+  }));
   const [confirmingRole, setConfirmingRole] = useState<CityRole | null>(null);
   const [copiedRole, setCopiedRole] = useState<CityRole | null>(null);
   const [failedRole, setFailedRole] = useState<CityRole | null>(null);
@@ -198,10 +200,14 @@ export function CityJoinLinksSection({
   const regenerateMutation = useRegenerateCityJoinLink({
     mutation: {
       onSuccess: async (created) => {
-        writeRevealedJoinLinkUrl(cityId, created.role, created.url);
+        const next: RevealedJoinLink = {
+          url: created.url,
+          createdAt: created.createdAt,
+        };
+        writeRevealedJoinLink(cityId, created.role, next);
         setRevealed((current) => ({
           ...current,
-          [created.role]: created.url,
+          [created.role]: next,
         }));
         setConfirmingRole(null);
         setFailedRole(null);
@@ -220,8 +226,8 @@ export function CityJoinLinksSection({
 
   useEffect(() => {
     setRevealed({
-      volunteer: readRevealedJoinLinkUrl(cityId, 'volunteer'),
-      coordinator: readRevealedJoinLinkUrl(cityId, 'coordinator'),
+      volunteer: readRevealedJoinLink(cityId, 'volunteer'),
+      coordinator: readRevealedJoinLink(cityId, 'coordinator'),
     });
     setConfirmingRole(null);
     setCopiedRole(null);
@@ -234,20 +240,32 @@ export function CityJoinLinksSection({
       return;
     }
 
+    setRevealed((current) => {
+      const next = { ...current };
+      let changed = false;
+      for (const role of JOIN_LINK_ROLES) {
+        const status = joinLinkForRole(links, role);
+        if (revealedJoinLinkMatchesStatus(current[role], status)) {
+          continue;
+        }
+        if (next[role] !== null) {
+          next[role] = null;
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+
     for (const role of JOIN_LINK_ROLES) {
       const status = joinLinkForRole(links, role);
-      if (status?.active === true) {
-        continue;
+      if (
+        !revealedJoinLinkMatchesStatus(
+          readRevealedJoinLink(cityId, role),
+          status
+        )
+      ) {
+        clearRevealedJoinLink(cityId, role);
       }
-      clearRevealedJoinLinkUrl(cityId, role);
-      setRevealed((current) =>
-        current[role] === null
-          ? current
-          : {
-              ...current,
-              [role]: null,
-            }
-      );
     }
   }, [cityId, linksQuery.data]);
 
@@ -284,7 +302,7 @@ export function CityJoinLinksSection({
               key={role}
               role={role}
               status={joinLinkForRole(linksQuery.data?.links, role)}
-              revealedUrl={revealed[role]}
+              revealed={revealed[role]}
               confirming={confirmingRole === role}
               regenerating={
                 regenerateMutation.isPending &&

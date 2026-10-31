@@ -5,10 +5,15 @@ import { clearAccessToken } from '../auth/access-token';
 import { i18n } from '../i18n';
 import { CITY_A_ID, volunteerUser } from '../test/distribution-day-fixtures';
 import * as cityJoinLinks from '../cities/city-join-links';
-import { joinLinkStorageKey } from '../cities/city-join-links';
+import {
+  joinLinkStorageKey,
+  readRevealedJoinLink,
+  writeRevealedJoinLink,
+} from '../cities/city-join-links';
 import {
   createCitySettingsFetchMock,
   holonCitySettings,
+  holonJoinLinks,
   holonVolunteerJoinLinkCreated,
 } from '../test/city-settings-fixtures';
 import { renderApp } from '../test/render';
@@ -180,10 +185,13 @@ describe('CitySettingsPage', () => {
   });
 
   it('shows a previously revealed Holon volunteer URL without regenerating', async () => {
-    window.localStorage.setItem(
-      joinLinkStorageKey(CITY_A_ID, 'volunteer'),
-      holonVolunteerJoinLinkCreated.url
+    const volunteerStatus = holonJoinLinks.links.find(
+      (link) => link.role === 'volunteer'
     );
+    writeRevealedJoinLink(CITY_A_ID, 'volunteer', {
+      url: holonVolunteerJoinLinkCreated.url,
+      createdAt: volunteerStatus?.createdAt ?? '2026-10-01T09:00:00.000Z',
+    });
     vi.stubGlobal('fetch', vi.fn(createCitySettingsFetchMock()));
 
     renderApp(`/cities/${CITY_A_ID}/settings`);
@@ -191,6 +199,27 @@ describe('CitySettingsPage', () => {
     expect(await screen.findByTestId('join-link-url-volunteer')).toHaveValue(
       holonVolunteerJoinLinkCreated.url
     );
+  });
+
+  it('hides a remembered Holon URL when another coordinator regenerated it', async () => {
+    writeRevealedJoinLink(CITY_A_ID, 'volunteer', {
+      url: holonVolunteerJoinLinkCreated.url,
+      createdAt: holonVolunteerJoinLinkCreated.createdAt,
+    });
+    vi.stubGlobal('fetch', vi.fn(createCitySettingsFetchMock()));
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+
+    expect(await screen.findByTestId('join-link-volunteer')).toHaveTextContent(
+      'יש קישור הצטרפות קבוע פעיל.'
+    );
+    expect(
+      screen.queryByTestId('join-link-url-volunteer')
+    ).not.toBeInTheDocument();
+    expect(readRevealedJoinLink(CITY_A_ID, 'volunteer')).toBeNull();
+    expect(
+      window.localStorage.getItem(joinLinkStorageKey(CITY_A_ID, 'volunteer'))
+    ).toBeNull();
   });
 
   it('cancels regenerate without calling the API', async () => {

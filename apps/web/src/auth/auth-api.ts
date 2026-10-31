@@ -14,6 +14,7 @@ import {
   apiFetch,
   refreshAccessTokenFromCookie,
 } from '../api/mutator';
+import { clearAllRevealedJoinLinks } from '../cities/city-join-links';
 import { clearAccessToken } from './access-token';
 
 export async function refreshSession(): Promise<string> {
@@ -59,5 +60,6 @@ export async function logoutSession(): Promise<void> {
     // The API revoke can fail while the client still must drop the session.
   } finally {
     clearAccessToken();
+    clearAllRevealedJoinLinks();
   }
 }

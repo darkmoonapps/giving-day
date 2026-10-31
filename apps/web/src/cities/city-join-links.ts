@@ -1,44 +1,88 @@
 import type { CityRole } from '@giving-day/shared';
 import type { CityJoinLinkStatusDto } from '../api/generated/api';
 
-const STORAGE_PREFIX = 'giving-day.join-link-url';
+export const JOIN_LINK_STORAGE_PREFIX = 'giving-day.join-link-url';
 
 export const JOIN_LINK_ROLES: readonly CityRole[] = [
   'volunteer',
   'coordinator',
 ];
 
-export function joinLinkStorageKey(cityId: string, role: CityRole): string {
-  return `${STORAGE_PREFIX}:${cityId}:${role}`;
+export interface RevealedJoinLink {
+  url: string;
+  createdAt: string;
 }
 
-export function readRevealedJoinLinkUrl(
+export function joinLinkStorageKey(cityId: string, role: CityRole): string {
+  return `${JOIN_LINK_STORAGE_PREFIX}:${cityId}:${role}`;
+}
+
+function isRevealedJoinLink(value: unknown): value is RevealedJoinLink {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('url' in value) || !('createdAt' in value)) {
+    return false;
+  }
+  return (
+    typeof value.url === 'string' &&
+    value.url.length > 0 &&
+    typeof value.createdAt === 'string' &&
+    value.createdAt.length > 0
+  );
+}
+
+export function readRevealedJoinLink(
   cityId: string,
   role: CityRole
-): string | null {
+): RevealedJoinLink | null {
   try {
-    const value = window.localStorage.getItem(joinLinkStorageKey(cityId, role));
-    return value !== null && value.length > 0 ? value : null;
+    const raw = window.localStorage.getItem(joinLinkStorageKey(cityId, role));
+    if (raw === null || raw.length === 0) {
+      return null;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    return isRevealedJoinLink(parsed) ? parsed : null;
   } catch {
     return null;
   }
 }
 
-export function writeRevealedJoinLinkUrl(
+export function writeRevealedJoinLink(
   cityId: string,
   role: CityRole,
-  url: string
+  revealed: RevealedJoinLink
 ): void {
   try {
-    window.localStorage.setItem(joinLinkStorageKey(cityId, role), url);
+    window.localStorage.setItem(
+      joinLinkStorageKey(cityId, role),
+      JSON.stringify(revealed)
+    );
   } catch {
     // Private mode or quota — the URL is still shown from component state.
   }
 }
 
-export function clearRevealedJoinLinkUrl(cityId: string, role: CityRole): void {
+export function clearRevealedJoinLink(cityId: string, role: CityRole): void {
   try {
     window.localStorage.removeItem(joinLinkStorageKey(cityId, role));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function clearAllRevealedJoinLinks(): void {
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key !== null && key.startsWith(`${JOIN_LINK_STORAGE_PREFIX}:`)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      window.localStorage.removeItem(key);
+    }
   } catch {
     // Ignore storage failures.
   }
@@ -51,14 +95,26 @@ export function joinLinkForRole(
   return links?.find((link) => link.role === role);
 }
 
+export function revealedJoinLinkMatchesStatus(
+  stored: RevealedJoinLink | null,
+  status: CityJoinLinkStatusDto | undefined
+): boolean {
+  return (
+    stored !== null &&
+    status?.active === true &&
+    status.createdAt !== null &&
+    stored.createdAt === status.createdAt
+  );
+}
+
 export function visibleJoinLinkUrl(
-  active: boolean,
-  storedUrl: string | null
+  stored: RevealedJoinLink | null,
+  status: CityJoinLinkStatusDto | undefined
 ): string | null {
-  if (!active || storedUrl === null || storedUrl.length === 0) {
+  if (!revealedJoinLinkMatchesStatus(stored, status)) {
     return null;
   }
-  return storedUrl;
+  return stored?.url ?? null;
 }
 
 export function formatJoinLinkCreatedAt(
