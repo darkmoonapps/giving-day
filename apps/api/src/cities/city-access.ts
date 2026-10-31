@@ -13,7 +13,9 @@ export type CityOwnedSubject =
   | 'CityMembership'
   | 'DistributionDay'
   | 'DayParticipation'
-  | 'Delivery';
+  | 'Delivery'
+  | 'Elder'
+  | 'ElderContact';
 
 export function assertCanOnCity(
   ability: AppAbility,
@@ -27,6 +29,18 @@ export function assertCanOnCity(
   const instance = subject(type, { cityId, ...extra }) as AppSubjects;
   if (ability.cannot(action, instance)) {
     throw new NotFoundException('cities.not_found');
+  }
+}
+
+export function assertCanManageOnCity(
+  ability: AppAbility,
+  type: CityOwnedSubject,
+  cityId: string
+): void {
+  assertCanOnCity(ability, 'read', type, cityId);
+  const instance = subject(type, { cityId }) as AppSubjects;
+  if (ability.cannot('update', instance)) {
+    throw new ForbiddenException('auth.insufficient_permissions');
   }
 }
 

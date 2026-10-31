@@ -133,6 +133,28 @@ export {
   type VolunteerDelivery,
 } from './schemas/delivery';
 export {
+  createElderSchema,
+  elderContactInputSchema,
+  elderContactSchema,
+  elderSchema,
+  elderStatusSchema,
+  eldersResponseSchema,
+  geocodeStatusSchema,
+  listEldersQuerySchema,
+  optionalNullablePhoneSchema,
+  optionalNullableTextSchema,
+  updateElderSchema,
+  type CreateElder,
+  type Elder,
+  type ElderContact,
+  type ElderContactInput,
+  type ElderStatus,
+  type EldersResponse,
+  type GeocodeStatus,
+  type ListEldersQuery,
+  type UpdateElder,
+} from './schemas/elder';
+export {
   announceDistributionDayResultSchema,
   notificationChannelSchema,
   notificationStatusSchema,

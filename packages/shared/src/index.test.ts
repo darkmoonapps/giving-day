@@ -13,6 +13,7 @@ import {
   parseDateOnly,
   respondToDistributionDaySchema,
   assignDeliverySchema,
+  createElderSchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
 } from './index';
@@ -50,6 +51,13 @@ describe('shared public exports', () => {
     expect(assignDeliverySchema.parse({ volunteerId: null }).volunteerId).toBe(
       null
     );
+    expect(
+      createElderSchema.parse({
+        fullName: 'Elder A',
+        street: '1 Test Street',
+        houseNumber: '1',
+      }).fullName
+    ).toBe('Elder A');
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'
