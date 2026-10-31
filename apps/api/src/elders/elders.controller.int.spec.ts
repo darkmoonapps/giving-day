@@ -225,6 +225,34 @@ describe('Elders HTTP authorization', () => {
         .send({ notes: 'Knock loudly' })
         .expect(404);
     });
+
+    it('rejects a patch on an archived elder', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.elder.findFirst.mockResolvedValue(
+        fakeElder({
+          status: 'removed',
+          archivedAt: new Date('2026-10-20T09:00:00.000Z'),
+        })
+      );
+
+      const response = await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/elders/${ELDER_A_ID}`)
+        .send({ notes: 'Knock loudly' })
+        .expect(400);
+
+      expect(response.body.message).toBe('elders.already_deactivated');
+    });
+
+    it('rejects status removed; deactivate is the only archive path', async () => {
+      currentUser = coordinatorA();
+
+      const response = await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/elders/${ELDER_A_ID}`)
+        .send({ status: 'removed' })
+        .expect(400);
+
+      expect(response.body.message).toBe('elders.use_deactivate');
+    });
   });
 
   describe('POST /api/cities/:cityId/elders/:elderId/deactivate', () => {

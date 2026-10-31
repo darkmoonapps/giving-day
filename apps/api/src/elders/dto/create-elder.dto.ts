@@ -12,18 +12,11 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { elderStatusSchema, geocodeStatusSchema } from '@giving-day/shared';
 import { ElderContactInputDto } from './elder-contact-input.dto';
 
-const ELDER_STATUSES = [
-  'active',
-  'paused',
-  'hospitalized',
-  'moved',
-  'deceased',
-  'removed',
-] as const;
-
-const GEOCODE_STATUSES = ['pending', 'ok', 'failed', 'manual'] as const;
+const ELDER_STATUSES = elderStatusSchema.options;
+const GEOCODE_STATUSES = geocodeStatusSchema.options;
 
 export class CreateElderDto {
   @ApiProperty({ type: String, example: 'Elder A' })

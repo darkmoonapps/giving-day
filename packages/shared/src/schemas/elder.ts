@@ -132,7 +132,7 @@ export const updateElderSchema = z
     lat: latSchema.nullable().optional(),
     lng: lngSchema.nullable().optional(),
     geocodeStatus: geocodeStatusSchema.optional(),
-    status: elderStatusSchema.optional(),
+    status: elderStatusSchema.exclude(['removed']).optional(),
     statusReason: optionalNullableTextSchema,
     notes: optionalNullableTextSchema,
     contacts: z.array(elderContactInputSchema).optional(),

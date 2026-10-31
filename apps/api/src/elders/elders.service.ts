@@ -156,7 +156,14 @@ export class EldersService {
     const ability = this.abilityFactory.createForUser(actor);
     assertCanOnCity(ability, 'update', 'Elder', cityId);
     await this.requireCity(cityId);
-    await this.requireElder(cityId, elderId);
+    const existing = await this.requireElder(cityId, elderId);
+
+    if (existing.archivedAt) {
+      throw new BadRequestException('elders.already_deactivated');
+    }
+    if (dto.status === 'removed') {
+      throw new BadRequestException('elders.use_deactivate');
+    }
 
     const parsed = this.parseOrThrow(
       updateElderSchema.safeParse(dto),
@@ -310,6 +317,9 @@ export class EldersService {
     }
     if (issue?.message === 'elders.lat_lng_required') {
       throw new BadRequestException('elders.lat_lng_required');
+    }
+    if (issue?.message === 'elders.use_deactivate') {
+      throw new BadRequestException('elders.use_deactivate');
     }
     throw new BadRequestException(fallback);
   }

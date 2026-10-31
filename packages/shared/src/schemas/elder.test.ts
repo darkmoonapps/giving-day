@@ -143,6 +143,15 @@ describe('updateElderSchema', () => {
   it('allows clearing a phone', () => {
     expect(updateElderSchema.parse({ phone: null })).toEqual({ phone: null });
   });
+
+  it('rejects status removed; deactivate is the only archive path', () => {
+    expect(updateElderSchema.safeParse({ status: 'removed' }).success).toBe(
+      false
+    );
+    expect(updateElderSchema.parse({ status: 'paused' })).toEqual({
+      status: 'paused',
+    });
+  });
 });
 
 describe('listEldersQuerySchema', () => {

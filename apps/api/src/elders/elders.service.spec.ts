@@ -329,6 +329,34 @@ describe('EldersService', () => {
         service.update(CITY_A_ID, ELDER_A_ID, { notes: 'x' }, coordinatorA())
       ).rejects.toBeInstanceOf(NotFoundException);
     });
+
+    it('rejects a patch on an archived elder', async () => {
+      mockPrisma.elder.findFirst.mockResolvedValue(archivedElder);
+
+      await expect(
+        service.update(
+          CITY_A_ID,
+          ELDER_A_ID,
+          { notes: 'Knock loudly' },
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({ message: 'elders.already_deactivated' });
+      expect(mockPrisma.elder.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects status removed; deactivate is the only archive path', async () => {
+      mockPrisma.elder.findFirst.mockResolvedValue(elderA);
+
+      await expect(
+        service.update(
+          CITY_A_ID,
+          ELDER_A_ID,
+          { status: 'removed' },
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({ message: 'elders.use_deactivate' });
+      expect(mockPrisma.elder.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('deactivate', () => {
