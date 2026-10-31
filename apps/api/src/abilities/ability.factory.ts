@@ -106,6 +106,9 @@ export class AbilityFactory {
       can('manage', 'ElderContact', { cityId: { in: coordinatorCities } });
       can('view_pii', 'Elder', { cityId: { in: coordinatorCities } });
 
+      can('read', 'ElderChangeRequest', {
+        cityId: { in: coordinatorCities },
+      });
       can('approve', 'ElderChangeRequest', {
         cityId: { in: coordinatorCities },
       });
@@ -145,7 +148,9 @@ export class AbilityFactory {
       can('create', 'ElderChangeRequest', {
         cityId: { in: volunteerCities },
       });
-      can('read', 'ElderChangeRequest', { requestedById: user.id });
+      can('read', 'ElderChangeRequest', {
+        cityId: { in: volunteerCities },
+      });
 
       can('read', 'Match', { volunteerId: user.id });
 

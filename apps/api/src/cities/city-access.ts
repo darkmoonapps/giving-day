@@ -16,6 +16,7 @@ export type CityOwnedSubject =
   | 'Delivery'
   | 'Elder'
   | 'ElderContact'
+  | 'ElderChangeRequest'
   | 'Match';
 
 export function assertCanOnCity(

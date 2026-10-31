@@ -211,6 +211,112 @@ describe('assertCanOnCity', () => {
     }).toThrow(ForbiddenException);
   });
 
+  it('allows a coordinator to approve change requests in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-1',
+            cityId,
+            userId: 'user-id',
+            role: 'coordinator',
+            status: 'active',
+            inviteId: null,
+            approvedById: null,
+            approvedAt: new Date(),
+            homeArea: null,
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanOnCity(ability, 'read', 'ElderChangeRequest', cityId);
+    }).not.toThrow();
+    expect(() => {
+      assertCanOnCity(ability, 'approve', 'ElderChangeRequest', cityId);
+    }).not.toThrow();
+    expect(() => {
+      assertCanOnCity(ability, 'reject', 'ElderChangeRequest', cityId);
+    }).not.toThrow();
+  });
+
+  it('hides another city change request from a coordinator with 404', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-1',
+            cityId,
+            userId: 'user-id',
+            role: 'coordinator',
+            status: 'active',
+            inviteId: null,
+            approvedById: null,
+            approvedAt: new Date(),
+            homeArea: null,
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanOnCity(
+        ability,
+        'approve',
+        'ElderChangeRequest',
+        '22222222-2222-4222-8222-222222222222'
+      );
+    }).toThrow(NotFoundException);
+  });
+
+  it('allows a volunteer to create a change request in their city only', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-2',
+            cityId,
+            userId: 'user-id',
+            role: 'volunteer',
+            status: 'active',
+            inviteId: null,
+            approvedById: 'coord-id',
+            approvedAt: new Date(),
+            homeArea: 'North',
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanOnCity(ability, 'create', 'ElderChangeRequest', cityId);
+    }).not.toThrow();
+    expect(() => {
+      assertCanOnCity(ability, 'read', 'ElderChangeRequest', cityId);
+    }).not.toThrow();
+    expect(() => {
+      assertCanOnCity(
+        ability,
+        'create',
+        'ElderChangeRequest',
+        '22222222-2222-4222-8222-222222222222'
+      );
+    }).toThrow(NotFoundException);
+    expect(() => {
+      assertCanOnCity(ability, 'approve', 'ElderChangeRequest', cityId);
+    }).toThrow(NotFoundException);
+  });
+
   it('allows a coordinator to manage matches in their city', () => {
     const ability = factory.createForUser(
       createUser({
