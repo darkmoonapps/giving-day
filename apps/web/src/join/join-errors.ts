@@ -34,6 +34,17 @@ export function joinErrorKeyFromUnknown(
   return 'join_unexpected_error';
 }
 
+const TERMINAL_JOIN_ERROR_KEYS = [
+  'cities.invalid_join_token',
+  'cities.membership_paused',
+  'cities.already_member',
+] as const;
+
+export function isTerminalJoinError(error: unknown): boolean {
+  const key = joinErrorKeyFromUnknown(error);
+  return (TERMINAL_JOIN_ERROR_KEYS as readonly string[]).includes(key);
+}
+
 export function joinErrorMessage(t: TFunction<'auth'>, error: unknown): string {
   const key = joinErrorKeyFromUnknown(error);
   if (key === 'auth.not_onboarded') {

@@ -4,6 +4,7 @@ import { i18n } from '../i18n';
 import {
   cityDisplayName,
   isJoinErrorKey,
+  isTerminalJoinError,
   joinErrorKeyFromUnknown,
   joinErrorMessage,
 } from './join-errors';
@@ -42,6 +43,30 @@ describe('join error mapping', () => {
     expect(joinErrorKeyFromUnknown(new ApiError(500, 'HTTP 500'))).toBe(
       'join_unexpected_error'
     );
+    expect(
+      isTerminalJoinError(
+        new ApiError(
+          404,
+          'cities.invalid_join_token',
+          'cities.invalid_join_token'
+        )
+      )
+    ).toBe(true);
+    expect(
+      isTerminalJoinError(
+        new ApiError(
+          409,
+          'cities.membership_paused',
+          'cities.membership_paused'
+        )
+      )
+    ).toBe(true);
+    expect(
+      isTerminalJoinError(
+        new ApiError(409, 'cities.already_member', 'cities.already_member')
+      )
+    ).toBe(true);
+    expect(isTerminalJoinError(new ApiError(500, 'HTTP 500'))).toBe(false);
   });
 
   it('translates Holon names and API error keys in both languages', () => {

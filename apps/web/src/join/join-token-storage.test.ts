@@ -37,4 +37,12 @@ describe('join token storage', () => {
     expect(postAuthPath()).toBe('/');
     expect(postAuthPath('/onboarding')).toBe('/onboarding');
   });
+
+  it('sends post-auth redirects home after the token is cleared', () => {
+    persistJoinToken('fake-join-token');
+    clearPersistedJoinToken();
+
+    expect(readPersistedJoinToken()).toBeNull();
+    expect(postAuthPath()).toBe('/');
+  });
 });

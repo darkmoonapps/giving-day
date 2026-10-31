@@ -19,9 +19,14 @@ import { ApiError } from '../api/mutator';
 import { startOAuthLogin } from '../auth/oauth';
 import { useSession } from '../auth/session-provider';
 import { useLanguage } from '../i18n/use-language';
-import { cityDisplayName, joinErrorMessage } from '../join/join-errors';
+import {
+  cityDisplayName,
+  isTerminalJoinError,
+  joinErrorMessage,
+} from '../join/join-errors';
 import { JoinInstallButton } from '../join/join-install-button';
 import {
+  clearPersistedJoinToken,
   isJoinTokenFormatValid,
   persistJoinToken,
 } from '../join/join-token-storage';
@@ -218,6 +223,26 @@ function JoinPreviewAndRedeem({ token }: { token: string }): JSX.Element {
     };
   }, [preview, status, token]);
 
+  useEffect(() => {
+    if (previewError !== null && isTerminalJoinError(previewError)) {
+      clearPersistedJoinToken();
+    }
+  }, [previewError]);
+
+  useEffect(() => {
+    if (redeemState.kind === 'result') {
+      clearPersistedJoinToken();
+      return;
+    }
+
+    if (
+      redeemState.kind === 'error' &&
+      isTerminalJoinError(redeemState.error)
+    ) {
+      clearPersistedJoinToken();
+    }
+  }, [redeemState]);
+
   if (previewError !== null) {
     return <JoinInvalidState message={joinErrorMessage(t, previewError)} />;
   }
@@ -292,6 +317,11 @@ export function JoinPage(): JSX.Element {
   const token = params.token ?? '';
 
   useEffect(() => {
+    if (!isJoinTokenFormatValid(token)) {
+      clearPersistedJoinToken();
+      return;
+    }
+
     persistJoinToken(token);
   }, [token]);
 

@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { clearAccessToken } from '../auth/access-token';
 import * as oauth from '../auth/oauth';
 import { i18n } from '../i18n';
 import {
   clearPersistedJoinToken,
+  postAuthPath,
   readPersistedJoinToken,
 } from '../join/join-token-storage';
-import { fakeUser } from '../test/auth-fixtures';
+import { createAuthFetchMock, fakeUser } from '../test/auth-fixtures';
 import {
   FAKE_JOIN_TOKEN,
   createJoinFetchMock,
@@ -265,5 +266,77 @@ describe('JoinPage', () => {
 
     expect(startOAuthLogin).toHaveBeenCalledWith('google');
     expect(readPersistedJoinToken()).toBe(FAKE_JOIN_TOKEN);
+  });
+
+  it('clears the stored token after a redeem result', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createJoinFetchMock({
+          auth: { refresh: 'ok', user: onboardedJoinUser() },
+          redeem: holonRedeemResponse('pending'),
+        })
+      )
+    );
+
+    renderApp(`/join/${FAKE_JOIN_TOKEN}`);
+
+    expect(await screen.findByTestId('join-waiting')).toBeInTheDocument();
+    expect(readPersistedJoinToken()).toBeNull();
+    expect(postAuthPath()).toBe('/');
+  });
+
+  it('clears the stored token after an invalid or revoked join link', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createJoinFetchMock({
+          auth: { refresh: 'unauthorized' },
+          preview: 'not_found',
+        })
+      )
+    );
+
+    renderApp(`/join/${FAKE_JOIN_TOKEN}`);
+
+    expect(await screen.findByTestId('join-invalid')).toBeInTheDocument();
+    expect(readPersistedJoinToken()).toBeNull();
+    expect(postAuthPath()).toBe('/');
+  });
+
+  it('sends a later post-auth redirect home after the join token is cleared', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createJoinFetchMock({
+          auth: { refresh: 'ok', user: onboardedJoinUser() },
+          redeem: holonRedeemResponse('already_active'),
+        })
+      )
+    );
+
+    renderApp(`/join/${FAKE_JOIN_TOKEN}`);
+    expect(
+      await screen.findByTestId('join-already-member')
+    ).toBeInTheDocument();
+    expect(readPersistedJoinToken()).toBeNull();
+
+    cleanup();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createAuthFetchMock({
+          refresh: 'ok',
+          user: onboardedJoinUser(),
+        })
+      )
+    );
+
+    renderApp('/auth/callback');
+
+    expect(await screen.findByTestId('home-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('join-page')).not.toBeInTheDocument();
+    expect(postAuthPath()).toBe('/');
   });
 });
