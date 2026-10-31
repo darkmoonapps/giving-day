@@ -156,6 +156,11 @@ export async function stubDistributionDayApi(
     }>;
     onAssign?: (body: Record<string, unknown>) => void;
     myParticipation?: Record<string, unknown> | null;
+    assignableVolunteers?: Array<{
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+    }>;
   } = {}
 ): Promise<void> {
   const openDay = {
@@ -261,7 +266,7 @@ export async function stubDistributionDayApi(
           unassignedCount: options.coordinatorDeliveries.filter(
             (delivery) => delivery.volunteerId === null
           ).length,
-          assignableVolunteers: [
+          assignableVolunteers: options.assignableVolunteers ?? [
             {
               id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
               firstName: 'Yonatan',
