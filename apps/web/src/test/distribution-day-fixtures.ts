@@ -118,6 +118,24 @@ export const coordinatorDeliveryUnassigned = {
   },
 };
 
+export const coordinatorDeliveryUnmatched = {
+  ...coordinatorDeliveryUnassigned,
+  id: '18181818-1818-4181-8181-181818181818',
+  matchId: null,
+  elder: {
+    id: '19191919-1919-4191-8191-191919191919',
+    fullName: 'Miriam Cohen',
+    street: '8 Weizmann St',
+    houseNumber: '8',
+    entrance: null,
+    floor: null,
+    apartment: null,
+    addressNotes: null,
+    notes: null,
+    contacts: [],
+  },
+};
+
 export interface DayFetchStub extends AuthFetchStub {
   day?: typeof openDay;
   listDays?: Array<typeof openDay>;

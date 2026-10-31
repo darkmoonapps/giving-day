@@ -117,6 +117,7 @@ describe('DeliveriesService', () => {
   const mockPrisma = {
     city: { findUnique: vi.fn() },
     distributionDay: { findFirst: vi.fn() },
+    elder: { findMany: vi.fn() },
     match: { findMany: vi.fn() },
     delivery: {
       createMany: vi.fn(),
@@ -148,6 +149,7 @@ describe('DeliveriesService', () => {
       archivedAt: null,
     });
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+    mockPrisma.elder.findMany.mockResolvedValue([]);
     mockPrisma.match.findMany.mockResolvedValue([]);
     mockPrisma.delivery.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.delivery.findMany.mockResolvedValue([]);
@@ -177,7 +179,8 @@ describe('DeliveriesService', () => {
   });
 
   describe('prefillFromPermanentMatches', () => {
-    it('creates assigned deliveries only from current permanent matches', async () => {
+    it('creates assigned deliveries from current permanent matches', async () => {
+      mockPrisma.elder.findMany.mockResolvedValue([{ id: ELDER_RIVKAH_ID }]);
       mockPrisma.match.findMany.mockResolvedValue([
         {
           id: MATCH_PERM_ID,
@@ -185,13 +188,16 @@ describe('DeliveriesService', () => {
           volunteerId: VOLUNTEER_A_ID,
         },
       ]);
-      mockPrisma.delivery.findMany.mockResolvedValue([
-        {
-          id: DELIVERY_RIVKAH_ID,
-          volunteerId: VOLUNTEER_A_ID,
-          status: 'assigned',
-        },
-      ]);
+      mockPrisma.delivery.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: DELIVERY_RIVKAH_ID,
+            volunteerId: VOLUNTEER_A_ID,
+            status: 'assigned',
+            _count: { events: 0 },
+          },
+        ]);
 
       const count = await service.prefillFromPermanentMatches(
         mockPrisma as never,
@@ -202,6 +208,15 @@ describe('DeliveriesService', () => {
         }
       );
 
+      expect(mockPrisma.elder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            cityId: CITY_A_ID,
+            status: 'active',
+            archivedAt: null,
+          },
+        })
+      );
       expect(mockPrisma.match.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -226,12 +241,73 @@ describe('DeliveriesService', () => {
             status: 'assigned',
           }),
         ],
+        skipDuplicates: true,
       });
       expect(mockPrisma.deliveryEvent.createMany).toHaveBeenCalled();
       expect(count).toBe(1);
     });
 
-    it('ignores deactivated and non-active elders when prefilling deliveries', async () => {
+    it('creates unassigned rows for active elders without a permanent match', async () => {
+      mockPrisma.elder.findMany.mockResolvedValue([
+        { id: ELDER_RIVKAH_ID },
+        { id: ELDER_YOSEF_ID },
+      ]);
+      mockPrisma.match.findMany.mockResolvedValue([
+        {
+          id: MATCH_PERM_ID,
+          elderId: ELDER_RIVKAH_ID,
+          volunteerId: VOLUNTEER_A_ID,
+        },
+      ]);
+      mockPrisma.delivery.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: DELIVERY_RIVKAH_ID,
+            volunteerId: VOLUNTEER_A_ID,
+            status: 'assigned',
+            _count: { events: 0 },
+          },
+          {
+            id: DELIVERY_YOSEF_ID,
+            volunteerId: null,
+            status: 'unassigned',
+            _count: { events: 0 },
+          },
+        ]);
+
+      const count = await service.prefillFromPermanentMatches(
+        mockPrisma as never,
+        {
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          actorId: COORDINATOR_A_ID,
+        }
+      );
+
+      expect(mockPrisma.delivery.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            elderId: ELDER_RIVKAH_ID,
+            volunteerId: VOLUNTEER_A_ID,
+            matchId: MATCH_PERM_ID,
+            status: 'assigned',
+          }),
+          expect.objectContaining({
+            elderId: ELDER_YOSEF_ID,
+            volunteerId: null,
+            matchId: null,
+            status: 'unassigned',
+            assignedAt: null,
+          }),
+        ]),
+        skipDuplicates: true,
+      });
+      expect(count).toBe(2);
+    });
+
+    it('ignores archived and non-active elders when prefilling deliveries', async () => {
+      mockPrisma.elder.findMany.mockResolvedValue([]);
       mockPrisma.match.findMany.mockResolvedValue([]);
 
       const count = await service.prefillFromPermanentMatches(
@@ -243,6 +319,15 @@ describe('DeliveriesService', () => {
         }
       );
 
+      expect(mockPrisma.elder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            cityId: CITY_A_ID,
+            status: 'active',
+            archivedAt: null,
+          },
+        })
+      );
       expect(mockPrisma.match.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -258,7 +343,23 @@ describe('DeliveriesService', () => {
       expect(mockPrisma.delivery.createMany).not.toHaveBeenCalled();
     });
 
-    it('skips prefill when there are no current permanent matches', async () => {
+    it('skips insert when every active elder already has a row for the day', async () => {
+      mockPrisma.elder.findMany.mockResolvedValue([
+        { id: ELDER_RIVKAH_ID },
+        { id: ELDER_YOSEF_ID },
+      ]);
+      mockPrisma.match.findMany.mockResolvedValue([
+        {
+          id: MATCH_PERM_ID,
+          elderId: ELDER_RIVKAH_ID,
+          volunteerId: VOLUNTEER_A_ID,
+        },
+      ]);
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        { elderId: ELDER_RIVKAH_ID },
+        { elderId: ELDER_YOSEF_ID },
+      ]);
+
       const count = await service.prefillFromPermanentMatches(
         mockPrisma as never,
         {
@@ -270,6 +371,37 @@ describe('DeliveriesService', () => {
 
       expect(count).toBe(0);
       expect(mockPrisma.delivery.createMany).not.toHaveBeenCalled();
+      expect(mockPrisma.deliveryEvent.createMany).not.toHaveBeenCalled();
+    });
+
+    it('does not write a second event when a concurrent prefill already inserted the row', async () => {
+      mockPrisma.elder.findMany.mockResolvedValue([{ id: ELDER_YOSEF_ID }]);
+      mockPrisma.match.findMany.mockResolvedValue([]);
+      mockPrisma.delivery.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: DELIVERY_YOSEF_ID,
+            volunteerId: null,
+            status: 'unassigned',
+            _count: { events: 1 },
+          },
+        ]);
+
+      const count = await service.prefillFromPermanentMatches(
+        mockPrisma as never,
+        {
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          actorId: COORDINATOR_A_ID,
+        }
+      );
+
+      expect(mockPrisma.delivery.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skipDuplicates: true })
+      );
+      expect(count).toBe(0);
+      expect(mockPrisma.deliveryEvent.createMany).not.toHaveBeenCalled();
     });
   });
 

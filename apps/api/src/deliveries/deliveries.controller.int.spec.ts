@@ -128,6 +128,7 @@ describe('Deliveries HTTP authorization', () => {
       findFirst: vi.fn().mockResolvedValue(assignedRivkah),
       update: vi.fn(),
     },
+    elder: { findMany: vi.fn().mockResolvedValue([]) },
     match: { findMany: vi.fn().mockResolvedValue([]) },
     deliveryEvent: {
       createMany: vi.fn(),
@@ -271,6 +272,48 @@ describe('Deliveries HTTP authorization', () => {
           lastName: 'Bar',
         },
       ]);
+    });
+
+    it('lists a prefilled unmatched elder as needing a volunteer', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        {
+          ...assignedRivkah,
+          id: '17171717-1717-4171-8171-171717171717',
+          elderId: '13131313-1313-4131-8131-131313131313',
+          volunteerId: null,
+          matchId: null,
+          status: 'unassigned' as const,
+          assignedAt: null,
+          volunteer: null,
+          elder: {
+            ...rivkahElder,
+            id: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+            street: '4 Park Ave',
+            houseNumber: '4',
+            entrance: null,
+            floor: null,
+            apartment: null,
+            addressNotes: null,
+            notes: null,
+            contacts: [],
+          },
+        },
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries`)
+        .expect(200);
+
+      expect(response.body.unassignedCount).toBe(1);
+      expect(response.body.deliveries[0]).toMatchObject({
+        volunteerId: null,
+        matchId: null,
+        status: 'unassigned',
+        elder: { fullName: 'Yosef Abraham' },
+      });
     });
 
     it('lets a confirmed volunteer see only their assigned deliveries', async () => {

@@ -43,10 +43,11 @@ Enforcement is three layers (see RBAC doc):
 Cross-city misses return **404**. Super admins create cities and the
 first coordinator invite.
 
-Day creation **prefills** deliveries from current permanent matches. It
-does not auto-reassign. When a volunteer declines or cancels, their
-deliveries on that day become `unassigned` and appear on the city's
-"Needs a volunteer" list. Coordinators reassign manually.
+Day creation **prefills** deliveries for every active elder: current
+permanent matches are assigned, unmatched elders are unassigned ("Needs a
+volunteer"). It does not auto-reassign. When a volunteer declines or
+cancels, their deliveries on that day become `unassigned` and appear on
+the city's "Needs a volunteer" list. Coordinators reassign manually.
 
 ## Consequences
 

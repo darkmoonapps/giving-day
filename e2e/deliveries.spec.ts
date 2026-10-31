@@ -214,4 +214,66 @@ test.describe('Distribution day deliveries', () => {
       'Yonatan Bar',
     ]);
   });
+
+  test('coordinator sees unmatched elders as needing a volunteer in Hebrew and English', async ({
+    page,
+  }) => {
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      coordinatorDeliveries: [
+        {
+          id: '18181818-1818-4181-8181-181818181818',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'unassigned',
+          volunteerId: null,
+          matchId: null,
+          assignedAt: null,
+          volunteer: null,
+          elder: {
+            id: '19191919-1919-4191-8191-191919191919',
+            fullName: 'Miriam Cohen',
+            street: '8 Weizmann St',
+            houseNumber: '8',
+            entrance: null,
+            floor: null,
+            apartment: null,
+            addressNotes: null,
+            notes: null,
+            contacts: [],
+          },
+        },
+      ],
+    });
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByTestId('coordinator-deliveries-page')).toBeVisible();
+    await expect(page.getByText('Miriam Cohen')).toBeVisible();
+    await expect(page.getByTestId('delivery-row-unassigned')).toBeVisible();
+    await expect(page.getByTestId('needs-volunteer-badge')).toHaveText(
+      'צריך מתנדב/ת'
+    );
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.getByTestId('needs-volunteer-badge')).toHaveText(
+      'Needs a volunteer'
+    );
+    await expect(page.getByTestId('needs-volunteer-count')).toContainText(
+      'need a volunteer'
+    );
+  });
 });

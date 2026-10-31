@@ -17,7 +17,7 @@
   "no_reason": "—",
   "view_deliveries": "View deliveries",
   "deliveries_title": "Day deliveries",
-  "deliveries_subtitle": "Prefill from permanent matches. Adjust assignments; one-off matches do not carry over.",
+  "deliveries_subtitle": "Every active elder gets a row. Permanent matches are prefilled; unmatched elders need a volunteer. One-off matches do not carry over.",
   "deliveries_load_error": "We could not load deliveries. Try again later.",
   "deliveries_empty": "No deliveries were prefilled for this day.",
   "needs_volunteer": "Needs a volunteer",
