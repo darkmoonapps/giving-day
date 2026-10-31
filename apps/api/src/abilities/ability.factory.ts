@@ -97,14 +97,8 @@ export class AbilityFactory {
         cityId: { in: coordinatorCities },
         role: 'coordinator',
       });
-      can('approve', 'CityMembership', {
-        cityId: { in: coordinatorCities },
-        role: 'volunteer',
-      });
-      can('approve', 'CityMembership', {
-        cityId: { in: coordinatorCities },
-        role: 'coordinator',
-      });
+      can('approve', 'CityMembership', { cityId: { in: coordinatorCities } });
+      can('reject', 'CityMembership', { cityId: { in: coordinatorCities } });
       can('update', 'CityMembership', { cityId: { in: coordinatorCities } });
       can('delete', 'CityMembership', { cityId: { in: coordinatorCities } });
 

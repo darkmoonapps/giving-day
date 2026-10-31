@@ -3,7 +3,11 @@ import {
   addCityCoordinatorSchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinkStatusSchema,
+  cityMembershipRecordSchema,
+  cityPendingMembershipsResponseSchema,
   citySettingsSchema,
+  redeemJoinLinkRequestSchema,
+  redeemJoinLinkResponseSchema,
   timeOfDaySchema,
   updateCitySettingsSchema,
 } from './city';
@@ -101,5 +105,63 @@ describe('city schemas', () => {
         email: 'coordinator@example.com',
       })
     ).toEqual({ email: 'coordinator@example.com' });
+  });
+
+  it('accepts a join-token redeem request and pending membership payload', () => {
+    expect(
+      redeemJoinLinkRequestSchema.parse({ token: 'fake-join-token' })
+    ).toEqual({ token: 'fake-join-token' });
+    expect(redeemJoinLinkRequestSchema.safeParse({ token: '' }).success).toBe(
+      false
+    );
+
+    const redeemed = {
+      result: 'pending' as const,
+      membership: {
+        membershipId: '99999999-9999-4999-8999-999999999999',
+        cityId: '11111111-1111-4111-8111-111111111111',
+        citySlug: 'holon',
+        cityNameHe: 'חולון',
+        cityNameEn: 'Holon',
+        role: 'volunteer' as const,
+        status: 'pending' as const,
+      },
+    };
+    expect(redeemJoinLinkResponseSchema.parse(redeemed)).toEqual(redeemed);
+    expect(
+      redeemJoinLinkResponseSchema.parse({
+        ...redeemed,
+        result: 'already_active',
+        membership: { ...redeemed.membership, status: 'active' },
+      }).result
+    ).toBe('already_active');
+  });
+
+  it('lists pending memberships without a join token', () => {
+    const row = {
+      membershipId: '99999999-9999-4999-8999-999999999999',
+      userId: '12121212-1212-4121-8121-121212121212',
+      firstName: 'Tamar',
+      lastName: 'Shalev',
+      email: 'tamar.shalev@example.com',
+      phone: '+972506666666',
+      role: 'volunteer' as const,
+      status: 'pending' as const,
+      createdAt: '2026-10-28T09:00:00.000Z',
+      approvedAt: null,
+    };
+
+    expect(cityMembershipRecordSchema.parse(row)).toEqual(row);
+    expect(
+      cityPendingMembershipsResponseSchema.parse({ memberships: [row] })
+    ).toEqual({
+      memberships: [row],
+    });
+    expect(
+      cityMembershipRecordSchema.parse({
+        ...row,
+        token: 'fake-join-token',
+      })
+    ).toEqual(row);
   });
 });

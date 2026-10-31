@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,18 +9,25 @@ import {
   cityCoordinatorsResponseSchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinksResponseSchema,
+  cityMembershipRecordSchema,
+  cityPendingMembershipsResponseSchema,
   citySettingsExtraSchema,
   citySettingsSchema,
   httpsUrlSchema,
+  redeemJoinLinkResponseSchema,
   type CityCoordinator,
   type CityCoordinatorsResponse,
   type CityJoinLinkCreated,
   type CityJoinLinksResponse,
+  type CityMembershipRecord,
+  type CityPendingMembershipsResponse,
   type CitySettings,
+  type RedeemJoinLinkResponse,
 } from '@giving-day/shared';
 import {
   CityRole,
   Prisma,
+  type City,
   type CityInvite,
   type CityMembership,
   type CitySettings as PrismaCitySettings,
@@ -42,6 +50,20 @@ type MembershipWithUser = CityMembership & {
     'id' | 'firstName' | 'lastName' | 'email' | 'phone' | 'archivedAt'
   >;
 };
+
+type JoinableCity = Pick<
+  City,
+  'id' | 'slug' | 'nameHe' | 'nameEn' | 'archivedAt' | 'isActive'
+>;
+
+const MEMBERSHIP_USER_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  archivedAt: true,
+} as const;
 
 @Injectable()
 export class CitiesService {
@@ -247,15 +269,209 @@ export class CitiesService {
       where: { tokenHash: hashJoinToken(rawToken) },
     });
 
-    if (!invite || invite.revokedAt) {
-      return null;
+    return this.isInviteRedeemable(invite) ? invite : null;
+  }
+
+  async redeemJoinLink(
+    rawToken: string,
+    actor: UserWithMemberships
+  ): Promise<RedeemJoinLinkResponse> {
+    if (!actor.onboardedAt) {
+      throw new ForbiddenException('auth.not_onboarded');
+    }
+    if (actor.archivedAt) {
+      throw new ForbiddenException('auth.insufficient_permissions');
     }
 
-    if (invite.expiresAt && invite.expiresAt <= new Date()) {
-      return null;
+    const token = rawToken.trim();
+    if (!token) {
+      throw new NotFoundException('cities.invalid_join_token');
     }
 
-    return invite;
+    try {
+      const redeemed = await this.prisma.$transaction(async (tx) => {
+        const invite = await tx.cityInvite.findUnique({
+          where: { tokenHash: hashJoinToken(token) },
+        });
+        if (!this.isInviteRedeemable(invite)) {
+          throw new NotFoundException('cities.invalid_join_token');
+        }
+
+        const city = await tx.city.findUnique({
+          where: { id: invite.cityId },
+          select: {
+            id: true,
+            slug: true,
+            nameHe: true,
+            nameEn: true,
+            archivedAt: true,
+            isActive: true,
+          },
+        });
+        if (!this.isCityJoinable(city)) {
+          throw new NotFoundException('cities.invalid_join_token');
+        }
+
+        const existing = await tx.cityMembership.findUnique({
+          where: {
+            cityId_userId: { cityId: invite.cityId, userId: actor.id },
+          },
+        });
+
+        if (existing?.status === 'active') {
+          return {
+            result: 'already_active' as const,
+            membership: existing,
+            city,
+          };
+        }
+        if (existing?.status === 'paused') {
+          throw new ConflictException('cities.membership_paused');
+        }
+        if (existing?.status === 'pending') {
+          const sameInvite =
+            existing.role === invite.role && existing.inviteId === invite.id;
+          const membership = sameInvite
+            ? existing
+            : await tx.cityMembership.update({
+                where: { id: existing.id },
+                data: { role: invite.role, inviteId: invite.id },
+              });
+          return { result: 'pending' as const, membership, city };
+        }
+
+        const pendingData = {
+          cityId: invite.cityId,
+          userId: actor.id,
+          role: invite.role,
+          status: 'pending' as const,
+          inviteId: invite.id,
+          approvedById: null,
+          approvedAt: null,
+        };
+
+        const membership = existing
+          ? await tx.cityMembership.update({
+              where: { id: existing.id },
+              data: pendingData,
+            })
+          : await tx.cityMembership.create({
+              data: pendingData,
+            });
+
+        await tx.cityInvite.update({
+          where: { id: invite.id },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        return { result: 'pending' as const, membership, city };
+      });
+
+      return this.toRedeemedMembershipDto(
+        redeemed.result,
+        redeemed.membership,
+        redeemed.city
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return this.redeemJoinLinkAfterConflict(token, actor);
+      }
+      throw error;
+    }
+  }
+
+  async listPendingMemberships(
+    cityId: string,
+    actor: UserWithMemberships
+  ): Promise<CityPendingMembershipsResponse> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'read', 'CityMembership', cityId);
+    await this.requireCity(cityId);
+
+    const memberships = await this.prisma.cityMembership.findMany({
+      where: {
+        cityId,
+        status: 'pending',
+        user: { archivedAt: null },
+      },
+      include: {
+        user: { select: MEMBERSHIP_USER_SELECT },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return cityPendingMembershipsResponseSchema.parse({
+      memberships: memberships.map((membership) =>
+        this.toMembershipRecordDto(membership)
+      ),
+    });
+  }
+
+  async approveMembership(
+    cityId: string,
+    membershipId: string,
+    actor: UserWithMemberships
+  ): Promise<CityMembershipRecord> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'approve', 'CityMembership', cityId);
+    await this.requireCity(cityId);
+
+    const membership = await this.requirePendingMembership(
+      cityId,
+      membershipId
+    );
+
+    const saved = await this.prisma.cityMembership.update({
+      where: { id: membership.id },
+      data: {
+        status: 'active',
+        approvedById: actor.id,
+        approvedAt: new Date(),
+      },
+      include: {
+        user: { select: MEMBERSHIP_USER_SELECT },
+      },
+    });
+
+    // TODO(notifications): send membership_approved push to saved.userId
+    // (Flow 10 / ADR 0020). Hook: NotificationsService.notifyUser with
+    // templateKey 'membership_approved' and dedupeKey
+    // `membership_approved:${saved.id}`. A leaked join link must never
+    // skip this coordinator approval step.
+
+    return this.toMembershipRecordDto(saved);
+  }
+
+  async rejectMembership(
+    cityId: string,
+    membershipId: string,
+    actor: UserWithMemberships
+  ): Promise<CityMembershipRecord> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'reject', 'CityMembership', cityId);
+    await this.requireCity(cityId);
+
+    const membership = await this.requirePendingMembership(
+      cityId,
+      membershipId
+    );
+
+    const saved = await this.prisma.cityMembership.update({
+      where: { id: membership.id },
+      data: {
+        status: 'removed',
+        approvedById: null,
+        approvedAt: null,
+      },
+      include: {
+        user: { select: MEMBERSHIP_USER_SELECT },
+      },
+    });
+
+    return this.toMembershipRecordDto(saved);
   }
 
   async listCoordinators(
@@ -452,6 +668,124 @@ export class CitiesService {
     if (!city || city.archivedAt) {
       throw new NotFoundException('cities.not_found');
     }
+  }
+
+  private async requirePendingMembership(
+    cityId: string,
+    membershipId: string
+  ): Promise<MembershipWithUser> {
+    const membership = await this.prisma.cityMembership.findFirst({
+      where: { id: membershipId, cityId },
+      include: {
+        user: { select: MEMBERSHIP_USER_SELECT },
+      },
+    });
+
+    if (!membership || membership.user.archivedAt) {
+      throw new NotFoundException('cities.not_found');
+    }
+    if (membership.status !== 'pending') {
+      throw new BadRequestException('cities.membership_not_pending');
+    }
+
+    return membership;
+  }
+
+  private isInviteRedeemable(invite: CityInvite | null): invite is CityInvite {
+    if (!invite || invite.revokedAt) {
+      return false;
+    }
+    if (invite.expiresAt && invite.expiresAt <= new Date()) {
+      return false;
+    }
+    if (invite.maxUses != null && invite.usedCount >= invite.maxUses) {
+      return false;
+    }
+    return true;
+  }
+
+  private isCityJoinable(city: JoinableCity | null): city is JoinableCity {
+    return Boolean(city && !city.archivedAt && city.isActive);
+  }
+
+  private async redeemJoinLinkAfterConflict(
+    token: string,
+    actor: UserWithMemberships
+  ): Promise<RedeemJoinLinkResponse> {
+    const invite = await this.findActiveInviteByRawToken(token);
+    if (!invite) {
+      throw new NotFoundException('cities.invalid_join_token');
+    }
+
+    const city = await this.prisma.city.findUnique({
+      where: { id: invite.cityId },
+      select: {
+        id: true,
+        slug: true,
+        nameHe: true,
+        nameEn: true,
+        archivedAt: true,
+        isActive: true,
+      },
+    });
+    if (!this.isCityJoinable(city)) {
+      throw new NotFoundException('cities.invalid_join_token');
+    }
+
+    const existing = await this.prisma.cityMembership.findUnique({
+      where: {
+        cityId_userId: { cityId: invite.cityId, userId: actor.id },
+      },
+    });
+    if (!existing) {
+      throw new ConflictException('cities.already_member');
+    }
+    if (existing.status === 'active') {
+      return this.toRedeemedMembershipDto('already_active', existing, city);
+    }
+    if (existing.status === 'pending') {
+      return this.toRedeemedMembershipDto('pending', existing, city);
+    }
+
+    throw new ConflictException('cities.already_member');
+  }
+
+  private toRedeemedMembershipDto(
+    result: RedeemJoinLinkResponse['result'],
+    membership: CityMembership,
+    city: JoinableCity
+  ): RedeemJoinLinkResponse {
+    return redeemJoinLinkResponseSchema.parse({
+      result,
+      membership: {
+        membershipId: membership.id,
+        cityId: membership.cityId,
+        citySlug: city.slug,
+        cityNameHe: city.nameHe,
+        cityNameEn: city.nameEn,
+        role: membership.role,
+        status: membership.status,
+      },
+    });
+  }
+
+  private toMembershipRecordDto(
+    membership: MembershipWithUser
+  ): CityMembershipRecord {
+    return cityMembershipRecordSchema.parse({
+      membershipId: membership.id,
+      userId: membership.userId,
+      firstName: membership.user.firstName,
+      lastName: membership.user.lastName,
+      email: membership.user.email,
+      phone: membership.user.phone,
+      role: membership.role,
+      status: membership.status,
+      createdAt: membership.createdAt.toISOString(),
+      approvedAt: membership.approvedAt
+        ? membership.approvedAt.toISOString()
+        : null,
+    });
   }
 
   private toSettingsDto(settings: PrismaCitySettings): CitySettings {
