@@ -276,4 +276,124 @@ test.describe('Distribution day deliveries', () => {
       'need a volunteer'
     );
   });
+
+  test('coordinator sorts and filters day deliveries including needs a volunteer', async ({
+    page,
+  }) => {
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      coordinatorDeliveries: [
+        {
+          id: '16161616-1616-4161-8161-161616161616',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'assigned',
+          volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          matchId: '14141414-1414-4141-8141-141414141414',
+          assignedAt: '2026-10-28T09:00:00.000Z',
+          volunteer: {
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            firstName: 'Yonatan',
+            lastName: 'Bar',
+          },
+          elder: {
+            id: '12121212-1212-4121-8121-121212121212',
+            fullName: 'Rivkah Levi',
+            street: '12 Example St',
+            houseNumber: '12',
+            entrance: 'B',
+            floor: '3',
+            apartment: '7',
+            addressNotes: 'Knock loudly',
+            notes: 'Entrance is around the back',
+            contacts: [],
+          },
+        },
+        {
+          id: DELIVERY_UNASSIGNED_ID,
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'unassigned',
+          volunteerId: null,
+          matchId: '15151515-1515-4151-8151-151515151515',
+          assignedAt: null,
+          volunteer: null,
+          elder: {
+            id: '13131313-1313-4131-8131-131313131313',
+            fullName: 'Yosef Abraham',
+            street: '4 Park Ave',
+            houseNumber: '4',
+            entrance: null,
+            floor: null,
+            apartment: null,
+            addressNotes: null,
+            notes: null,
+            contacts: [],
+          },
+        },
+        {
+          id: '18181818-1818-4181-8181-181818181818',
+          cityId: CITY_A_ID,
+          dayId: DAY_ID,
+          status: 'unassigned',
+          volunteerId: null,
+          matchId: null,
+          assignedAt: null,
+          volunteer: null,
+          elder: {
+            id: '19191919-1919-4191-8191-191919191919',
+            fullName: 'Miriam Cohen',
+            street: '8 Weizmann St',
+            houseNumber: '8',
+            entrance: null,
+            floor: null,
+            apartment: null,
+            addressNotes: null,
+            notes: null,
+            contacts: [],
+          },
+        },
+      ],
+    });
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByTestId('coordinator-deliveries-page')).toBeVisible();
+    await expect(page.getByTestId('deliveries-filter-count')).toContainText(
+      '3 מתוך 3'
+    );
+
+    await page.getByTestId('sort-elder').click();
+    await expect(page.getByTestId('delivery-elder-name')).toHaveText([
+      'Miriam Cohen',
+      'Rivkah Levi',
+      'Yosef Abraham',
+    ]);
+
+    await page.getByTestId('needs-volunteer-count').click();
+    await expect(page.getByTestId('filter-status')).toHaveValue('unassigned');
+    await expect(page.getByTestId('delivery-elder-name')).toHaveText([
+      'Miriam Cohen',
+      'Yosef Abraham',
+    ]);
+
+    await page.getByTestId('clear-delivery-filters').click();
+    await page.getByTestId('filter-address').fill('Weizmann');
+    await expect(page.getByTestId('delivery-elder-name')).toHaveText([
+      'Miriam Cohen',
+    ]);
+    await expect(page.getByText('8 Weizmann St 8')).toBeVisible();
+    await expect(page.getByText('Rivkah Levi')).toHaveCount(0);
+  });
 });

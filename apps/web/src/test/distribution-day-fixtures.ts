@@ -151,7 +151,9 @@ export interface DayFetchStub extends AuthFetchStub {
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
   volunteerDeliveries?: Array<typeof volunteerDeliveryRivkah>;
   coordinatorDeliveries?: Array<
-    typeof coordinatorDeliveryRivkah | typeof coordinatorDeliveryUnassigned
+    | typeof coordinatorDeliveryRivkah
+    | typeof coordinatorDeliveryUnassigned
+    | typeof coordinatorDeliveryUnmatched
   >;
   assignableVolunteers?: Array<{
     id: string;

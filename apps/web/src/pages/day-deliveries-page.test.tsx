@@ -204,12 +204,86 @@ describe('DayDeliveriesPage', () => {
 
       await user.click(screen.getByRole('button', { name: 'English' }));
 
-      expect(await screen.findByText('Needs a volunteer')).toBeInTheDocument();
+      expect(screen.getByTestId('needs-volunteer-badge')).toHaveTextContent(
+        'Needs a volunteer'
+      );
       expect(document.documentElement.dir).toBe('ltr');
       expect(document.documentElement.lang).toBe('en');
       expect(screen.getByTestId('needs-volunteer-count')).toHaveTextContent(
         '1 need a volunteer'
       );
     });
+
+    it('sorts and filters the coordinator deliveries list on the client', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createDayFetchMock({
+            refresh: 'ok',
+            user: coordinatorUser(),
+            coordinatorDeliveries: [
+              coordinatorDeliveryRivkah,
+              coordinatorDeliveryUnassigned,
+              coordinatorDeliveryUnmatched,
+            ],
+          })
+        )
+      );
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(await screen.findByText('Rivkah Levi')).toBeInTheDocument();
+      expect(screen.getByTestId('deliveries-filter-count')).toHaveTextContent(
+        'מוצגים 3 מתוך 3'
+      );
+
+      await user.click(screen.getByTestId('sort-elder'));
+      expect(elderNames()).toEqual([
+        'Miriam Cohen',
+        'Rivkah Levi',
+        'Yosef Abraham',
+      ]);
+
+      await user.click(screen.getByTestId('sort-elder'));
+      expect(elderNames()).toEqual([
+        'Yosef Abraham',
+        'Rivkah Levi',
+        'Miriam Cohen',
+      ]);
+
+      await user.click(screen.getByTestId('needs-volunteer-count'));
+      expect(elderNames()).toEqual(['Yosef Abraham', 'Miriam Cohen']);
+      expect(screen.getByTestId('filter-status')).toHaveValue('unassigned');
+      expect(screen.getByTestId('deliveries-filter-count')).toHaveTextContent(
+        'מוצגים 2 מתוך 3'
+      );
+
+      await user.click(screen.getByTestId('clear-delivery-filters'));
+      await user.type(screen.getByTestId('filter-address'), 'Weizmann');
+      expect(elderNames()).toEqual(['Miriam Cohen']);
+
+      await user.click(screen.getByTestId('clear-delivery-filters'));
+      await user.selectOptions(
+        screen.getByTestId('filter-volunteer'),
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+      );
+      expect(elderNames()).toEqual(['Rivkah Levi']);
+
+      await user.selectOptions(screen.getByTestId('filter-status'), 'assigned');
+      expect(elderNames()).toEqual(['Rivkah Levi']);
+
+      await user.selectOptions(
+        screen.getByTestId('filter-status'),
+        'unassigned'
+      );
+      expect(screen.getByTestId('deliveries-filter-empty')).toBeInTheDocument();
+    });
   });
 });
+
+function elderNames(): string[] {
+  return screen
+    .queryAllByTestId('delivery-elder-name')
+    .map((node) => node.textContent ?? '');
+}

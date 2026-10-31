@@ -1,12 +1,10 @@
-import { NativeSelect, Stack, Table } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import {
   getActiveCoordinatorCities,
   type ContactRelation,
-  type DeliveryElder,
 } from '@giving-day/shared';
 import {
   AppAlert,
-  AppBadge,
   AppButton,
   AppText,
   AppTitle,
@@ -19,13 +17,10 @@ import {
   useGetDistributionDay,
   useListDayDeliveries,
   type DayDeliveriesResponseDto,
-  type DeliveryResponseDto,
   type DeliveryVolunteerDto,
 } from '../api/generated/api';
-import {
-  formatElderDetails,
-  formatElderStreet,
-} from '../deliveries/format-address';
+import { CoordinatorDeliveriesTable } from '../deliveries/coordinator-deliveries-table';
+import { ElderAddress } from '../deliveries/elder-address';
 import {
   formatDayHours,
   formatDistributionDate,
@@ -34,8 +29,6 @@ import {
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 import { useSession } from '../auth/session-provider';
-
-const UNASSIGNED_VALUE = '';
 
 const CONTACT_RELATION_KEYS: Record<
   ContactRelation,
@@ -65,40 +58,6 @@ function isCoordinatorDeliveries(
   return (
     Array.isArray(value.assignableVolunteers) &&
     typeof value.unassignedCount === 'number'
-  );
-}
-
-function personName(
-  firstName: string | null,
-  lastName: string | null,
-  fallback: string
-): string {
-  const name = [firstName, lastName]
-    .filter(
-      (part): part is string => typeof part === 'string' && part.length > 0
-    )
-    .join(' ');
-  return name.length > 0 ? name : fallback;
-}
-
-function ElderAddress({
-  elder,
-  labels,
-}: {
-  elder: DeliveryElder;
-  labels: { entrance: string; floor: string; apartment: string };
-}): JSX.Element {
-  const details = formatElderDetails(elder, labels);
-
-  return (
-    <Stack gap={2}>
-      <AppText>{formatElderStreet(elder)}</AppText>
-      {details.length > 0 ? (
-        <AppText c="dimmed" size="sm">
-          {details}
-        </AppText>
-      ) : null}
-    </Stack>
   );
 }
 
@@ -132,43 +91,6 @@ function CoordinatorDeliveries({
     day === undefined ||
     coordinatorPayload === null;
   const failed = dayQuery.isError || deliveriesQuery.isError;
-  const labels = {
-    entrance: t('entrance_label'),
-    floor: t('floor_label'),
-    apartment: t('apartment_label'),
-  };
-
-  const assignOptions = (
-    delivery: DeliveryResponseDto,
-    volunteers: DeliveryVolunteerDto[]
-  ): Array<{ value: string; label: string }> => {
-    const options = [
-      { value: UNASSIGNED_VALUE, label: t('unassigned') },
-      ...volunteers.map((volunteer) => ({
-        value: volunteer.id,
-        label: personName(
-          volunteer.firstName,
-          volunteer.lastName,
-          t('unnamed_volunteer')
-        ),
-      })),
-    ];
-    if (
-      delivery.volunteerId !== null &&
-      delivery.volunteerId !== undefined &&
-      !options.some((option) => option.value === delivery.volunteerId)
-    ) {
-      options.push({
-        value: delivery.volunteerId,
-        label: personName(
-          delivery.volunteer?.firstName ?? null,
-          delivery.volunteer?.lastName ?? null,
-          t('unnamed_volunteer')
-        ),
-      });
-    }
-    return options;
-  };
 
   return (
     <Stack
@@ -195,17 +117,6 @@ function CoordinatorDeliveries({
             <AppText c="dimmed" mt="sm">
               {t('deliveries_subtitle')}
             </AppText>
-            {coordinatorPayload.unassignedCount > 0 ? (
-              <AppBadge
-                color="yellow"
-                mt="sm"
-                data-testid="needs-volunteer-count"
-              >
-                {t('unassigned_count', {
-                  count: coordinatorPayload.unassignedCount,
-                })}
-              </AppBadge>
-            ) : null}
           </div>
 
           {assignMutation.isError ? (
@@ -217,80 +128,20 @@ function CoordinatorDeliveries({
           {coordinatorPayload.deliveries.length === 0 ? (
             <AppText>{t('deliveries_empty')}</AppText>
           ) : (
-            <Table highlightOnHover data-testid="coordinator-deliveries-table">
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>{t('elder_column')}</Table.Th>
-                  <Table.Th>{t('address_column')}</Table.Th>
-                  <Table.Th>{t('volunteer_assign_column')}</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {coordinatorPayload.deliveries.map((delivery) => (
-                  <Table.Tr
-                    key={delivery.id}
-                    data-testid={
-                      delivery.volunteerId === null ||
-                      delivery.volunteerId === undefined
-                        ? 'delivery-row-unassigned'
-                        : 'delivery-row-assigned'
-                    }
-                  >
-                    <Table.Td>
-                      <Stack gap={4}>
-                        <AppText>
-                          {delivery.elder.fullName.length > 0
-                            ? delivery.elder.fullName
-                            : t('unnamed_elder')}
-                        </AppText>
-                        {delivery.volunteerId === null ||
-                        delivery.volunteerId === undefined ? (
-                          <AppBadge
-                            color="yellow"
-                            size="sm"
-                            data-testid="needs-volunteer-badge"
-                          >
-                            {t('needs_volunteer')}
-                          </AppBadge>
-                        ) : null}
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>
-                      <ElderAddress elder={delivery.elder} labels={labels} />
-                    </Table.Td>
-                    <Table.Td>
-                      <NativeSelect
-                        aria-label={t('assign_volunteer')}
-                        data-testid={`assign-delivery-${delivery.id}`}
-                        value={
-                          delivery.volunteerId === null ||
-                          delivery.volunteerId === undefined
-                            ? UNASSIGNED_VALUE
-                            : delivery.volunteerId
-                        }
-                        data={assignOptions(
-                          delivery,
-                          coordinatorPayload.assignableVolunteers
-                        )}
-                        disabled={assignMutation.isPending}
-                        onChange={(event) => {
-                          const next = event.currentTarget.value;
-                          assignMutation.mutate({
-                            cityId,
-                            dayId,
-                            deliveryId: delivery.id,
-                            data: {
-                              volunteerId:
-                                next === UNASSIGNED_VALUE ? null : next,
-                            },
-                          });
-                        }}
-                      />
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+            <CoordinatorDeliveriesTable
+              deliveries={coordinatorPayload.deliveries}
+              assignableVolunteers={coordinatorPayload.assignableVolunteers}
+              unassignedCount={coordinatorPayload.unassignedCount}
+              assignPending={assignMutation.isPending}
+              onAssign={(deliveryId, volunteerId) => {
+                assignMutation.mutate({
+                  cityId,
+                  dayId,
+                  deliveryId,
+                  data: { volunteerId },
+                });
+              }}
+            />
           )}
         </>
       )}
