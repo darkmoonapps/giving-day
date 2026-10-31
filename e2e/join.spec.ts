@@ -33,9 +33,6 @@ test.describe('City join link', () => {
     await page.goto(JOIN_PATH);
 
     await expect(page.getByTestId('join-invalid')).toBeVisible();
-    await expect(
-      page.getByText('קישור ההצטרפות הזה אינו תקף או שבוטל.')
-    ).toBeVisible();
   });
 
   test('redeems after login and shows waiting for coordinator approval', async ({

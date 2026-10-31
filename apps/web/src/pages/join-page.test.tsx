@@ -85,8 +85,8 @@ describe('JoinPage', () => {
 
     expect(await screen.findByTestId('join-invalid')).toBeInTheDocument();
     expect(
-      screen.getAllByText('קישור ההצטרפות הזה אינו תקף או שבוטל.').length
-    ).toBeGreaterThan(0);
+      screen.getByText('קישור ההצטרפות הזה אינו תקף או שבוטל.')
+    ).toBeInTheDocument();
   });
 
   it('sends a first-time user through onboarding while keeping the token', async () => {

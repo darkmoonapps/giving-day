@@ -49,7 +49,7 @@ function JoinInvalidState({ message }: { message: string }): JSX.Element {
     <JoinShell>
       <AppAlert
         color="red"
-        title={t('cities.invalid_join_token')}
+        title={t('join_invalid_title')}
         data-testid="join-invalid"
       >
         {message}
