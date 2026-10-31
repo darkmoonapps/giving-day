@@ -2,5 +2,10 @@
   "required": "This field is required",
   "phone_e164": "Enter a valid phone number, for example 050-1234567 or +972501234567",
   "invalid_email": "Enter a valid email address",
-  "invalid_date": "Enter a valid date"
+  "invalid_date": "Enter a valid date",
+  "invalid_time": "Enter a valid time, for example 09:00",
+  "invalid_number": "Enter a valid number",
+  "invalid_integer": "Enter a whole number of 0 or more",
+  "https_url_required": "Enter an HTTPS URL, for example https://example.com/logo.svg",
+  "invalid_time_range": "End time must be after start time"
 }

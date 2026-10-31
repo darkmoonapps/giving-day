@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
@@ -77,6 +78,7 @@ export class CitiesController {
 
   @Patch(':cityId/settings')
   @RequireAbilities({ action: 'update', subject: 'CitySettings' })
+  @ApiBody({ type: UpdateCitySettingsDto })
   @ApiOperation({
     operationId: 'updateCitySettings',
     summary: 'Update settings for a city',
