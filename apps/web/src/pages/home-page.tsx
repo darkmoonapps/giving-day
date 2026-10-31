@@ -3,6 +3,7 @@ import {
   getActiveCoordinatorCities,
   getActiveVolunteerCities,
   getUserDisplayName,
+  isSuperAdmin,
 } from '@giving-day/shared';
 import { AppButton, AppText, AppTitle, LoadingState } from '@giving-day/ui';
 import { useTranslation } from 'react-i18next';
@@ -169,14 +170,16 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
 
 export function HomePage(): JSX.Element {
   const { t } = useTranslation('auth');
+  const { t: tAdmin } = useTranslation('admin');
   const { user, logout } = useSession();
   const navigate = useNavigate();
   const displayName = user === null ? '' : getUserDisplayName(user);
   const volunteerCities = user === null ? [] : getActiveVolunteerCities(user);
   const coordinatorCities =
     user === null ? [] : getActiveCoordinatorCities(user);
+  const canCreateCity = user !== null && isSuperAdmin(user);
   const hasCityTools =
-    volunteerCities.length > 0 || coordinatorCities.length > 0;
+    volunteerCities.length > 0 || coordinatorCities.length > 0 || canCreateCity;
 
   return (
     <AppChrome
@@ -208,6 +211,16 @@ export function HomePage(): JSX.Element {
             </AppText>
           )}
         </div>
+        {canCreateCity ? (
+          <AppButton
+            data-testid="create-city"
+            onClick={() => {
+              void navigate('/admin/cities/new');
+            }}
+          >
+            {tAdmin('create_city')}
+          </AppButton>
+        ) : null}
         {volunteerCities.map((cityId) => (
           <VolunteerCityDays key={`volunteer-${cityId}`} cityId={cityId} />
         ))}

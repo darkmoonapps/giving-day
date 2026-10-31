@@ -3,7 +3,11 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { clearAccessToken } from '../auth/access-token';
 import { i18n } from '../i18n';
-import { CITY_A_ID, volunteerUser } from '../test/distribution-day-fixtures';
+import {
+  CITY_A_ID,
+  superAdminUser,
+  volunteerUser,
+} from '../test/distribution-day-fixtures';
 import * as cityJoinLinks from '../cities/city-join-links';
 import {
   joinLinkStorageKey,
@@ -44,7 +48,7 @@ describe('CitySettingsPage', () => {
   it('saves an updated Holon distribution center address', async () => {
     const fetchMock = vi.fn(createCitySettingsFetchMock());
     vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     renderApp(`/cities/${CITY_A_ID}/settings`);
     await screen.findByTestId('city-settings-form');
@@ -153,6 +157,24 @@ describe('CitySettingsPage', () => {
     renderApp('/');
     expect(await screen.findByTestId('home-page')).toBeInTheDocument();
     expect(screen.queryByTestId('view-settings')).not.toBeInTheDocument();
+  });
+
+  it('lets a super admin open settings without a city membership', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createCitySettingsFetchMock({
+          user: superAdminUser(),
+        })
+      )
+    );
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+
+    expect(await screen.findByTestId('city-settings-form')).toBeInTheDocument();
+    expect(screen.getByLabelText(/כתובת מרכז החלוקה/)).toHaveValue(
+      holonCitySettings.centerAddress
+    );
   });
 
   it('blocks a volunteer who opens the settings URL', async () => {

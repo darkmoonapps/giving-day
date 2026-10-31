@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   CITY_DEFAULT_THEME,
+  CITY_SLUG_MAX_LENGTH,
   addCityCoordinatorSchema,
+  citySchema,
+  createCitySchema,
   cityJoinLinkCreatedSchema,
   cityJoinLinkStatusSchema,
   cityMembershipRecordSchema,
@@ -31,6 +34,91 @@ describe('city schemas', () => {
     logoUrl: null,
     extra: { mapZoom: 14 },
   };
+
+  it('accepts a new city payload and lowercases the slug', () => {
+    expect(
+      createCitySchema.parse({
+        slug: 'Example-City',
+        nameHe: ' עיר דוגמה ',
+        nameEn: ' Example City ',
+      })
+    ).toEqual({
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+    });
+  });
+
+  it('rejects a slug that is not URL-safe', () => {
+    expect(
+      createCitySchema.safeParse({
+        slug: 'Holon City',
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+      }).success
+    ).toBe(false);
+    expect(
+      createCitySchema.safeParse({
+        slug: 'חולון',
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects a slug longer than 64 characters with slug_too_long', () => {
+    const names = { nameHe: 'חולון', nameEn: 'Holon' };
+    expect(
+      createCitySchema.safeParse({
+        ...names,
+        slug: 'a'.repeat(CITY_SLUG_MAX_LENGTH),
+      }).success
+    ).toBe(true);
+
+    const tooLong = createCitySchema.safeParse({
+      ...names,
+      slug: 'a'.repeat(CITY_SLUG_MAX_LENGTH + 1),
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(tooLong.error.issues[0]?.message).toBe('slug_too_long');
+    }
+  });
+
+  it('accepts a real IANA timezone and rejects an unknown zone', () => {
+    expect(
+      createCitySchema.parse({
+        slug: 'example-city',
+        nameHe: 'עיר דוגמה',
+        nameEn: 'Example City',
+        timezone: 'Asia/Jerusalem',
+      }).timezone
+    ).toBe('Asia/Jerusalem');
+
+    const invalid = createCitySchema.safeParse({
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Mars/Olympus',
+    });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) {
+      expect(invalid.error.issues[0]?.message).toBe('invalid_timezone');
+    }
+  });
+
+  it('accepts a created city response', () => {
+    const created = {
+      id: '22222222-2222-4222-8222-222222222222',
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Asia/Jerusalem',
+      isActive: true,
+    };
+
+    expect(citySchema.parse(created)).toEqual(created);
+  });
 
   it('accepts city settings with fake Holon center data', () => {
     expect(citySettingsSchema.parse(settings)).toEqual(settings);

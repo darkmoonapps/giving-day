@@ -24,6 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { CityRole } from '@prisma/client';
 import type {
+  City,
   CityCoordinator,
   CityCoordinatorsResponse,
   CityJoinLinkCreated,
@@ -39,6 +40,8 @@ import { AbilitiesGuard } from '../auth/guards/abilities.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CitiesService } from './cities.service';
 import { AddCoordinatorDto } from './dto/add-coordinator.dto';
+import { CityResponseDto } from './dto/city-response.dto';
+import { CreateCityDto } from './dto/create-city.dto';
 import {
   CityCoordinatorDto,
   CityCoordinatorsResponseDto,
@@ -60,6 +63,21 @@ import { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
 @Controller('cities')
 export class CitiesController {
   constructor(private readonly citiesService: CitiesService) {}
+
+  @Post()
+  @RequireAbilities({ action: 'create', subject: 'City' })
+  @ApiBody({ type: CreateCityDto })
+  @ApiOperation({
+    operationId: 'createCity',
+    summary: 'Create a city (super admin only)',
+  })
+  @ApiCreatedResponse({ type: CityResponseDto })
+  async createCity(
+    @Body() dto: CreateCityDto,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<City> {
+    return this.citiesService.createCity(dto, user);
+  }
 
   @Get(':cityId/settings')
   @RequireAbilities({ action: 'read', subject: 'CitySettings' })

@@ -84,6 +84,7 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('read', 'CitySettings')).toBe(true);
       expect(ability.can('update', 'CitySettings')).toBe(true);
+      expect(ability.can('create', 'City')).toBe(false);
     });
 
     it('should allow coordinator to manage invites', () => {

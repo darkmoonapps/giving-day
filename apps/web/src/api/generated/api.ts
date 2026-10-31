@@ -44,6 +44,23 @@ export interface HealthResponseDto {
   database: DatabaseHealthDto;
 }
 
+export interface CreateCityDto {
+  /** URL-safe unique city key */
+  slug: string;
+  nameHe: string;
+  nameEn: string;
+  timezone?: string;
+}
+
+export interface CityResponseDto {
+  id: string;
+  slug: string;
+  nameHe: string;
+  nameEn: string;
+  timezone: string;
+  isActive: boolean;
+}
+
 export type CitySettingsResponseDtoDefaultLocale = typeof CitySettingsResponseDtoDefaultLocale[keyof typeof CitySettingsResponseDtoDefaultLocale];
 
 
@@ -1934,6 +1951,78 @@ export function useAuthControllerGetCurrentUser<TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Create a city (super admin only)
+ */
+export const getCreateCityUrl = () => {
+
+
+  
+
+  return `/api/cities`
+}
+
+export const createCity = async (createCityDto: CreateCityDto, options?: RequestInit): Promise<CityResponseDto> => {
+  
+  return apiFetch<CityResponseDto>(getCreateCityUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCityDto,)
+  }
+);}
+
+
+
+
+export const getCreateCityMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCity>>, TError,{data: CreateCityDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCity>>, TError,{data: CreateCityDto}, TContext> => {
+
+const mutationKey = ['createCity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCity>>, {data: CreateCityDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCity(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCityMutationResult = NonNullable<Awaited<ReturnType<typeof createCity>>>
+    export type CreateCityMutationBody = CreateCityDto
+    export type CreateCityMutationError = unknown
+
+    /**
+ * @summary Create a city (super admin only)
+ */
+export const useCreateCity = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCity>>, TError,{data: CreateCityDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createCity>>,
+        TError,
+        {data: CreateCityDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateCityMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 /**
  * @summary Get settings for a city
  */

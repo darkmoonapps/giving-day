@@ -56,6 +56,7 @@ describe('Cities HTTP authorization', () => {
         id: CITY_A_ID,
         archivedAt: null,
       }),
+      create: vi.fn(),
     },
     citySettings: {
       findUnique: vi.fn().mockResolvedValue(settingsRow),
@@ -156,6 +157,110 @@ describe('Cities HTTP authorization', () => {
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
     );
+  });
+
+  describe('POST /api/cities', () => {
+    const createdCity = {
+      id: '22222222-2222-4222-8222-222222222222',
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Asia/Jerusalem',
+      isActive: true,
+    };
+
+    it('allows a super admin to create a city', async () => {
+      currentUser = superAdmin();
+      mockPrisma.city.create.mockResolvedValue(createdCity);
+      mockPrisma.citySettings.create.mockResolvedValue({
+        ...settingsRow,
+        cityId: createdCity.id,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+        })
+        .expect(201);
+
+      expect(response.body).toEqual(createdCity);
+    });
+
+    it('returns 409 when the slug already exists', async () => {
+      currentUser = superAdmin();
+      mockPrisma.city.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['slug'] },
+        })
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'holon',
+          nameHe: 'חולון',
+          nameEn: 'Holon',
+        })
+        .expect(409);
+
+      expect(response.body.message).toBe('cities.duplicate_slug');
+    });
+
+    it('forbids a city coordinator', async () => {
+      currentUser = coordinatorA();
+      await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+        })
+        .expect(403);
+    });
+
+    it('forbids a volunteer', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+        })
+        .expect(403);
+    });
+
+    it('rejects unauthenticated create', async () => {
+      await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+        })
+        .expect(401);
+    });
+
+    it('rejects an unknown IANA timezone with 400', async () => {
+      currentUser = superAdmin();
+
+      await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+          timezone: 'Mars/Olympus',
+        })
+        .expect(400);
+
+      expect(mockPrisma.city.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('unauthenticated', () => {
