@@ -455,7 +455,19 @@ describe('DeliveriesService', () => {
     });
 
     it('rejects assigning a volunteer who has not confirmed for the day', async () => {
-      mockPrisma.delivery.findFirst.mockResolvedValue(unassignedYosef);
+      const callOrder: string[] = [];
+      mockPrisma.delivery.findFirst.mockImplementation(async () => {
+        callOrder.push('delivery');
+        return unassignedYosef;
+      });
+      mockPrisma.dayParticipation.findFirst.mockImplementation(async () => {
+        callOrder.push('participation');
+        return null;
+      });
+      mockPrisma.delivery.updateMany.mockImplementation(async () => {
+        callOrder.push('update');
+        return { count: 1 };
+      });
 
       await expect(
         service.assign(
@@ -466,6 +478,8 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(callOrder).toEqual(['delivery', 'participation']);
       expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
@@ -482,6 +496,7 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
@@ -530,6 +545,8 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalled();
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalled();
       expect(mockPrisma.delivery.update).not.toHaveBeenCalled();
       expect(mockPrisma.deliveryEvent.create).not.toHaveBeenCalled();
     });

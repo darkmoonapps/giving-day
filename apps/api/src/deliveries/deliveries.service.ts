@@ -190,10 +190,6 @@ export class DeliveriesService {
 
     const payload = assignDeliverySchema.parse(dto);
 
-    if (payload.volunteerId !== null) {
-      await this.requireAssignableVolunteer(cityId, dayId, payload.volunteerId);
-    }
-
     const assignedAt = payload.volunteerId === null ? null : new Date();
     const nextStatus = payload.volunteerId === null ? 'unassigned' : 'assigned';
 
@@ -203,6 +199,15 @@ export class DeliveriesService {
       });
       if (current === null) {
         throw new NotFoundException('deliveries.not_found');
+      }
+
+      if (payload.volunteerId !== null) {
+        await this.requireAssignableVolunteer(
+          tx,
+          cityId,
+          dayId,
+          payload.volunteerId
+        );
       }
 
       const result = await tx.delivery.updateMany({
@@ -335,11 +340,12 @@ export class DeliveriesService {
   }
 
   private async requireAssignableVolunteer(
+    tx: Prisma.TransactionClient,
     cityId: string,
     dayId: string,
     volunteerId: string
   ): Promise<void> {
-    const participation = await this.prisma.dayParticipation.findFirst({
+    const participation = await tx.dayParticipation.findFirst({
       where: this.confirmedAssignableWhere(cityId, dayId, volunteerId),
       select: { volunteerId: true },
     });
