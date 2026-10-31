@@ -203,6 +203,9 @@ export interface DayFetchStub extends AuthFetchStub {
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
   updateStatus?:
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
+  changeRequests?: unknown[];
+  createChangeRequest?:
+    ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
 }
 
 export function createDayFetchMock(
@@ -384,6 +387,62 @@ export function createDayFetchMock(
       return mockJsonResponse({
         days: options.listDays ?? [currentDay],
       });
+    }
+
+    if (url.includes('/elder-change-requests')) {
+      if (
+        method === 'POST' &&
+        !url.includes('/approve') &&
+        !url.includes('/reject')
+      ) {
+        if (options.createChangeRequest === 'error') {
+          return mockJsonResponse({ message: 'error' }, 500);
+        }
+        const body =
+          typeof init?.body === 'string'
+            ? (JSON.parse(init.body) as Record<string, unknown>)
+            : {};
+        if (typeof options.createChangeRequest === 'function') {
+          return mockJsonResponse(options.createChangeRequest(body), 201);
+        }
+        return mockJsonResponse(
+          {
+            id: '21212121-2121-4212-8212-212121212121',
+            cityId: CITY_A_ID,
+            elderId:
+              typeof body.elderId === 'string' ? body.elderId : ELDER_RIVKAH.id,
+            requestedById: volunteerUser().id,
+            changes: body.changes ?? {
+              street: { from: '12 Example St', to: '18 Weizmann St' },
+            },
+            reason: typeof body.reason === 'string' ? body.reason : null,
+            status: 'pending',
+            reviewedById: null,
+            reviewedAt: null,
+            reviewNote: null,
+            createdAt: '2026-10-31T09:00:00.000Z',
+            updatedAt: '2026-10-31T09:00:00.000Z',
+            elder: {
+              ...ELDER_RIVKAH,
+              contacts: ELDER_RIVKAH.contacts.map((contact) => ({
+                id: '14141414-1414-4141-8141-141414141414',
+                ...contact,
+              })),
+            },
+            requestedBy: {
+              id: volunteerUser().id,
+              firstName: 'Noa',
+              lastName: 'Cohen',
+            },
+          },
+          201
+        );
+      }
+      if (method === 'GET') {
+        return mockJsonResponse({
+          changeRequests: options.changeRequests ?? [],
+        });
+      }
     }
 
     return authMock(input, init);

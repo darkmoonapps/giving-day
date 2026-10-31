@@ -362,6 +362,14 @@ export async function stubDistributionDayApi(
     }
   });
 
+  await page.route('**/api/cities/*/elder-change-requests**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await jsonFulfill(route, { changeRequests: [] });
+  });
+
   await page.route('**/api/cities/*/distribution-days', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.fallback();
@@ -441,6 +449,116 @@ export async function stubJoinLinkApi(
         },
         ...options.redeem,
       });
+      return;
+    }
+
+    await route.fallback();
+  });
+}
+
+export async function stubElderChangeRequestApi(
+  page: Page,
+  options: {
+    changeRequests?: Array<Record<string, unknown>>;
+    onCreate?: (body: Record<string, unknown>) => Record<string, unknown>;
+    onApprove?: (requestId: string) => void;
+    onReject?: (requestId: string, body: Record<string, unknown>) => void;
+  } = {}
+): Promise<void> {
+  let changeRequests = [...(options.changeRequests ?? [])];
+
+  await page.route('**/api/cities/*/elder-change-requests**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const method = request.method();
+    const pathname = url.pathname.replace(/\/$/, '');
+
+    if (method === 'POST' && pathname.endsWith('/approve')) {
+      const requestId = pathname.split('/').at(-2) ?? '';
+      if (options.onApprove !== undefined) {
+        options.onApprove(requestId);
+      }
+      const current =
+        changeRequests.find((row) => row.id === requestId) ?? changeRequests[0];
+      changeRequests = changeRequests.filter((row) => row.id !== requestId);
+      await jsonFulfill(route, {
+        ...current,
+        status: 'approved',
+        reviewedAt: '2026-10-31T12:00:00.000Z',
+      });
+      return;
+    }
+
+    if (method === 'POST' && pathname.endsWith('/reject')) {
+      const requestId = pathname.split('/').at(-2) ?? '';
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      if (options.onReject !== undefined) {
+        options.onReject(requestId, body);
+      }
+      const current =
+        changeRequests.find((row) => row.id === requestId) ?? changeRequests[0];
+      changeRequests = changeRequests.filter((row) => row.id !== requestId);
+      await jsonFulfill(route, {
+        ...current,
+        status: 'rejected',
+        reviewNote:
+          typeof body.reviewNote === 'string' ? body.reviewNote : null,
+        reviewedAt: '2026-10-31T12:05:00.000Z',
+      });
+      return;
+    }
+
+    if (method === 'POST') {
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      const created =
+        options.onCreate !== undefined
+          ? options.onCreate(body)
+          : {
+              id: '21212121-2121-4212-8212-212121212121',
+              cityId: CITY_A_ID,
+              elderId: body.elderId,
+              requestedById: FAKE_USER_ID,
+              changes: body.changes,
+              reason: body.reason ?? null,
+              status: 'pending',
+              reviewedById: null,
+              reviewedAt: null,
+              reviewNote: null,
+              createdAt: '2026-10-31T09:00:00.000Z',
+              updatedAt: '2026-10-31T09:00:00.000Z',
+              elder: {
+                id: body.elderId,
+                fullName: 'Rivkah Levi',
+                street: '12 Example St',
+                houseNumber: '12',
+                entrance: 'B',
+                floor: '3',
+                apartment: '7',
+                addressNotes: 'Knock loudly',
+                notes: 'Entrance is around the back',
+                contacts: [],
+              },
+              requestedBy: {
+                id: FAKE_USER_ID,
+                firstName: 'Noa',
+                lastName: 'Cohen',
+              },
+            };
+      changeRequests = [created, ...changeRequests];
+      await jsonFulfill(route, created);
+      return;
+    }
+
+    if (method === 'GET') {
+      await jsonFulfill(route, { changeRequests });
       return;
     }
 

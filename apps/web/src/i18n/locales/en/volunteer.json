@@ -66,5 +66,21 @@
   "not_delivered_reason_hospitalized": "Hospitalized",
   "not_delivered_reason_deceased": "Deceased",
   "not_delivered_reason_other": "Other",
-  "call_next_of_kin": "Call {{name}}"
+  "call_next_of_kin": "Call {{name}}",
+  "suggest_correction": "Suggest a correction",
+  "suggest_correction_title": "Suggest a detail change",
+  "pending_change_request": "Change request pending",
+  "street_label": "Street",
+  "house_number_label": "House number",
+  "change_request_reason_label": "Why is this change needed?",
+  "change_request_reason_placeholder": "Optional. The coordinator will see this.",
+  "change_request_submit": "Send request",
+  "change_request_cancel": "Back",
+  "change_request_submit_error": "We could not send that change request. Try again.",
+  "add_next_of_kin": "Add next of kin",
+  "remove_next_of_kin": "Remove",
+  "next_of_kin_name": "Contact name",
+  "next_of_kin_relation": "Relation",
+  "next_of_kin_phone": "Contact phone",
+  "next_of_kin_primary": "Primary contact"
 }

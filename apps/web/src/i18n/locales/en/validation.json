@@ -7,5 +7,6 @@
   "invalid_number": "Enter a valid number",
   "invalid_integer": "Enter a whole number of 0 or more",
   "https_url_required": "Enter an HTTPS URL, for example https://example.com/logo.svg",
-  "invalid_time_range": "End time must be after start time"
+  "invalid_time_range": "End time must be after start time",
+  "no_changes": "Change at least one detail before submitting."
 }

@@ -7,5 +7,6 @@
   "invalid_number": "הזינו מספר תקין",
   "invalid_integer": "הזינו מספר שלם של 0 או יותר",
   "https_url_required": "הזינו כתובת HTTPS, למשל https://example.com/logo.svg",
-  "invalid_time_range": "שעת הסיום חייבת להיות אחרי שעת ההתחלה"
+  "invalid_time_range": "שעת הסיום חייבת להיות אחרי שעת ההתחלה",
+  "no_changes": "שנו לפחות פרט אחד לפני השליחה."
 }
