@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
+import { CoordinatorPendingMembershipsPage } from '../pages/coordinator-pending-memberships-page';
 import { DayDeliveriesPage } from '../pages/day-deliveries-page';
 import { HomePage } from '../pages/home-page';
 import { JoinPage } from '../pages/join-page';
@@ -77,6 +78,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <CoordinatorEldersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/join-requests"
+        element={
+          <ProtectedRoute>
+            <CoordinatorPendingMembershipsPage />
           </ProtectedRoute>
         }
       />
