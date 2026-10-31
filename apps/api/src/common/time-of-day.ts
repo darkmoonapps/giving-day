@@ -35,6 +35,18 @@ export function formatDateOnly(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+export function todayInTimeZone(
+  timeZone: string,
+  now: Date = new Date()
+): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
 export function parseDateOnly(value: string): Date {
   if (!DATE_ONLY_PATTERN.test(value)) {
     throw new BadRequestException('validation.invalid_date');

@@ -7,6 +7,7 @@ import { CitiesModule } from './cities/cities.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
 import { DistributionDaysModule } from './distribution-days/distribution-days.module';
 import { EldersModule } from './elders/elders.module';
+import { MatchesModule } from './matches/matches.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     DistributionDaysModule,
     DeliveriesModule,
     EldersModule,
+    MatchesModule,
   ],
 })
 export class AppModule {}

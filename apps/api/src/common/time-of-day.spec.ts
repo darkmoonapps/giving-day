@@ -7,6 +7,7 @@ import {
   parseDateOnly,
   parseTime,
   timeToSeconds,
+  todayInTimeZone,
 } from './time-of-day';
 
 describe('time-of-day helpers', () => {
@@ -20,5 +21,11 @@ describe('time-of-day helpers', () => {
     expect(formatDateOnly(parseDateOnly('2026-11-15'))).toBe('2026-11-15');
     expect(() => parseDateOnly('2026-02-31')).toThrow(BadRequestException);
     expect(() => parseDateOnly('15/11/2026')).toThrow(BadRequestException);
+  });
+
+  it('returns the calendar date in the city timezone', () => {
+    const lateUtc = new Date('2026-10-31T22:00:00.000Z');
+    expect(todayInTimeZone('UTC', lateUtc)).toBe('2026-10-31');
+    expect(todayInTimeZone('Asia/Jerusalem', lateUtc)).toBe('2026-11-01');
   });
 });

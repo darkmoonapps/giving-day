@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
+import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
 import { DayDeliveriesPage } from '../pages/day-deliveries-page';
 import { HomePage } from '../pages/home-page';
 import { LoginPage } from '../pages/login-page';
@@ -57,6 +58,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <DayDeliveriesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/matches"
+        element={
+          <ProtectedRoute>
+            <CoordinatorMatchesPage />
           </ProtectedRoute>
         }
       />

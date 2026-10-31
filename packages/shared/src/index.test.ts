@@ -14,6 +14,7 @@ import {
   respondToDistributionDaySchema,
   assignDeliverySchema,
   createElderSchema,
+  createPermanentMatchSchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
 } from './index';
@@ -58,6 +59,12 @@ describe('shared public exports', () => {
         houseNumber: '1',
       }).fullName
     ).toBe('Elder A');
+    expect(
+      createPermanentMatchSchema.parse({
+        elderId: '12121212-1212-4121-8121-121212121212',
+        volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      }).elderId
+    ).toBe('12121212-1212-4121-8121-121212121212');
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'

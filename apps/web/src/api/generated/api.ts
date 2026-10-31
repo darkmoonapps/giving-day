@@ -591,6 +591,102 @@ export interface UpdateElderDto {
   contacts?: ElderContactInputDto[];
 }
 
+export type MatchElderSummaryDtoStatus = typeof MatchElderSummaryDtoStatus[keyof typeof MatchElderSummaryDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const MatchElderSummaryDtoStatus = {
+  active: 'active',
+  paused: 'paused',
+  hospitalized: 'hospitalized',
+  moved: 'moved',
+  deceased: 'deceased',
+  removed: 'removed',
+} as const;
+
+export interface MatchElderSummaryDto {
+  id: string;
+  fullName: string;
+  status: MatchElderSummaryDtoStatus;
+}
+
+export interface MatchVolunteerSummaryDto {
+  id: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+}
+
+export type PermanentMatchResponseDtoType = typeof PermanentMatchResponseDtoType[keyof typeof PermanentMatchResponseDtoType];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PermanentMatchResponseDtoType = {
+  permanent: 'permanent',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PermanentMatchResponseDtoEndReason = typeof PermanentMatchResponseDtoEndReason[keyof typeof PermanentMatchResponseDtoEndReason] | null;
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PermanentMatchResponseDtoEndReason = {
+  volunteer_left: 'volunteer_left',
+  elder_inactive: 'elder_inactive',
+  reassigned: 'reassigned',
+  other: 'other',
+} as const;
+
+export interface PermanentMatchResponseDto {
+  id: string;
+  cityId: string;
+  elderId: string;
+  volunteerId: string;
+  type: PermanentMatchResponseDtoType;
+  startsAt: string;
+  /** @nullable */
+  endsAt: string | null;
+  /** @nullable */
+  endReason: PermanentMatchResponseDtoEndReason;
+  createdAt: string;
+  updatedAt: string;
+  elder: MatchElderSummaryDto;
+  volunteer: MatchVolunteerSummaryDto;
+}
+
+export interface PermanentMatchesResponseDto {
+  matches: PermanentMatchResponseDto[];
+  unmatchedElders: MatchElderSummaryDto[];
+  matchableVolunteers: MatchVolunteerSummaryDto[];
+}
+
+export interface CreatePermanentMatchDto {
+  elderId: string;
+  volunteerId: string;
+  /** Calendar start date; defaults to today in the city timezone */
+  startsAt?: string;
+}
+
+export type EndPermanentMatchDtoEndReason = typeof EndPermanentMatchDtoEndReason[keyof typeof EndPermanentMatchDtoEndReason];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const EndPermanentMatchDtoEndReason = {
+  volunteer_left: 'volunteer_left',
+  elder_inactive: 'elder_inactive',
+  reassigned: 'reassigned',
+  other: 'other',
+} as const;
+
+export interface EndPermanentMatchDto {
+  endReason: EndPermanentMatchDtoEndReason;
+  /** Calendar end date; defaults to today in the city timezone */
+  endsAt?: string;
+}
+
 export type ListCityEldersParams = {
 includeArchived?: boolean;
 status?: ListCityEldersStatus;
@@ -3533,6 +3629,255 @@ export const useDeactivateCityElder = <TError = unknown,
       > => {
 
       const mutationOptions = getDeactivateCityElderMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List current permanent volunteer–elder matches for a city (coordinators)
+ */
+export const getListCityMatchesUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/matches`
+}
+
+export const listCityMatches = async (cityId: string, options?: RequestInit): Promise<PermanentMatchesResponseDto> => {
+  
+  return apiFetch<PermanentMatchesResponseDto>(getListCityMatchesUrl(cityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListCityMatchesQueryKey = (cityId?: string,) => {
+    return [
+    `/api/cities/${cityId}/matches`
+    ] as const;
+    }
+
+    
+export const getListCityMatchesQueryOptions = <TData = Awaited<ReturnType<typeof listCityMatches>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityMatchesQueryKey(cityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityMatches>>> = ({ signal }) => listCityMatches(cityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCityMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof listCityMatches>>>
+export type ListCityMatchesQueryError = unknown
+
+
+export function useListCityMatches<TData = Awaited<ReturnType<typeof listCityMatches>>, TError = unknown>(
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityMatches>>,
+          TError,
+          Awaited<ReturnType<typeof listCityMatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityMatches<TData = Awaited<ReturnType<typeof listCityMatches>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityMatches>>,
+          TError,
+          Awaited<ReturnType<typeof listCityMatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityMatches<TData = Awaited<ReturnType<typeof listCityMatches>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List current permanent volunteer–elder matches for a city (coordinators)
+ */
+
+export function useListCityMatches<TData = Awaited<ReturnType<typeof listCityMatches>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListCityMatchesQueryOptions(cityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create a permanent match for an active elder and an approved city volunteer
+ */
+export const getCreateCityPermanentMatchUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/matches`
+}
+
+export const createCityPermanentMatch = async (cityId: string,
+    createPermanentMatchDto: CreatePermanentMatchDto, options?: RequestInit): Promise<PermanentMatchResponseDto> => {
+  
+  return apiFetch<PermanentMatchResponseDto>(getCreateCityPermanentMatchUrl(cityId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPermanentMatchDto,)
+  }
+);}
+
+
+
+
+export const getCreateCityPermanentMatchMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCityPermanentMatch>>, TError,{cityId: string;data: CreatePermanentMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCityPermanentMatch>>, TError,{cityId: string;data: CreatePermanentMatchDto}, TContext> => {
+
+const mutationKey = ['createCityPermanentMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCityPermanentMatch>>, {cityId: string;data: CreatePermanentMatchDto}> = (props) => {
+          const {cityId,data} = props ?? {};
+
+          return  createCityPermanentMatch(cityId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCityPermanentMatchMutationResult = NonNullable<Awaited<ReturnType<typeof createCityPermanentMatch>>>
+    export type CreateCityPermanentMatchMutationBody = CreatePermanentMatchDto
+    export type CreateCityPermanentMatchMutationError = void
+
+    /**
+ * @summary Create a permanent match for an active elder and an approved city volunteer
+ */
+export const useCreateCityPermanentMatch = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCityPermanentMatch>>, TError,{cityId: string;data: CreatePermanentMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createCityPermanentMatch>>,
+        TError,
+        {cityId: string;data: CreatePermanentMatchDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateCityPermanentMatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary End a current permanent match (sets endsAt and endReason)
+ */
+export const getEndCityMatchUrl = (cityId: string,
+    matchId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/matches/${matchId}/end`
+}
+
+export const endCityMatch = async (cityId: string,
+    matchId: string,
+    endPermanentMatchDto: EndPermanentMatchDto, options?: RequestInit): Promise<PermanentMatchResponseDto> => {
+  
+  return apiFetch<PermanentMatchResponseDto>(getEndCityMatchUrl(cityId,matchId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      endPermanentMatchDto,)
+  }
+);}
+
+
+
+
+export const getEndCityMatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endCityMatch>>, TError,{cityId: string;matchId: string;data: EndPermanentMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof endCityMatch>>, TError,{cityId: string;matchId: string;data: EndPermanentMatchDto}, TContext> => {
+
+const mutationKey = ['endCityMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof endCityMatch>>, {cityId: string;matchId: string;data: EndPermanentMatchDto}> = (props) => {
+          const {cityId,matchId,data} = props ?? {};
+
+          return  endCityMatch(cityId,matchId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EndCityMatchMutationResult = NonNullable<Awaited<ReturnType<typeof endCityMatch>>>
+    export type EndCityMatchMutationBody = EndPermanentMatchDto
+    export type EndCityMatchMutationError = unknown
+
+    /**
+ * @summary End a current permanent match (sets endsAt and endReason)
+ */
+export const useEndCityMatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endCityMatch>>, TError,{cityId: string;matchId: string;data: EndPermanentMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof endCityMatch>>,
+        TError,
+        {cityId: string;matchId: string;data: EndPermanentMatchDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEndCityMatchMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
