@@ -231,7 +231,13 @@ export async function stubDistributionDayApi(
       if (options.onUpdateStatus !== undefined) {
         options.onUpdateStatus(body);
       }
-      const current = volunteerDeliveries[0];
+      const segments = url.pathname.split('/');
+      const statusIndex = segments.lastIndexOf('status');
+      const deliveryId =
+        statusIndex > 0 ? segments[statusIndex - 1] : undefined;
+      const current =
+        volunteerDeliveries.find((row) => row.id === deliveryId) ??
+        volunteerDeliveries[0];
       if (current !== undefined && typeof body.status === 'string') {
         if (
           body.status === 'assigned' ||

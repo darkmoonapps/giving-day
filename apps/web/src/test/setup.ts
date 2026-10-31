@@ -34,6 +34,19 @@ Object.defineProperty(window, 'matchMedia', {
 
 globalThis.ResizeObserver = ResizeObserverMock;
 
+HTMLCanvasElement.prototype.getContext =
+  function getContext(): CanvasRenderingContext2D {
+    return {
+      setTransform: (): void => undefined,
+      clearRect: (): void => undefined,
+      beginPath: (): void => undefined,
+      arc: (): void => undefined,
+      fill: (): void => undefined,
+      globalAlpha: 1,
+      fillStyle: '',
+    } as CanvasRenderingContext2D;
+  };
+
 afterEach(() => {
   cleanup();
 });
