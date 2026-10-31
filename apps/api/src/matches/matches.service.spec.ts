@@ -184,12 +184,26 @@ describe('MatchesService', () => {
         new Prisma.PrismaClientKnownRequestError('unique', {
           code: 'P2002',
           clientVersion: '6.1.0',
+          meta: { target: ['matches_elderId_current_permanent'] },
         })
       );
 
       await expect(
         service.create(CITY_A_ID, createMatchPayload() as never, coordinatorA())
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('rethrows a P2002 from a different unique constraint', async () => {
+      const otherConflict = new Prisma.PrismaClientKnownRequestError('unique', {
+        code: 'P2002',
+        clientVersion: '6.1.0',
+        meta: { target: ['Match_id_key'] },
+      });
+      mockPrisma.match.create.mockRejectedValue(otherConflict);
+
+      await expect(
+        service.create(CITY_A_ID, createMatchPayload() as never, coordinatorA())
+      ).rejects.toBe(otherConflict);
     });
 
     it('rejects a paused elder', async () => {
@@ -244,7 +258,7 @@ describe('MatchesService', () => {
       mockPrisma.match.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.match.findFirstOrThrow.mockResolvedValue(
         fakeMatch({
-          endsAt: new Date('2026-10-31T00:00:00.000Z'),
+          endsAt: new Date('2026-10-15T00:00:00.000Z'),
           endReason: 'reassigned',
         })
       );
@@ -252,11 +266,11 @@ describe('MatchesService', () => {
       const result = await service.end(
         CITY_A_ID,
         MATCH_A_ID,
-        { endReason: 'reassigned', endsAt: '2026-10-31' },
+        { endReason: 'reassigned', endsAt: '2026-10-15' },
         coordinatorA()
       );
 
-      expect(result.endsAt).toBe('2026-10-31');
+      expect(result.endsAt).toBe('2026-10-15');
       expect(result.endReason).toBe('reassigned');
       expect(mockPrisma.match.updateMany).toHaveBeenCalledWith({
         where: {
@@ -266,7 +280,7 @@ describe('MatchesService', () => {
           endsAt: null,
         },
         data: {
-          endsAt: new Date('2026-10-31T00:00:00.000Z'),
+          endsAt: new Date('2026-10-15T00:00:00.000Z'),
           endReason: 'reassigned',
         },
       });
@@ -307,6 +321,23 @@ describe('MatchesService', () => {
         constructor: BadRequestException,
         message: 'matches.invalid_end_date',
       });
+    });
+
+    it('rejects a future end date so the match is not still current', async () => {
+      mockPrisma.match.findFirst.mockResolvedValue(matchA);
+
+      await expect(
+        service.end(
+          CITY_A_ID,
+          MATCH_A_ID,
+          { endReason: 'other', endsAt: '2099-01-01' },
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({
+        constructor: BadRequestException,
+        message: 'matches.future_end_date',
+      });
+      expect(mockPrisma.match.updateMany).not.toHaveBeenCalled();
     });
 
     it('returns 404 when the match is missing', async () => {

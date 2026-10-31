@@ -62,6 +62,10 @@ export function CoordinatorMatchesPage(): JSX.Element {
   const [endReasons, setEndReasons] = useState<Record<string, MatchEndReason>>(
     {}
   );
+  const [confirmingMatchId, setConfirmingMatchId] = useState<string | null>(
+    null
+  );
+  const [endingMatchId, setEndingMatchId] = useState<string | null>(null);
 
   const matchesQuery = useListCityMatches(cityId ?? '', {
     query: { enabled: validId },
@@ -78,7 +82,12 @@ export function CoordinatorMatchesPage(): JSX.Element {
   const endMutation = useEndCityMatch({
     mutation: {
       onSuccess: async () => {
+        setConfirmingMatchId(null);
+        setEndingMatchId(null);
         await matchesQuery.refetch();
+      },
+      onError: () => {
+        setEndingMatchId(null);
       },
     },
   });
@@ -150,6 +159,9 @@ export function CoordinatorMatchesPage(): JSX.Element {
                 <Table.Tbody>
                   {payload.matches.map((match) => {
                     const reason = endReasons[match.id] ?? 'reassigned';
+                    const confirming = confirmingMatchId === match.id;
+                    const ending =
+                      endMutation.isPending && endingMatchId === match.id;
                     return (
                       <Table.Tr
                         key={match.id}
@@ -182,24 +194,53 @@ export function CoordinatorMatchesPage(): JSX.Element {
                                 }));
                               }}
                             />
-                            <AppButton
-                              size="xs"
-                              variant="light"
-                              data-testid={`end-match-${match.id}`}
-                              loading={endMutation.isPending}
-                              onClick={() => {
-                                if (!validId) {
-                                  return;
-                                }
-                                endMutation.mutate({
-                                  cityId,
-                                  matchId: match.id,
-                                  data: { endReason: reason },
-                                });
-                              }}
-                            >
-                              {t('end_match')}
-                            </AppButton>
+                            {confirming ? (
+                              <>
+                                <AppText size="sm">
+                                  {t('end_match_confirm')}
+                                </AppText>
+                                <AppButton
+                                  size="xs"
+                                  data-testid={`confirm-end-match-${match.id}`}
+                                  loading={ending}
+                                  onClick={() => {
+                                    if (!validId) {
+                                      return;
+                                    }
+                                    setEndingMatchId(match.id);
+                                    endMutation.mutate({
+                                      cityId,
+                                      matchId: match.id,
+                                      data: { endReason: reason },
+                                    });
+                                  }}
+                                >
+                                  {t('confirm_end_match')}
+                                </AppButton>
+                                <AppButton
+                                  size="xs"
+                                  variant="light"
+                                  data-testid={`cancel-end-match-${match.id}`}
+                                  disabled={ending}
+                                  onClick={() => {
+                                    setConfirmingMatchId(null);
+                                  }}
+                                >
+                                  {t('cancel_end_match')}
+                                </AppButton>
+                              </>
+                            ) : (
+                              <AppButton
+                                size="xs"
+                                variant="light"
+                                data-testid={`end-match-${match.id}`}
+                                onClick={() => {
+                                  setConfirmingMatchId(match.id);
+                                }}
+                              >
+                                {t('end_match')}
+                              </AppButton>
+                            )}
                           </Stack>
                         </Table.Td>
                       </Table.Tr>

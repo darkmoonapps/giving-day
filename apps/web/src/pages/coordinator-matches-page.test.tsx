@@ -10,7 +10,10 @@ import {
   createMatchFetchMock,
   currentMatchRivkah,
   unmatchedYosef,
+  volunteerDana,
 } from '../test/match-fixtures';
+
+const MATCH_YOSEF_ID = '17171717-1717-4171-8171-171717171717';
 import { renderApp } from '../test/render';
 
 describe('CoordinatorMatchesPage', () => {
@@ -75,6 +78,19 @@ describe('CoordinatorMatchesPage', () => {
     );
     await user.click(screen.getByTestId(`end-match-${MATCH_RIVKAH_ID}`));
 
+    expect(
+      fetchMock.mock.calls.some((call) =>
+        String(call[0]).includes(`/matches/${MATCH_RIVKAH_ID}/end`)
+      )
+    ).toBe(false);
+    expect(
+      within(row).getByText('לסיים את השיבוץ הקבוע הזה?')
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByTestId(`confirm-end-match-${MATCH_RIVKAH_ID}`)
+    );
+
     await waitFor(() => {
       const endCall = fetchMock.mock.calls.find((call) =>
         String(call[0]).includes(`/matches/${MATCH_RIVKAH_ID}/end`)
@@ -84,6 +100,45 @@ describe('CoordinatorMatchesPage', () => {
         endReason: 'volunteer_left',
       });
     });
+  });
+
+  it('asks for confirmation on one row only', async () => {
+    const yosefMatch = {
+      ...currentMatchRivkah,
+      id: MATCH_YOSEF_ID,
+      elderId: unmatchedYosef.id,
+      volunteerId: volunteerDana.id,
+      elder: unmatchedYosef,
+      volunteer: volunteerDana,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createMatchFetchMock({
+          matches: [currentMatchRivkah, yosefMatch],
+          unmatchedElders: [],
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/matches`);
+    const rivkahRow = await screen.findByTestId(`match-row-${MATCH_RIVKAH_ID}`);
+    const yosefRow = screen.getByTestId(`match-row-${MATCH_YOSEF_ID}`);
+
+    await user.click(
+      within(rivkahRow).getByTestId(`end-match-${MATCH_RIVKAH_ID}`)
+    );
+
+    expect(
+      within(rivkahRow).getByTestId(`confirm-end-match-${MATCH_RIVKAH_ID}`)
+    ).toBeInTheDocument();
+    expect(
+      within(yosefRow).getByTestId(`end-match-${MATCH_YOSEF_ID}`)
+    ).toBeInTheDocument();
+    expect(
+      within(yosefRow).queryByTestId(`confirm-end-match-${MATCH_YOSEF_ID}`)
+    ).not.toBeInTheDocument();
   });
 
   it('shows a conflict when the elder already has a match', async () => {

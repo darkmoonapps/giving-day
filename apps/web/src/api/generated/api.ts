@@ -683,7 +683,7 @@ export const EndPermanentMatchDtoEndReason = {
 
 export interface EndPermanentMatchDto {
   endReason: EndPermanentMatchDtoEndReason;
-  /** Calendar end date; defaults to today in the city timezone */
+  /** Calendar end date; defaults to today in the city timezone and must not be in the future */
   endsAt?: string;
 }
 

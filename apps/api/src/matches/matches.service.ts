@@ -56,6 +56,21 @@ type CityRow = {
   timezone: string;
 };
 
+const CURRENT_PERMANENT_MATCH_INDEX = 'matches_elderId_current_permanent';
+
+function uniqueConstraintTargets(
+  error: Prisma.PrismaClientKnownRequestError
+): string[] {
+  const target = error.meta?.target;
+  if (typeof target === 'string') {
+    return [target];
+  }
+  if (Array.isArray(target)) {
+    return target.filter((value): value is string => typeof value === 'string');
+  }
+  return [];
+}
+
 @Injectable()
 export class MatchesService {
   constructor(
@@ -163,9 +178,13 @@ export class MatchesService {
         throw new BadRequestException('matches.already_ended');
       }
 
-      const endsAt = parseDateOnly(
-        parsed.endsAt ?? todayInTimeZone(city.timezone)
-      );
+      const today = todayInTimeZone(city.timezone);
+      const endsAtValue = parsed.endsAt ?? today;
+      if (endsAtValue > today) {
+        throw new BadRequestException('matches.future_end_date');
+      }
+
+      const endsAt = parseDateOnly(endsAtValue);
       if (endsAt.getTime() < current.startsAt.getTime()) {
         throw new BadRequestException('matches.invalid_end_date');
       }
@@ -278,9 +297,15 @@ export class MatchesService {
   }
 
   private isCurrentPermanentMatchConflict(error: unknown): boolean {
-    return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
+    ) {
+      return false;
+    }
+
+    return uniqueConstraintTargets(error).includes(
+      CURRENT_PERMANENT_MATCH_INDEX
     );
   }
 

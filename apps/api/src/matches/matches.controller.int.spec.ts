@@ -223,17 +223,17 @@ describe('Matches HTTP authorization', () => {
       mockPrisma.match.findFirst.mockResolvedValue(matchA);
       mockPrisma.match.findFirstOrThrow.mockResolvedValue(
         fakeMatch({
-          endsAt: new Date('2026-10-31T00:00:00.000Z'),
+          endsAt: new Date('2026-10-15T00:00:00.000Z'),
           endReason: 'reassigned',
         })
       );
 
       const response = await request(app.getHttpServer())
         .post(`/api/cities/${CITY_A_ID}/matches/${MATCH_A_ID}/end`)
-        .send({ endReason: 'reassigned', endsAt: '2026-10-31' })
+        .send({ endReason: 'reassigned', endsAt: '2026-10-15' })
         .expect(200);
 
-      expect(response.body.endsAt).toBe('2026-10-31');
+      expect(response.body.endsAt).toBe('2026-10-15');
       expect(response.body.endReason).toBe('reassigned');
     });
 

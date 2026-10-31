@@ -17,7 +17,8 @@ export class EndPermanentMatchDto {
   @ApiPropertyOptional({
     type: String,
     example: '2026-10-31',
-    description: 'Calendar end date; defaults to today in the city timezone',
+    description:
+      'Calendar end date; defaults to today in the city timezone and must not be in the future',
   })
   @IsOptional()
   @IsString()

@@ -178,6 +178,8 @@ test.describe('Coordinator permanent matches', () => {
       .getByLabel('סיבת הסיום')
       .selectOption('reassigned');
     await page.getByTestId(`end-match-${MATCH_RIVKAH_ID}`).click();
+    await expect(ended).toEqual([]);
+    await page.getByTestId(`confirm-end-match-${MATCH_RIVKAH_ID}`).click();
     await expect.poll(() => ended).toEqual([{ endReason: 'reassigned' }]);
   });
 });

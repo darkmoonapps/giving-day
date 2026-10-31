@@ -1,4 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { elderStatusSchema, matchEndReasonSchema } from '@giving-day/shared';
+
+const ELDER_STATUSES = elderStatusSchema.options;
+const END_REASONS = matchEndReasonSchema.options;
 
 export class MatchElderSummaryDto {
   @ApiProperty({
@@ -13,11 +17,10 @@ export class MatchElderSummaryDto {
 
   @ApiProperty({
     type: String,
-    enum: ['active', 'paused', 'hospitalized', 'moved', 'deceased', 'removed'],
+    enum: ELDER_STATUSES,
     example: 'active',
   })
-  status!:
-    'active' | 'paused' | 'hospitalized' | 'moved' | 'deceased' | 'removed';
+  status!: (typeof ELDER_STATUSES)[number];
 }
 
 export class MatchVolunteerSummaryDto {
@@ -75,12 +78,11 @@ export class PermanentMatchResponseDto {
 
   @ApiProperty({
     type: String,
-    enum: ['volunteer_left', 'elder_inactive', 'reassigned', 'other'],
+    enum: END_REASONS,
     example: null,
     nullable: true,
   })
-  endReason!:
-    'volunteer_left' | 'elder_inactive' | 'reassigned' | 'other' | null;
+  endReason!: (typeof END_REASONS)[number] | null;
 
   @ApiProperty({
     type: String,
