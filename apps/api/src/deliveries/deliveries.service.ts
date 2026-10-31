@@ -190,10 +190,6 @@ export class DeliveriesService {
 
     const payload = assignDeliverySchema.parse(dto);
 
-    if (payload.volunteerId !== null) {
-      await this.requireAssignableVolunteer(cityId, payload.volunteerId);
-    }
-
     const assignedAt = payload.volunteerId === null ? null : new Date();
     const nextStatus = payload.volunteerId === null ? 'unassigned' : 'assigned';
 
@@ -203,6 +199,15 @@ export class DeliveriesService {
       });
       if (current === null) {
         throw new NotFoundException('deliveries.not_found');
+      }
+
+      if (payload.volunteerId !== null) {
+        await this.requireAssignableVolunteer(
+          tx,
+          cityId,
+          dayId,
+          payload.volunteerId
+        );
       }
 
       const result = await tx.delivery.updateMany({
@@ -256,7 +261,7 @@ export class DeliveriesService {
     cityId: string,
     dayId: string
   ): Promise<CoordinatorDeliveriesResponse> {
-    const [deliveries, volunteers] = await Promise.all([
+    const [deliveries, confirmed] = await Promise.all([
       this.prisma.delivery.findMany({
         where: { cityId, dayId },
         include: {
@@ -264,21 +269,16 @@ export class DeliveriesService {
           volunteer: { select: VOLUNTEER_SELECT },
         },
       }),
-      this.prisma.cityMembership.findMany({
-        where: {
-          cityId,
-          role: 'volunteer',
-          status: 'active',
-          user: { archivedAt: null },
-        },
+      this.prisma.dayParticipation.findMany({
+        where: this.confirmedAssignableWhere(cityId, dayId),
         select: {
-          user: {
+          volunteer: {
             select: VOLUNTEER_SELECT,
           },
         },
         orderBy: [
-          { user: { lastName: 'asc' } },
-          { user: { firstName: 'asc' } },
+          { volunteer: { lastName: 'asc' } },
+          { volunteer: { firstName: 'asc' } },
         ],
       }),
     ]);
@@ -289,7 +289,7 @@ export class DeliveriesService {
       dayId,
       cityId,
       unassignedCount: sorted.filter((row) => row.volunteerId === null).length,
-      assignableVolunteers: volunteers.map((membership) => membership.user),
+      assignableVolunteers: confirmed.map((row) => row.volunteer),
       deliveries: sorted.map((row) => this.toCoordinatorDelivery(row)),
     });
   }
@@ -340,28 +340,42 @@ export class DeliveriesService {
   }
 
   private async requireAssignableVolunteer(
+    tx: Prisma.TransactionClient,
     cityId: string,
+    dayId: string,
     volunteerId: string
   ): Promise<void> {
-    const membership = await this.prisma.cityMembership.findUnique({
-      where: {
-        cityId_userId: { cityId, userId: volunteerId },
-      },
-      select: {
-        role: true,
-        status: true,
-        user: { select: { archivedAt: true } },
-      },
+    const participation = await tx.dayParticipation.findFirst({
+      where: this.confirmedAssignableWhere(cityId, dayId, volunteerId),
+      select: { volunteerId: true },
     });
 
-    if (
-      membership === null ||
-      membership.role !== 'volunteer' ||
-      membership.status !== 'active' ||
-      membership.user.archivedAt !== null
-    ) {
+    if (participation === null) {
       throw new BadRequestException('deliveries.invalid_volunteer');
     }
+  }
+
+  private confirmedAssignableWhere(
+    cityId: string,
+    dayId: string,
+    volunteerId?: string
+  ): Prisma.DayParticipationWhereInput {
+    return {
+      cityId,
+      dayId,
+      status: 'confirmed',
+      ...(volunteerId === undefined ? {} : { volunteerId }),
+      volunteer: {
+        archivedAt: null,
+        memberships: {
+          some: {
+            cityId,
+            role: 'volunteer',
+            status: 'active',
+          },
+        },
+      },
+    };
   }
 
   private async requireCity(cityId: string): Promise<void> {

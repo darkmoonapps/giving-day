@@ -129,7 +129,11 @@ describe('DeliveriesService', () => {
       createMany: vi.fn(),
       create: vi.fn(),
     },
-    dayParticipation: { findUnique: vi.fn() },
+    dayParticipation: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
     cityMembership: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -152,6 +156,8 @@ describe('DeliveriesService', () => {
     mockPrisma.deliveryEvent.createMany.mockResolvedValue({ count: 0 });
     mockPrisma.deliveryEvent.create.mockResolvedValue({});
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
+    mockPrisma.dayParticipation.findFirst.mockResolvedValue(null);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
     mockPrisma.cityMembership.findUnique.mockResolvedValue(null);
     mockPrisma.$transaction.mockImplementation(
@@ -268,37 +274,40 @@ describe('DeliveriesService', () => {
   });
 
   describe('list', () => {
-    it('returns every delivery and assignable volunteers to a coordinator', async () => {
+    it('returns every delivery and only confirmed volunteers as assignable', async () => {
       mockPrisma.delivery.findMany.mockResolvedValue([
         assignedRivkah,
         unassignedYosef,
       ]);
-      mockPrisma.cityMembership.findMany.mockResolvedValue([
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
         {
-          user: {
+          volunteer: {
             id: VOLUNTEER_A_ID,
             firstName: 'Yonatan',
             lastName: 'Bar',
-          },
-        },
-        {
-          user: {
-            id: VOLUNTEER_B_ID,
-            firstName: 'Dana',
-            lastName: 'Levi',
           },
         },
       ]);
 
       const result = await service.list(CITY_A_ID, DAY_ID, coordinatorA());
 
+      expect(mockPrisma.dayParticipation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
+      expect(mockPrisma.cityMembership.findMany).not.toHaveBeenCalled();
       expect(result).toMatchObject({
         unassignedCount: 1,
         assignableVolunteers: [
           { id: VOLUNTEER_A_ID, firstName: 'Yonatan', lastName: 'Bar' },
-          { id: VOLUNTEER_B_ID, firstName: 'Dana', lastName: 'Levi' },
         ],
       });
+      expect(result.assignableVolunteers).toHaveLength(1);
       expect(result.deliveries[0]).toMatchObject({
         id: DELIVERY_YOSEF_ID,
         volunteerId: null,
@@ -381,10 +390,8 @@ describe('DeliveriesService', () => {
       mockPrisma.delivery.findFirst
         .mockResolvedValueOnce(assignedRivkah)
         .mockResolvedValueOnce(reassigned);
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'volunteer',
-        status: 'active',
-        user: { archivedAt: null },
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+        volunteerId: VOLUNTEER_B_ID,
       });
       mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
 
@@ -397,6 +404,16 @@ describe('DeliveriesService', () => {
       );
 
       expect(result.volunteerId).toBe(VOLUNTEER_B_ID);
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            volunteerId: VOLUNTEER_B_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
       expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -436,16 +453,11 @@ describe('DeliveriesService', () => {
 
       expect(result.volunteerId).toBeNull();
       expect(result.status).toBe('unassigned');
-      expect(mockPrisma.cityMembership.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.dayParticipation.findFirst).not.toHaveBeenCalled();
     });
 
     it('rejects assigning a non-volunteer', async () => {
       mockPrisma.delivery.findFirst.mockResolvedValue(unassignedYosef);
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'coordinator',
-        status: 'active',
-        user: { archivedAt: null },
-      });
 
       await expect(
         service.assign(
@@ -456,6 +468,62 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_ID,
+            volunteerId: COORDINATOR_A_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects assigning a volunteer who has not confirmed for the day', async () => {
+      const callOrder: string[] = [];
+      mockPrisma.delivery.findFirst.mockImplementation(async () => {
+        callOrder.push('delivery');
+        return unassignedYosef;
+      });
+      mockPrisma.dayParticipation.findFirst.mockImplementation(async () => {
+        callOrder.push('participation');
+        return null;
+      });
+      mockPrisma.delivery.updateMany.mockImplementation(async () => {
+        callOrder.push('update');
+        return { count: 1 };
+      });
+
+      await expect(
+        service.assign(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_YOSEF_ID,
+          { volunteerId: VOLUNTEER_B_ID },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(callOrder).toEqual(['delivery', 'participation']);
+      expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects assigning a volunteer who declined the day', async () => {
+      mockPrisma.delivery.findFirst.mockResolvedValue(unassignedYosef);
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.assign(
+          CITY_A_ID,
+          DAY_ID,
+          DELIVERY_YOSEF_ID,
+          { volunteerId: VOLUNTEER_B_ID },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.delivery.updateMany).not.toHaveBeenCalled();
     });
 
@@ -464,10 +532,8 @@ describe('DeliveriesService', () => {
         ...assignedRivkah,
         status: 'picked',
       });
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'volunteer',
-        status: 'active',
-        user: { archivedAt: null },
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+        volunteerId: VOLUNTEER_B_ID,
       });
       mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
 
@@ -492,10 +558,8 @@ describe('DeliveriesService', () => {
 
     it('does not overwrite a concurrent pickup inside the transaction', async () => {
       mockPrisma.delivery.findFirst.mockResolvedValue(assignedRivkah);
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'volunteer',
-        status: 'active',
-        user: { archivedAt: null },
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+        volunteerId: VOLUNTEER_B_ID,
       });
       mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
 
@@ -508,6 +572,8 @@ describe('DeliveriesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalled();
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalled();
       expect(mockPrisma.delivery.update).not.toHaveBeenCalled();
       expect(mockPrisma.deliveryEvent.create).not.toHaveBeenCalled();
     });
@@ -534,10 +600,8 @@ describe('DeliveriesService', () => {
       mockPrisma.delivery.findFirst
         .mockResolvedValueOnce(unassignedYosef)
         .mockResolvedValueOnce(assignedYosef);
-      mockPrisma.cityMembership.findUnique.mockResolvedValue({
-        role: 'volunteer',
-        status: 'active',
-        user: { archivedAt: null },
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+        volunteerId: VOLUNTEER_A_ID,
       });
       mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
 

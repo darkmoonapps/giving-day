@@ -8,7 +8,7 @@ export class AssignDeliveryDto {
     nullable: true,
     example: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     description:
-      'Active city volunteer to assign, or null to put the delivery on the needs-a-volunteer list',
+      'Volunteer who confirmed for this distribution day, or null to put the delivery on the needs-a-volunteer list',
   })
   @Allow()
   @ValidateIf((_dto: AssignDeliveryDto, value: unknown) => value !== null)
