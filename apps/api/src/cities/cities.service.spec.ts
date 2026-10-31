@@ -220,6 +220,24 @@ describe('CitiesService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(mockPrisma.city.create).not.toHaveBeenCalled();
     });
+
+    it('rejects an unknown IANA timezone before writing', async () => {
+      await expect(
+        service.createCity(
+          {
+            slug: 'example-city',
+            nameHe: 'עיר דוגמה',
+            nameEn: 'Example City',
+            timezone: 'Mars/Olympus',
+          },
+          superAdmin()
+        )
+      ).rejects.toMatchObject({
+        constructor: BadRequestException,
+        message: 'invalid_timezone',
+      });
+      expect(mockPrisma.city.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('getSettings', () => {

@@ -59,6 +59,20 @@ describe('CreateCityPage', () => {
     ).toBe(true);
   });
 
+  it('shows a dedicated too-long slug message', async () => {
+    vi.stubGlobal('fetch', vi.fn(createCityFetchMock()));
+    const user = userEvent.setup();
+
+    renderApp('/admin/cities/new');
+    await screen.findByTestId('create-city-form');
+    await user.type(screen.getByLabelText(/שם בעברית/), 'חולון');
+    await user.type(screen.getByLabelText(/שם באנגלית/), 'Holon');
+    await user.type(screen.getByLabelText(/מזהה כתובת/), 'a'.repeat(65));
+    await user.click(screen.getByTestId('create-city-submit'));
+
+    expect(screen.getByText('השתמשו בעד 64 תווים')).toBeInTheDocument();
+  });
+
   it('shows a duplicate-slug error without leaving the form', async () => {
     const fetchMock = vi.fn(
       createCityFetchMock({

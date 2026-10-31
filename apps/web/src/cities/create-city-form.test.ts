@@ -1,3 +1,4 @@
+import { CITY_SLUG_MAX_LENGTH } from '@giving-day/shared';
 import { describe, expect, it } from 'vitest';
 import {
   emptyCreateCityFormValues,
@@ -46,9 +47,25 @@ describe('create-city-form', () => {
     });
   });
 
+  it('returns a dedicated too-long slug message', () => {
+    expect(
+      parseCreateCityForm({
+        nameHe: 'חולון',
+        nameEn: 'Holon',
+        slug: 'a'.repeat(CITY_SLUG_MAX_LENGTH + 1),
+      })
+    ).toEqual({
+      success: false,
+      errors: {
+        slug: 'slug_too_long',
+      },
+    });
+  });
+
   it('recognizes create-city validation keys', () => {
     expect(isCreateCityValidationKey('required')).toBe(true);
     expect(isCreateCityValidationKey('invalid_slug')).toBe(true);
+    expect(isCreateCityValidationKey('slug_too_long')).toBe(true);
     expect(isCreateCityValidationKey('invalid_time')).toBe(false);
   });
 });

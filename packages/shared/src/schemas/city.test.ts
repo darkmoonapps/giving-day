@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CITY_DEFAULT_THEME,
+  CITY_SLUG_MAX_LENGTH,
   addCityCoordinatorSchema,
   citySchema,
   createCitySchema,
@@ -63,6 +64,47 @@ describe('city schemas', () => {
         nameEn: 'Holon',
       }).success
     ).toBe(false);
+  });
+
+  it('rejects a slug longer than 64 characters with slug_too_long', () => {
+    const names = { nameHe: 'חולון', nameEn: 'Holon' };
+    expect(
+      createCitySchema.safeParse({
+        ...names,
+        slug: 'a'.repeat(CITY_SLUG_MAX_LENGTH),
+      }).success
+    ).toBe(true);
+
+    const tooLong = createCitySchema.safeParse({
+      ...names,
+      slug: 'a'.repeat(CITY_SLUG_MAX_LENGTH + 1),
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(tooLong.error.issues[0]?.message).toBe('slug_too_long');
+    }
+  });
+
+  it('accepts a real IANA timezone and rejects an unknown zone', () => {
+    expect(
+      createCitySchema.parse({
+        slug: 'example-city',
+        nameHe: 'עיר דוגמה',
+        nameEn: 'Example City',
+        timezone: 'Asia/Jerusalem',
+      }).timezone
+    ).toBe('Asia/Jerusalem');
+
+    const invalid = createCitySchema.safeParse({
+      slug: 'example-city',
+      nameHe: 'עיר דוגמה',
+      nameEn: 'Example City',
+      timezone: 'Mars/Olympus',
+    });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) {
+      expect(invalid.error.issues[0]?.message).toBe('invalid_timezone');
+    }
   });
 
   it('accepts a created city response', () => {

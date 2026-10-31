@@ -16,7 +16,7 @@ export type ParseCreateCityFormResult =
   | { success: true; data: CreateCity }
   | { success: false; errors: CreateCityFormFieldErrors };
 
-const FORM_ERROR_KEYS = ['required', 'invalid_slug'] as const;
+const FORM_ERROR_KEYS = ['required', 'invalid_slug', 'slug_too_long'] as const;
 
 export type CreateCityValidationKey = (typeof FORM_ERROR_KEYS)[number];
 

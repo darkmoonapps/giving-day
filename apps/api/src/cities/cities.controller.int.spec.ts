@@ -245,6 +245,22 @@ describe('Cities HTTP authorization', () => {
         })
         .expect(401);
     });
+
+    it('rejects an unknown IANA timezone with 400', async () => {
+      currentUser = superAdmin();
+
+      await request(app.getHttpServer())
+        .post('/api/cities')
+        .send({
+          slug: 'example-city',
+          nameHe: 'עיר דוגמה',
+          nameEn: 'Example City',
+          timezone: 'Mars/Olympus',
+        })
+        .expect(400);
+
+      expect(mockPrisma.city.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('unauthenticated', () => {

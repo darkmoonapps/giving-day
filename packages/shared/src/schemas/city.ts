@@ -24,6 +24,16 @@ export const DEFAULT_CITY_CENTER_LNG = 0;
 export const CITY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CITY_SLUG_MAX_LENGTH = 64;
 export const CITY_NAME_MAX_LENGTH = 200;
+export const CITY_TIMEZONE_MAX_LENGTH = 100;
+
+export function isIanaTimeZone(value: string): boolean {
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export const citySlugSchema = z
   .string()
@@ -33,7 +43,7 @@ export const citySlugSchema = z
     z
       .string()
       .min(2, 'required')
-      .max(CITY_SLUG_MAX_LENGTH, 'required')
+      .max(CITY_SLUG_MAX_LENGTH, 'slug_too_long')
       .regex(CITY_SLUG_PATTERN, 'invalid_slug')
   );
 
@@ -43,11 +53,18 @@ export const cityNameSchema = z
   .min(1, 'required')
   .max(CITY_NAME_MAX_LENGTH, 'required');
 
+export const cityTimezoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(CITY_TIMEZONE_MAX_LENGTH)
+  .refine(isIanaTimeZone, 'invalid_timezone');
+
 export const createCitySchema = z.object({
   slug: citySlugSchema,
   nameHe: cityNameSchema,
   nameEn: cityNameSchema,
-  timezone: z.string().trim().min(1).max(100).optional(),
+  timezone: cityTimezoneSchema.optional(),
 });
 
 export const citySchema = z.object({
@@ -186,6 +203,7 @@ export const cityPendingMembershipsResponseSchema = z.object({
 });
 
 export type CitySlug = z.infer<typeof citySlugSchema>;
+export type CityTimezone = z.infer<typeof cityTimezoneSchema>;
 export type CreateCity = z.infer<typeof createCitySchema>;
 export type City = z.infer<typeof citySchema>;
 export type CityRole = z.infer<typeof cityRoleSchema>;

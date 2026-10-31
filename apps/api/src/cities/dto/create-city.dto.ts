@@ -6,12 +6,32 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateBy,
+  type ValidationOptions,
 } from 'class-validator';
 import {
   CITY_NAME_MAX_LENGTH,
   CITY_SLUG_MAX_LENGTH,
+  CITY_TIMEZONE_MAX_LENGTH,
   DEFAULT_CITY_TIMEZONE,
+  isIanaTimeZone,
 } from '@giving-day/shared';
+
+function IsIanaTimeZone(
+  validationOptions?: ValidationOptions
+): PropertyDecorator {
+  return ValidateBy(
+    {
+      name: 'isIanaTimeZone',
+      validator: {
+        validate(value: unknown): boolean {
+          return typeof value === 'string' && isIanaTimeZone(value);
+        },
+      },
+    },
+    validationOptions
+  );
+}
 
 export class CreateCityDto {
   @ApiProperty({
@@ -21,7 +41,7 @@ export class CreateCityDto {
   })
   @IsString()
   @MinLength(2)
-  @MaxLength(CITY_SLUG_MAX_LENGTH)
+  @MaxLength(CITY_SLUG_MAX_LENGTH, { message: 'validation.slug_too_long' })
   @Matches(/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/, {
     message: 'validation.invalid_slug',
   })
@@ -45,6 +65,7 @@ export class CreateCityDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(CITY_TIMEZONE_MAX_LENGTH)
+  @IsIanaTimeZone({ message: 'validation.invalid_timezone' })
   timezone?: string;
 }

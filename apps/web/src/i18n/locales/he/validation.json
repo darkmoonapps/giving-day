@@ -9,5 +9,7 @@
   "https_url_required": "הזינו כתובת HTTPS, למשל https://example.com/logo.svg",
   "invalid_time_range": "שעת הסיום חייבת להיות אחרי שעת ההתחלה",
   "invalid_slug": "השתמשו רק באותיות אנגליות קטנות, מספרים ומקפים",
+  "slug_too_long": "השתמשו בעד 64 תווים",
+  "invalid_timezone": "הזינו אזור זמן IANA תקין, למשל Asia/Jerusalem",
   "no_changes": "שנו לפחות פרט אחד לפני השליחה."
 }
