@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useCreateCityElderChangeRequest,
+  useGetVolunteerDayRoute,
   useListCityElderChangeRequests,
   useListDayDeliveries,
   useUpdateDayDeliveryStatus,
@@ -16,8 +17,10 @@ import {
   deliveriesJustFinished,
 } from '../thank-you/delivery-completion';
 import { ThankYouScreen } from '../thank-you/thank-you-screen';
+import { applyRouteOrder, routeMetaByDeliveryId } from './apply-route-order';
 import { localizedCityName } from './navigation-links';
 import { VolunteerDeliveriesList } from './volunteer-deliveries-list';
+import { VolunteerRoutePanel } from './volunteer-route-panel';
 
 export function VolunteerAssignedDeliveries({
   cityId,
@@ -34,6 +37,7 @@ export function VolunteerAssignedDeliveries({
   const [submittedElderIds, setSubmittedElderIds] = useState<string[]>([]);
   const previouslyFinishedRef = useRef<boolean | null>(null);
   const deliveriesQuery = useListDayDeliveries(cityId, dayId);
+  const routeQuery = useGetVolunteerDayRoute(cityId, dayId);
   const pendingQuery = useListCityElderChangeRequests(cityId, {
     status: 'pending',
   });
@@ -58,7 +62,17 @@ export function VolunteerAssignedDeliveries({
     },
   });
 
-  const deliveries = deliveriesQuery.data?.deliveries;
+  const deliveries = useMemo(() => {
+    const rows = deliveriesQuery.data?.deliveries;
+    if (rows === undefined) {
+      return undefined;
+    }
+    return applyRouteOrder(rows, routeQuery.data);
+  }, [deliveriesQuery.data?.deliveries, routeQuery.data]);
+  const routeMeta = useMemo(
+    () => routeMetaByDeliveryId(routeQuery.data),
+    [routeQuery.data]
+  );
   const finished =
     deliveries === undefined ? null : areAllDeliveriesFinished(deliveries);
   const pendingIds = useMemo(() => {
@@ -103,8 +117,17 @@ export function VolunteerAssignedDeliveries({
           }}
         />
       ) : null}
+      <VolunteerRoutePanel
+        route={routeQuery.data}
+        cityName={localizedCityName(
+          deliveriesQuery.data.cityNameHe,
+          deliveriesQuery.data.cityNameEn,
+          language
+        )}
+        loadError={routeQuery.isError}
+      />
       <VolunteerDeliveriesList
-        deliveries={deliveriesQuery.data.deliveries}
+        deliveries={deliveries ?? deliveriesQuery.data.deliveries}
         pending={updateMutation.isPending}
         error={updateMutation.isError}
         cityName={localizedCityName(
@@ -113,6 +136,7 @@ export function VolunteerAssignedDeliveries({
           language
         )}
         centerAddress={deliveriesQuery.data.centerAddress}
+        routeMeta={routeMeta}
         pendingElderIds={pendingIds}
         onSuggestCorrection={setEditingElderId}
         onUpdateStatus={(deliveryId, data) => {

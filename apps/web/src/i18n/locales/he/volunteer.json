@@ -89,5 +89,15 @@
   "navigate_apple": "Apple Maps",
   "navigate_waze": "Waze",
   "navigate_to_elder": "ניווט אל {{name}}",
-  "building_code_label": "קוד"
+  "building_code_label": "קוד",
+  "route_title": "מסלול מומלץ",
+  "route_subtitle": "סדר הביקור מתחיל במרכז החלוקה, ואז ממשיך לתחנה הקרובה ביותר בכל פעם.",
+  "route_center_label": "מרכז החלוקה",
+  "route_stop_number": "תחנה {{number}}",
+  "route_unplaced": "לא על המפה",
+  "route_unplaced_hint": "לא הצלחנו למקם את הכתובת. אפשר עדיין לנווט מהרשימה.",
+  "route_load_error": "לא הצלחנו לטעון את המפה. רשימת המשלוחים עדיין זמינה.",
+  "route_empty": "אין תחנות במסלול.",
+  "route_map_label": "מפת המסלול המומלץ",
+  "route_center_unplaced": "לא הצלחנו למקם את מרכז החלוקה על המפה."
 }

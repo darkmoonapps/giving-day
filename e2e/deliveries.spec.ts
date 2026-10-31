@@ -58,8 +58,9 @@ test.describe('Distribution day deliveries', () => {
 
     await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
     await expect(page.getByTestId('volunteer-deliveries-page')).toBeVisible();
-    await expect(page.getByText('Rivkah Levi')).toBeVisible();
-    await expect(page.getByText('12 Example St 12')).toBeVisible();
+    const card = page.getByTestId('volunteer-delivery-card');
+    await expect(card.getByText('Rivkah Levi')).toBeVisible();
+    await expect(card.getByText('12 Example St 12')).toBeVisible();
     await expect(page.getByTestId('elder-next-of-kin')).toBeVisible();
     await expect(page.getByText('Tamar Levi')).toBeVisible();
     await expect(page.getByText('+972506666666')).toBeVisible();
@@ -126,7 +127,9 @@ test.describe('Distribution day deliveries', () => {
     await expect(page.getByTestId('volunteer-day-page')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByTestId('volunteer-day-deliveries')).toBeVisible();
-    await expect(page.getByText('Rivkah Levi')).toBeVisible();
+    await expect(
+      page.getByTestId('volunteer-delivery-card').getByText('Rivkah Levi')
+    ).toBeVisible();
     await expect(
       page.getByRole('link', { name: /Tamar Levi/ })
     ).toHaveAttribute('href', 'tel:+972506666666');

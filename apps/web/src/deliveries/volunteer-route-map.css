@@ -1,0 +1,30 @@
+.volunteer-route-map {
+  height: 16rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--mantine-color-body);
+}
+
+.volunteer-route-marker,
+.volunteer-route-center-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.volunteer-route-marker {
+  background: #a99be0;
+  color: #1e1a2e;
+}
+
+.volunteer-route-center-marker {
+  background: #a8e6cf;
+  color: #1e1a2e;
+}

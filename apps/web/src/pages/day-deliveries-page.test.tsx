@@ -57,11 +57,10 @@ describe('DayDeliveriesPage', () => {
       expect(
         await screen.findByTestId('volunteer-deliveries-page')
       ).toBeInTheDocument();
-      expect(
-        await screen.findByTestId('volunteer-deliveries-list')
-      ).toBeInTheDocument();
-      expect(screen.getByText('Rivkah Levi')).toBeInTheDocument();
-      expect(screen.getByText('12 Example St 12')).toBeInTheDocument();
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(list).toBeInTheDocument();
+      expect(within(list).getByText('Rivkah Levi')).toBeInTheDocument();
+      expect(within(list).getByText('12 Example St 12')).toBeInTheDocument();
       expect(screen.getByTestId('elder-next-of-kin')).toBeInTheDocument();
       expect(screen.getByText(/Tamar Levi/)).toBeInTheDocument();
       expect(screen.getByText('+972506666666')).toBeInTheDocument();
@@ -145,7 +144,8 @@ describe('DayDeliveriesPage', () => {
 
       renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
 
-      expect(await screen.findByText('Yosef Abraham')).toBeInTheDocument();
+      const list = await screen.findByTestId('volunteer-deliveries-list');
+      expect(within(list).getByText('Yosef Abraham')).toBeInTheDocument();
       await user.click(screen.getByTestId('mark-delivered'));
       await waitFor(() => {
         expect(screen.getByTestId('mark-picked')).toBeInTheDocument();

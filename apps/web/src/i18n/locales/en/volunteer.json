@@ -89,5 +89,15 @@
   "navigate_apple": "Apple Maps",
   "navigate_waze": "Waze",
   "navigate_to_elder": "Navigate to {{name}}",
-  "building_code_label": "Code"
+  "building_code_label": "Code",
+  "route_title": "Suggested route",
+  "route_subtitle": "Visit order starts at the distribution center, then walks nearest neighbor to the next stop.",
+  "route_center_label": "Distribution center",
+  "route_stop_number": "Stop {{number}}",
+  "route_unplaced": "Not on the map",
+  "route_unplaced_hint": "We could not place this address. You can still use Navigate from the list.",
+  "route_load_error": "We could not load the map. Your delivery list is still available.",
+  "route_empty": "There are no stops on this route.",
+  "route_map_label": "Suggested route map",
+  "route_center_unplaced": "We could not place the distribution center on the map."
 }

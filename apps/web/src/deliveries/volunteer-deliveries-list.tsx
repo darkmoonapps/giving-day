@@ -10,6 +10,7 @@ import { Group, Modal, NativeSelect, Stack, Textarea } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { volunteerDeliveryStatusColor } from '../theme/status-colors';
+import type { RouteStopMeta } from './apply-route-order';
 import { ElderAddress } from './elder-address';
 import { NavigateMenu } from './navigate-menu';
 import {
@@ -85,6 +86,7 @@ export function VolunteerDeliveriesList({
   error,
   cityName,
   centerAddress,
+  routeMeta,
   pendingElderIds = new Set<string>(),
   onSuggestCorrection,
   onUpdateStatus,
@@ -94,6 +96,7 @@ export function VolunteerDeliveriesList({
   error: boolean;
   cityName: string;
   centerAddress: string;
+  routeMeta?: ReadonlyMap<string, RouteStopMeta>;
   pendingElderIds?: ReadonlySet<string>;
   onSuggestCorrection?: (elderId: string) => void;
   onUpdateStatus: (deliveryId: string, data: UpdateDeliveryStatus) => void;
@@ -184,7 +187,10 @@ export function VolunteerDeliveriesList({
               data-delivery-status={delivery.status}
             >
               <Group justify="space-between" align="flex-start" wrap="wrap">
-                <AppText fw={600}>{delivery.elder.fullName}</AppText>
+                <Group gap="xs" wrap="wrap">
+                  <RouteOrderBadge meta={routeMeta?.get(delivery.id)} />
+                  <AppText fw={600}>{delivery.elder.fullName}</AppText>
+                </Group>
                 <DeliveryStatusBadge status={delivery.status} />
               </Group>
               <ElderAddress elder={delivery.elder} labels={labels} />
@@ -337,6 +343,29 @@ export function VolunteerDeliveriesList({
         </Stack>
       </Modal>
     </>
+  );
+}
+
+function RouteOrderBadge({
+  meta,
+}: {
+  meta: RouteStopMeta | undefined;
+}): JSX.Element | null {
+  const { t } = useTranslation('volunteer');
+  if (meta === undefined) {
+    return null;
+  }
+  if (meta.placed && meta.visitOrder !== null) {
+    return (
+      <AppBadge color="grape" data-testid="volunteer-delivery-route-order">
+        {t('route_stop_number', { number: meta.visitOrder })}
+      </AppBadge>
+    );
+  }
+  return (
+    <AppBadge color="yellow" data-testid="volunteer-delivery-route-unplaced">
+      {t('route_unplaced')}
+    </AppBadge>
   );
 }
 
