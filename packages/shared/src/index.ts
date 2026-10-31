@@ -133,6 +133,24 @@ export {
   type VolunteerDelivery,
 } from './schemas/delivery';
 export {
+  createPermanentMatchSchema,
+  endPermanentMatchSchema,
+  matchElderSummarySchema,
+  matchEndReasonSchema,
+  matchTypeSchema,
+  matchVolunteerSummarySchema,
+  permanentMatchSchema,
+  permanentMatchesResponseSchema,
+  type CreatePermanentMatch,
+  type EndPermanentMatch,
+  type MatchElderSummary,
+  type MatchEndReason,
+  type MatchType,
+  type MatchVolunteerSummary,
+  type PermanentMatch,
+  type PermanentMatchesResponse,
+} from './schemas/match';
+export {
   createElderSchema,
   elderContactInputSchema,
   elderContactSchema,

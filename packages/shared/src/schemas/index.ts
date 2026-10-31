@@ -140,6 +140,25 @@ export {
 } from './delivery';
 
 export {
+  createPermanentMatchSchema,
+  endPermanentMatchSchema,
+  matchElderSummarySchema,
+  matchEndReasonSchema,
+  matchTypeSchema,
+  matchVolunteerSummarySchema,
+  permanentMatchSchema,
+  permanentMatchesResponseSchema,
+  type CreatePermanentMatch,
+  type EndPermanentMatch,
+  type MatchElderSummary,
+  type MatchEndReason,
+  type MatchType,
+  type MatchVolunteerSummary,
+  type PermanentMatch,
+  type PermanentMatchesResponse,
+} from './match';
+
+export {
   createElderSchema,
   elderContactInputSchema,
   elderContactSchema,

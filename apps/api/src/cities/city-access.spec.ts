@@ -211,6 +211,60 @@ describe('assertCanOnCity', () => {
     }).toThrow(ForbiddenException);
   });
 
+  it('allows a coordinator to manage matches in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-1',
+            cityId,
+            userId: 'user-id',
+            role: 'coordinator',
+            status: 'active',
+            inviteId: null,
+            approvedById: null,
+            approvedAt: new Date(),
+            homeArea: null,
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanManageOnCity(ability, 'Match', cityId);
+    }).not.toThrow();
+  });
+
+  it('forbids a volunteer from managing matches in their city', () => {
+    const ability = factory.createForUser(
+      createUser({
+        memberships: [
+          {
+            id: 'membership-2',
+            cityId,
+            userId: 'user-id',
+            role: 'volunteer',
+            status: 'active',
+            inviteId: null,
+            approvedById: 'coord-id',
+            approvedAt: new Date(),
+            homeArea: 'North',
+            coordinatorNotes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+    );
+
+    expect(() => {
+      assertCanManageOnCity(ability, 'Match', cityId);
+    }).toThrow(NotFoundException);
+  });
+
   it('hides another city elders list with 404', () => {
     const ability = factory.createForUser(
       createUser({

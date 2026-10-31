@@ -65,16 +65,24 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
   const navigate = useNavigate();
   const query = useListDistributionDays(cityId);
 
-  if (query.isLoading) {
-    return <LoadingState label={tCommon('loading')} />;
-  }
-
   const days = query.data?.days ?? [];
 
   return (
     <Stack gap="sm" data-testid="coordinator-days">
+      <AppButton
+        size="sm"
+        variant="light"
+        data-testid="view-matches"
+        onClick={() => {
+          void navigate(`/cities/${cityId}/matches`);
+        }}
+      >
+        {t('view_matches')}
+      </AppButton>
       <AppTitle order={2}>{t('open_days_title')}</AppTitle>
-      {days.length === 0 ? (
+      {query.isLoading ? (
+        <LoadingState label={tCommon('loading')} />
+      ) : days.length === 0 ? (
         <AppText c="dimmed">{t('no_days')}</AppText>
       ) : (
         days.map((day) => (

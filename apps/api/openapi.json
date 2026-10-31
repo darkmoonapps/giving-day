@@ -1162,6 +1162,147 @@
           "elders"
         ]
       }
+    },
+    "/api/cities/{cityId}/matches": {
+      "get": {
+        "operationId": "listCityMatches",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermanentMatchesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List current permanent volunteer–elder matches for a city (coordinators)",
+        "tags": [
+          "matches"
+        ]
+      },
+      "post": {
+        "operationId": "createCityPermanentMatch",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePermanentMatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermanentMatchResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Elder already has a current permanent match"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a permanent match for an active elder and an approved city volunteer",
+        "tags": [
+          "matches"
+        ]
+      }
+    },
+    "/api/cities/{cityId}/matches/{matchId}/end": {
+      "post": {
+        "operationId": "endCityMatch",
+        "parameters": [
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndPermanentMatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermanentMatchResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End a current permanent match (sets endsAt and endReason)",
+        "tags": [
+          "matches"
+        ]
+      }
     }
   },
   "info": {
@@ -2504,6 +2645,219 @@
             }
           }
         }
+      },
+      "MatchElderSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12121212-1212-4121-8121-121212121212"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "Rivkah Levi"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "hospitalized",
+              "moved",
+              "deceased",
+              "removed"
+            ],
+            "example": "active"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "status"
+        ]
+      },
+      "MatchVolunteerSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Yonatan",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Bar",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "PermanentMatchResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "15151515-1515-4151-8151-151515151515"
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "elderId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12121212-1212-4121-8121-121212121212"
+          },
+          "volunteerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "permanent"
+            ],
+            "example": "permanent"
+          },
+          "startsAt": {
+            "type": "string",
+            "example": "2026-10-01"
+          },
+          "endsAt": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "endReason": {
+            "type": "string",
+            "enum": [
+              "volunteer_left",
+              "elder_inactive",
+              "reassigned",
+              "other"
+            ],
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-01T09:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-01T09:00:00.000Z"
+          },
+          "elder": {
+            "$ref": "#/components/schemas/MatchElderSummaryDto"
+          },
+          "volunteer": {
+            "$ref": "#/components/schemas/MatchVolunteerSummaryDto"
+          }
+        },
+        "required": [
+          "id",
+          "cityId",
+          "elderId",
+          "volunteerId",
+          "type",
+          "startsAt",
+          "endsAt",
+          "endReason",
+          "createdAt",
+          "updatedAt",
+          "elder",
+          "volunteer"
+        ]
+      },
+      "PermanentMatchesResponseDto": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermanentMatchResponseDto"
+            }
+          },
+          "unmatchedElders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchElderSummaryDto"
+            }
+          },
+          "matchableVolunteers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchVolunteerSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "matches",
+          "unmatchedElders",
+          "matchableVolunteers"
+        ]
+      },
+      "CreatePermanentMatchDto": {
+        "type": "object",
+        "properties": {
+          "elderId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12121212-1212-4121-8121-121212121212"
+          },
+          "volunteerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "startsAt": {
+            "type": "string",
+            "example": "2026-10-01",
+            "description": "Calendar start date; defaults to today in the city timezone"
+          }
+        },
+        "required": [
+          "elderId",
+          "volunteerId"
+        ]
+      },
+      "EndPermanentMatchDto": {
+        "type": "object",
+        "properties": {
+          "endReason": {
+            "type": "string",
+            "enum": [
+              "volunteer_left",
+              "elder_inactive",
+              "reassigned",
+              "other"
+            ],
+            "example": "reassigned"
+          },
+          "endsAt": {
+            "type": "string",
+            "example": "2026-10-31",
+            "description": "Calendar end date; defaults to today in the city timezone and must not be in the future"
+          }
+        },
+        "required": [
+          "endReason"
+        ]
       }
     }
   }
