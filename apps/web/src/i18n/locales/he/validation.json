@@ -2,5 +2,10 @@
   "required": "שדה חובה",
   "phone_e164": "הזינו מספר טלפון תקין, למשל 050-1234567 או +972501234567",
   "invalid_email": "הזינו כתובת אימייל תקינה",
-  "invalid_date": "הזינו תאריך תקין"
+  "invalid_date": "הזינו תאריך תקין",
+  "invalid_time": "הזינו שעה תקינה, למשל 09:00",
+  "invalid_number": "הזינו מספר תקין",
+  "invalid_integer": "הזינו מספר שלם של 0 או יותר",
+  "https_url_required": "הזינו כתובת HTTPS, למשל https://example.com/logo.svg",
+  "invalid_time_range": "שעת הסיום חייבת להיות אחרי שעת ההתחלה"
 }

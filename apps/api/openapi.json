@@ -207,6 +207,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCitySettingsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1636,6 +1646,72 @@
           "logoUrl",
           "extra"
         ]
+      },
+      "UpdateCitySettingsDto": {
+        "type": "object",
+        "properties": {
+          "centerAddress": {
+            "type": "string",
+            "example": "10 Warehouse Rd, Holon"
+          },
+          "centerLat": {
+            "type": "number",
+            "example": 32.0114
+          },
+          "centerLng": {
+            "type": "number",
+            "example": 34.7748
+          },
+          "defaultStartTime": {
+            "type": "string",
+            "example": "09:00"
+          },
+          "defaultEndTime": {
+            "type": "string",
+            "example": "14:00"
+          },
+          "confirmReminderAfterHours": {
+            "type": "number",
+            "example": 24
+          },
+          "unpickedPushMinutesBeforeEnd": {
+            "type": "number",
+            "example": 60
+          },
+          "missingFinalStatusWaitHours": {
+            "type": "number",
+            "example": 72
+          },
+          "defaultLocale": {
+            "type": "string",
+            "example": "he",
+            "enum": [
+              "he",
+              "en"
+            ]
+          },
+          "defaultTheme": {
+            "type": "string",
+            "example": "wisteria-mint"
+          },
+          "orgName": {
+            "type": "string",
+            "example": "Latet Holon",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "example": "https://example.com/logo.svg",
+            "nullable": true
+          },
+          "extra": {
+            "type": "object",
+            "example": {
+              "mapZoom": 14
+            },
+            "additionalProperties": true
+          }
+        }
       },
       "CityJoinLinkStatusDto": {
         "type": "object",

@@ -99,6 +99,16 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
       >
         {t('view_matches')}
       </AppButton>
+      <AppButton
+        size="sm"
+        variant="light"
+        data-testid="view-settings"
+        onClick={() => {
+          void navigate(`/cities/${cityId}/settings`);
+        }}
+      >
+        {t('view_settings')}
+      </AppButton>
       <AppTitle order={2}>{t('open_days_title')}</AppTitle>
       {query.isLoading ? (
         <LoadingState label={tCommon('loading')} />

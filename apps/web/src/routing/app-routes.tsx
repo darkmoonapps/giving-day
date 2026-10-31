@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { CitySettingsPage } from '../pages/city-settings-page';
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
@@ -86,6 +87,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <CoordinatorPendingMembershipsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/settings"
+        element={
+          <ProtectedRoute>
+            <CitySettingsPage />
           </ProtectedRoute>
         }
       />

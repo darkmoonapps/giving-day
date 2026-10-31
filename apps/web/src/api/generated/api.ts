@@ -74,6 +74,35 @@ export interface CitySettingsResponseDto {
   extra: CitySettingsResponseDtoExtra;
 }
 
+export type UpdateCitySettingsDtoDefaultLocale = typeof UpdateCitySettingsDtoDefaultLocale[keyof typeof UpdateCitySettingsDtoDefaultLocale];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UpdateCitySettingsDtoDefaultLocale = {
+  he: 'he',
+  en: 'en',
+} as const;
+
+export type UpdateCitySettingsDtoExtra = { [key: string]: unknown };
+
+export interface UpdateCitySettingsDto {
+  centerAddress?: string;
+  centerLat?: number;
+  centerLng?: number;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
+  confirmReminderAfterHours?: number;
+  unpickedPushMinutesBeforeEnd?: number;
+  missingFinalStatusWaitHours?: number;
+  defaultLocale?: UpdateCitySettingsDtoDefaultLocale;
+  defaultTheme?: string;
+  /** @nullable */
+  orgName?: string | null;
+  /** @nullable */
+  logoUrl?: string | null;
+  extra?: UpdateCitySettingsDtoExtra;
+}
+
 export type CityJoinLinkStatusDtoRole = typeof CityJoinLinkStatusDtoRole[keyof typeof CityJoinLinkStatusDtoRole];
 
 
@@ -1753,14 +1782,16 @@ export const getUpdateCitySettingsUrl = (cityId: string,) => {
   return `/api/cities/${cityId}/settings`
 }
 
-export const updateCitySettings = async (cityId: string, options?: RequestInit): Promise<CitySettingsResponseDto> => {
+export const updateCitySettings = async (cityId: string,
+    updateCitySettingsDto: UpdateCitySettingsDto, options?: RequestInit): Promise<CitySettingsResponseDto> => {
   
   return apiFetch<CitySettingsResponseDto>(getUpdateCitySettingsUrl(cityId),
   {      
     ...options,
-    method: 'PATCH'
-    
-    
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateCitySettingsDto,)
   }
 );}
 
@@ -1768,8 +1799,8 @@ export const updateCitySettings = async (cityId: string, options?: RequestInit):
 
 
 export const getUpdateCitySettingsMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string;data: UpdateCitySettingsDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string;data: UpdateCitySettingsDto}, TContext> => {
 
 const mutationKey = ['updateCitySettings'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1781,10 +1812,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCitySettings>>, {cityId: string}> = (props) => {
-          const {cityId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCitySettings>>, {cityId: string;data: UpdateCitySettingsDto}> = (props) => {
+          const {cityId,data} = props ?? {};
 
-          return  updateCitySettings(cityId,requestOptions)
+          return  updateCitySettings(cityId,data,requestOptions)
         }
 
         
@@ -1793,18 +1824,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateCitySettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateCitySettings>>>
-    
+    export type UpdateCitySettingsMutationBody = UpdateCitySettingsDto
     export type UpdateCitySettingsMutationError = unknown
 
     /**
  * @summary Update settings for a city
  */
 export const useUpdateCitySettings = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCitySettings>>, TError,{cityId: string;data: UpdateCitySettingsDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateCitySettings>>,
         TError,
-        {cityId: string},
+        {cityId: string;data: UpdateCitySettingsDto},
         TContext
       > => {
 
