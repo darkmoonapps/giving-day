@@ -19,6 +19,7 @@ import {
   formatDistributionDate,
   isUuid,
 } from '../distribution-days/format-day';
+import { useDebouncedValue } from '../hooks/use-debounced-value';
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 import {
@@ -30,6 +31,8 @@ import {
   type VolunteerListFilters,
   type VolunteerMembershipFilter,
 } from '../volunteers/volunteer-list-query';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 const MEMBERSHIP_STATUS_KEYS = {
   pending: 'membership_status_pending',
@@ -58,8 +61,21 @@ export function CoordinatorVolunteersPage(): JSX.Element {
   const [filters, setFilters] = useState<VolunteerListFilters>(
     EMPTY_VOLUNTEER_LIST_FILTERS
   );
+  const debouncedSearch = useDebouncedValue(
+    filters.search.trim(),
+    SEARCH_DEBOUNCE_MS
+  );
 
-  const listParams = useMemo(() => volunteerListParams(filters), [filters]);
+  const listParams = useMemo(
+    () =>
+      volunteerListParams({
+        status: filters.status,
+        search: debouncedSearch,
+        dayId: filters.dayId,
+        dayResponse: filters.dayResponse,
+      }),
+    [filters.status, filters.dayId, filters.dayResponse, debouncedSearch]
+  );
   const daysQuery = useListDistributionDays(cityId ?? '', {
     query: { enabled: allowed },
   });

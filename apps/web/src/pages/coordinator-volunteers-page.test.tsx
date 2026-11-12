@@ -58,6 +58,17 @@ describe('CoordinatorVolunteersPage', () => {
       ).toBe(true);
     });
 
+    const volunteerSearchUrls = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.includes('/volunteers') && url.includes('search='));
+    const searchValues = volunteerSearchUrls.map((url) => {
+      const query = url.includes('?') ? url.slice(url.indexOf('?') + 1) : '';
+      return new URLSearchParams(query).get('search');
+    });
+    expect(searchValues).toEqual(['Yonatan']);
+    expect(searchValues).not.toContain('Y');
+    expect(searchValues).not.toContain('Yo');
+
     await user.clear(screen.getByTestId('volunteer-search'));
     await user.selectOptions(
       screen.getByTestId('volunteer-status-filter'),
