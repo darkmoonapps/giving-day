@@ -186,20 +186,28 @@ export {
 } from './route';
 
 export {
+  createOneTimeMatchSchema,
   createPermanentMatchSchema,
+  endOneTimeMatchSchema,
   endPermanentMatchSchema,
   matchElderSummarySchema,
   matchEndReasonSchema,
   matchTypeSchema,
   matchVolunteerSummarySchema,
+  oneTimeMatchSchema,
+  oneTimeMatchesResponseSchema,
   permanentMatchSchema,
   permanentMatchesResponseSchema,
+  type CreateOneTimeMatch,
   type CreatePermanentMatch,
+  type EndOneTimeMatch,
   type EndPermanentMatch,
   type MatchElderSummary,
   type MatchEndReason,
   type MatchType,
   type MatchVolunteerSummary,
+  type OneTimeMatch,
+  type OneTimeMatchesResponse,
   type PermanentMatch,
   type PermanentMatchesResponse,
 } from './match';

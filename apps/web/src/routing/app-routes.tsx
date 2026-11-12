@@ -6,6 +6,7 @@ import { CoordinatorDayDashboardPage } from '../pages/coordinator-day-dashboard-
 import { CoordinatorDayResponsesPage } from '../pages/coordinator-day-responses-page';
 import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
+import { CoordinatorOneTimeMatchesPage } from '../pages/coordinator-one-time-matches-page';
 import { CoordinatorPendingMembershipsPage } from '../pages/coordinator-pending-memberships-page';
 import { CoordinatorVolunteersPage } from '../pages/coordinator-volunteers-page';
 import { CreateDistributionDayPage } from '../pages/create-distribution-day-page';
@@ -92,6 +93,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <DayDeliveriesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/days/:dayId/one-time-matches"
+        element={
+          <ProtectedRoute>
+            <CoordinatorOneTimeMatchesPage />
           </ProtectedRoute>
         }
       />
