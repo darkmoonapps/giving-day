@@ -32,6 +32,7 @@ const FORM_ERROR_KEYS = [
   'required',
   'invalid_time',
   'invalid_time_range',
+  'too_long',
 ] as const;
 
 export type DayDetailsValidationKey = (typeof FORM_ERROR_KEYS)[number];
@@ -86,7 +87,7 @@ export function parseDayDetailsForm(
     errors.endTime = endTime.error;
   }
   if (notes.length > NOTES_FOR_VOLUNTEERS_MAX_LENGTH) {
-    errors.notesForVolunteers = 'required';
+    errors.notesForVolunteers = 'too_long';
   }
   if (
     startTime.ok &&

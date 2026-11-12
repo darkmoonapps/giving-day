@@ -1,3 +1,4 @@
+import { NOTES_FOR_VOLUNTEERS_MAX_LENGTH } from '@giving-day/shared';
 import { describe, expect, it } from 'vitest';
 import { openDay } from '../test/distribution-day-fixtures';
 import {
@@ -80,6 +81,19 @@ describe('parseDayDetailsForm', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.errors.startTime).toBe('invalid_time');
+    }
+  });
+
+  it('rejects a volunteer note longer than the max length', () => {
+    const result = parseDayDetailsForm({
+      startTime: '09:00',
+      endTime: '14:00',
+      notesForVolunteers: 'x'.repeat(NOTES_FOR_VOLUNTEERS_MAX_LENGTH + 1),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errors.notesForVolunteers).toBe('too_long');
     }
   });
 });
