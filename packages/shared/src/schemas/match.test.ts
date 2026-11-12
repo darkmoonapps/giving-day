@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createOneTimeMatchSchema,
   createPermanentMatchSchema,
+  endOneTimeMatchSchema,
   endPermanentMatchSchema,
+  oneTimeMatchSchema,
+  oneTimeMatchesResponseSchema,
   permanentMatchSchema,
   permanentMatchesResponseSchema,
 } from './match';
@@ -10,6 +14,7 @@ const CITY_ID = '11111111-1111-4111-8111-111111111111';
 const ELDER_ID = '12121212-1212-4121-8121-121212121212';
 const VOLUNTEER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const MATCH_ID = '15151515-1515-4151-8151-151515151515';
+const DAY_ID = '33333333-3333-4333-8333-333333333333';
 
 const currentMatch = {
   id: MATCH_ID,
@@ -114,5 +119,98 @@ describe('permanentMatchesResponseSchema', () => {
     };
 
     expect(permanentMatchesResponseSchema.parse(payload)).toEqual(payload);
+  });
+});
+
+const oneTimeMatch = {
+  id: MATCH_ID,
+  cityId: CITY_ID,
+  elderId: ELDER_ID,
+  volunteerId: VOLUNTEER_ID,
+  type: 'one_time' as const,
+  dayId: DAY_ID,
+  startsAt: '2026-11-12',
+  endsAt: null,
+  endReason: null,
+  createdAt: '2026-11-01T09:00:00.000Z',
+  updatedAt: '2026-11-01T09:00:00.000Z',
+  elder: {
+    id: ELDER_ID,
+    fullName: 'Rivkah Levi',
+    status: 'active' as const,
+  },
+  volunteer: {
+    id: VOLUNTEER_ID,
+    firstName: 'Yonatan',
+    lastName: 'Bar',
+  },
+};
+
+describe('oneTimeMatchSchema', () => {
+  it('accepts a Holon one-time match for a distribution day', () => {
+    expect(oneTimeMatchSchema.parse(oneTimeMatch)).toEqual(oneTimeMatch);
+  });
+
+  it('rejects a permanent match on the one-time contract', () => {
+    expect(
+      oneTimeMatchSchema.safeParse({
+        ...oneTimeMatch,
+        type: 'permanent',
+      }).success
+    ).toBe(false);
+  });
+
+  it('requires a day id', () => {
+    const withoutDay = {
+      ...oneTimeMatch,
+      dayId: undefined,
+    };
+    expect(oneTimeMatchSchema.safeParse(withoutDay).success).toBe(false);
+  });
+});
+
+describe('createOneTimeMatchSchema', () => {
+  it('accepts elder and volunteer ids', () => {
+    expect(
+      createOneTimeMatchSchema.parse({
+        elderId: ELDER_ID,
+        volunteerId: VOLUNTEER_ID,
+      })
+    ).toEqual({
+      elderId: ELDER_ID,
+      volunteerId: VOLUNTEER_ID,
+    });
+  });
+});
+
+describe('endOneTimeMatchSchema', () => {
+  it('requires an end reason', () => {
+    expect(endOneTimeMatchSchema.parse({ endReason: 'reassigned' })).toEqual({
+      endReason: 'reassigned',
+    });
+  });
+});
+
+describe('oneTimeMatchesResponseSchema', () => {
+  it('accepts day matches plus elders still available for the day', () => {
+    const payload = {
+      matches: [oneTimeMatch],
+      availableElders: [
+        {
+          id: '13131313-1313-4131-8131-131313131313',
+          fullName: 'Yosef Abraham',
+          status: 'active' as const,
+        },
+      ],
+      matchableVolunteers: [
+        {
+          id: '99999999-9999-4999-8999-999999999999',
+          firstName: 'Dana',
+          lastName: 'Levi',
+        },
+      ],
+    };
+
+    expect(oneTimeMatchesResponseSchema.parse(payload)).toEqual(payload);
   });
 });

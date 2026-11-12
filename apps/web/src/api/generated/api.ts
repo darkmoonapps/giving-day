@@ -1283,6 +1283,72 @@ export interface EndPermanentMatchDto {
   endsAt?: string;
 }
 
+export type OneTimeMatchResponseDtoType = typeof OneTimeMatchResponseDtoType[keyof typeof OneTimeMatchResponseDtoType];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const OneTimeMatchResponseDtoType = {
+  one_time: 'one_time',
+} as const;
+
+/**
+ * @nullable
+ */
+export type OneTimeMatchResponseDtoEndReason = typeof OneTimeMatchResponseDtoEndReason[keyof typeof OneTimeMatchResponseDtoEndReason] | null;
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const OneTimeMatchResponseDtoEndReason = {
+  volunteer_left: 'volunteer_left',
+  elder_inactive: 'elder_inactive',
+  reassigned: 'reassigned',
+  other: 'other',
+} as const;
+
+export interface OneTimeMatchResponseDto {
+  id: string;
+  cityId: string;
+  elderId: string;
+  volunteerId: string;
+  type: OneTimeMatchResponseDtoType;
+  dayId: string;
+  startsAt: string;
+  /** @nullable */
+  endsAt: string | null;
+  /** @nullable */
+  endReason: OneTimeMatchResponseDtoEndReason;
+  createdAt: string;
+  updatedAt: string;
+  elder: MatchElderSummaryDto;
+  volunteer: MatchVolunteerSummaryDto;
+}
+
+export interface OneTimeMatchesResponseDto {
+  matches: OneTimeMatchResponseDto[];
+  availableElders: MatchElderSummaryDto[];
+  matchableVolunteers: MatchVolunteerSummaryDto[];
+}
+
+export interface CreateOneTimeMatchDto {
+  elderId: string;
+  volunteerId: string;
+}
+
+export type EndOneTimeMatchDtoEndReason = typeof EndOneTimeMatchDtoEndReason[keyof typeof EndOneTimeMatchDtoEndReason];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const EndOneTimeMatchDtoEndReason = {
+  volunteer_left: 'volunteer_left',
+  elder_inactive: 'elder_inactive',
+  reassigned: 'reassigned',
+  other: 'other',
+} as const;
+
+export interface EndOneTimeMatchDto {
+  endReason: EndOneTimeMatchDtoEndReason;
+}
+
 export type ListCityVolunteersParams = {
 dayResponse?: ListCityVolunteersDayResponse;
 /**
@@ -6203,6 +6269,267 @@ export const useEndCityMatch = <TError = unknown,
       > => {
 
       const mutationOptions = getEndCityMatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List current one-time volunteer–elder matches for a distribution day (coordinators)
+ */
+export const getListDayOneTimeMatchesUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/one-time-matches`
+}
+
+export const listDayOneTimeMatches = async (cityId: string,
+    dayId: string, options?: RequestInit): Promise<OneTimeMatchesResponseDto> => {
+  
+  return apiFetch<OneTimeMatchesResponseDto>(getListDayOneTimeMatchesUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListDayOneTimeMatchesQueryKey = (cityId?: string,
+    dayId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/${dayId}/one-time-matches`
+    ] as const;
+    }
+
+    
+export const getListDayOneTimeMatchesQueryOptions = <TData = Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError = unknown>(cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDayOneTimeMatchesQueryKey(cityId,dayId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDayOneTimeMatches>>> = ({ signal }) => listDayOneTimeMatches(cityId,dayId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId && dayId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDayOneTimeMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof listDayOneTimeMatches>>>
+export type ListDayOneTimeMatchesQueryError = unknown
+
+
+export function useListDayOneTimeMatches<TData = Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayOneTimeMatches>>,
+          TError,
+          Awaited<ReturnType<typeof listDayOneTimeMatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayOneTimeMatches<TData = Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDayOneTimeMatches>>,
+          TError,
+          Awaited<ReturnType<typeof listDayOneTimeMatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDayOneTimeMatches<TData = Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List current one-time volunteer–elder matches for a distribution day (coordinators)
+ */
+
+export function useListDayOneTimeMatches<TData = Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError = unknown>(
+ cityId: string,
+    dayId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDayOneTimeMatches>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDayOneTimeMatchesQueryOptions(cityId,dayId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create a one-time match for an active elder and an approved city volunteer on one distribution day
+ */
+export const getCreateDayOneTimeMatchUrl = (cityId: string,
+    dayId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/one-time-matches`
+}
+
+export const createDayOneTimeMatch = async (cityId: string,
+    dayId: string,
+    createOneTimeMatchDto: CreateOneTimeMatchDto, options?: RequestInit): Promise<OneTimeMatchResponseDto> => {
+  
+  return apiFetch<OneTimeMatchResponseDto>(getCreateDayOneTimeMatchUrl(cityId,dayId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createOneTimeMatchDto,)
+  }
+);}
+
+
+
+
+export const getCreateDayOneTimeMatchMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDayOneTimeMatch>>, TError,{cityId: string;dayId: string;data: CreateOneTimeMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDayOneTimeMatch>>, TError,{cityId: string;dayId: string;data: CreateOneTimeMatchDto}, TContext> => {
+
+const mutationKey = ['createDayOneTimeMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDayOneTimeMatch>>, {cityId: string;dayId: string;data: CreateOneTimeMatchDto}> = (props) => {
+          const {cityId,dayId,data} = props ?? {};
+
+          return  createDayOneTimeMatch(cityId,dayId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDayOneTimeMatchMutationResult = NonNullable<Awaited<ReturnType<typeof createDayOneTimeMatch>>>
+    export type CreateDayOneTimeMatchMutationBody = CreateOneTimeMatchDto
+    export type CreateDayOneTimeMatchMutationError = void
+
+    /**
+ * @summary Create a one-time match for an active elder and an approved city volunteer on one distribution day
+ */
+export const useCreateDayOneTimeMatch = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDayOneTimeMatch>>, TError,{cityId: string;dayId: string;data: CreateOneTimeMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createDayOneTimeMatch>>,
+        TError,
+        {cityId: string;dayId: string;data: CreateOneTimeMatchDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateDayOneTimeMatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary End a current one-time match for a distribution day
+ */
+export const getEndDayOneTimeMatchUrl = (cityId: string,
+    dayId: string,
+    matchId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/${dayId}/one-time-matches/${matchId}/end`
+}
+
+export const endDayOneTimeMatch = async (cityId: string,
+    dayId: string,
+    matchId: string,
+    endOneTimeMatchDto: EndOneTimeMatchDto, options?: RequestInit): Promise<OneTimeMatchResponseDto> => {
+  
+  return apiFetch<OneTimeMatchResponseDto>(getEndDayOneTimeMatchUrl(cityId,dayId,matchId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      endOneTimeMatchDto,)
+  }
+);}
+
+
+
+
+export const getEndDayOneTimeMatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endDayOneTimeMatch>>, TError,{cityId: string;dayId: string;matchId: string;data: EndOneTimeMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof endDayOneTimeMatch>>, TError,{cityId: string;dayId: string;matchId: string;data: EndOneTimeMatchDto}, TContext> => {
+
+const mutationKey = ['endDayOneTimeMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof endDayOneTimeMatch>>, {cityId: string;dayId: string;matchId: string;data: EndOneTimeMatchDto}> = (props) => {
+          const {cityId,dayId,matchId,data} = props ?? {};
+
+          return  endDayOneTimeMatch(cityId,dayId,matchId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EndDayOneTimeMatchMutationResult = NonNullable<Awaited<ReturnType<typeof endDayOneTimeMatch>>>
+    export type EndDayOneTimeMatchMutationBody = EndOneTimeMatchDto
+    export type EndDayOneTimeMatchMutationError = unknown
+
+    /**
+ * @summary End a current one-time match for a distribution day
+ */
+export const useEndDayOneTimeMatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endDayOneTimeMatch>>, TError,{cityId: string;dayId: string;matchId: string;data: EndOneTimeMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof endDayOneTimeMatch>>,
+        TError,
+        {cityId: string;dayId: string;matchId: string;data: EndOneTimeMatchDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEndDayOneTimeMatchMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

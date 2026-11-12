@@ -18,9 +18,14 @@ import {
 } from '../test/fake-users';
 import { ELDER_A_ID, ELDER_B_ID, fakeElder } from '../test/fake-elders';
 import {
+  DAY_A_ID,
+  DAY_DATE,
   MATCH_A_ID,
+  MATCH_ONE_TIME_ID,
   createMatchPayload,
+  createOneTimeMatchPayload,
   fakeMatch,
+  fakeOneTimeMatch,
   fakeVolunteerUser,
 } from '../test/fake-matches';
 import { MatchesService } from './matches.service';
@@ -34,7 +39,15 @@ describe('MatchesService', () => {
     archivedAt: null,
   };
 
+  const publishedDay = {
+    id: DAY_A_ID,
+    cityId: CITY_A_ID,
+    date: DAY_DATE,
+    status: 'published' as const,
+  };
+
   const matchA = fakeMatch();
+  const oneTimeMatch = fakeOneTimeMatch();
   const unmatchedElder = {
     id: ELDER_B_ID,
     fullName: 'Elder B',
@@ -44,6 +57,7 @@ describe('MatchesService', () => {
 
   const mockPrisma = {
     city: { findUnique: vi.fn() },
+    distributionDay: { findFirst: vi.fn() },
     match: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -53,6 +67,11 @@ describe('MatchesService', () => {
     },
     elder: { findMany: vi.fn(), findFirst: vi.fn() },
     user: { findMany: vi.fn(), findFirst: vi.fn() },
+    delivery: {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    deliveryEvent: { create: vi.fn() },
     $transaction: vi.fn(),
   };
 
@@ -73,6 +92,10 @@ describe('MatchesService', () => {
     service = module.get(MatchesService);
     vi.clearAllMocks();
     mockPrisma.city.findUnique.mockResolvedValue(city);
+    mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+    mockPrisma.delivery.findFirst.mockResolvedValue(null);
+    mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.deliveryEvent.create.mockResolvedValue({});
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
@@ -360,6 +383,206 @@ describe('MatchesService', () => {
           MATCH_A_ID,
           { endReason: 'other' },
           pendingVolunteer()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('listOneTime', () => {
+    it('returns current one-time matches for a day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.match.findMany.mockResolvedValue([oneTimeMatch]);
+      mockPrisma.elder.findMany.mockResolvedValue([unmatchedElder]);
+      mockPrisma.user.findMany.mockResolvedValue([volunteerSummary]);
+
+      const result = await service.listOneTime(
+        CITY_A_ID,
+        DAY_A_ID,
+        coordinatorA()
+      );
+
+      expect(result.matches).toHaveLength(1);
+      expect(result.matches[0]).toMatchObject({
+        id: MATCH_ONE_TIME_ID,
+        type: 'one_time',
+        dayId: DAY_A_ID,
+        startsAt: '2026-11-12',
+      });
+      expect(result.availableElders).toEqual([unmatchedElder]);
+      expect(mockPrisma.match.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            cityId: CITY_A_ID,
+            dayId: DAY_A_ID,
+            type: 'one_time',
+            endsAt: null,
+          },
+        })
+      );
+    });
+
+    it('forbids a volunteer from listing one-time matches', async () => {
+      await expect(
+        service.listOneTime(CITY_A_ID, DAY_A_ID, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('createOneTime', () => {
+    beforeEach(() => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.elder.findFirst.mockResolvedValue({
+        id: ELDER_A_ID,
+        status: 'active',
+      });
+      mockPrisma.user.findFirst.mockResolvedValue(volunteerSummary);
+      mockPrisma.match.findFirst.mockResolvedValue(null);
+      mockPrisma.match.create.mockResolvedValue(oneTimeMatch);
+      mockPrisma.delivery.findFirst.mockResolvedValue({
+        id: '77777777-7777-4777-8777-777777777777',
+        status: 'unassigned',
+        volunteerId: null,
+      });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.deliveryEvent.create.mockResolvedValue({});
+    });
+
+    it('creates a one-time match and assigns the day delivery', async () => {
+      const result = await service.createOneTime(
+        CITY_A_ID,
+        DAY_A_ID,
+        createOneTimeMatchPayload() as never,
+        coordinatorA()
+      );
+
+      expect(result).toMatchObject({
+        id: MATCH_ONE_TIME_ID,
+        type: 'one_time',
+        dayId: DAY_A_ID,
+      });
+      expect(mockPrisma.match.create).toHaveBeenCalledWith({
+        data: {
+          cityId: CITY_A_ID,
+          elderId: ELDER_A_ID,
+          volunteerId: VOLUNTEER_A_ID,
+          type: 'one_time',
+          dayId: DAY_A_ID,
+          startsAt: DAY_DATE,
+        },
+        include: expect.any(Object),
+      });
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            volunteerId: VOLUNTEER_A_ID,
+            matchId: MATCH_ONE_TIME_ID,
+            status: 'assigned',
+          }),
+        })
+      );
+      expect(mockPrisma.deliveryEvent.create).toHaveBeenCalled();
+    });
+
+    it('returns 409 when the elder already has a one-time match for the day', async () => {
+      mockPrisma.match.findFirst.mockResolvedValue({ id: MATCH_ONE_TIME_ID });
+
+      await expect(
+        service.createOneTime(
+          CITY_A_ID,
+          DAY_A_ID,
+          createOneTimeMatchPayload() as never,
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({
+        constructor: ConflictException,
+        message: 'matches.elder_already_matched_for_day',
+      });
+    });
+
+    it('rejects a closed day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue({
+        ...publishedDay,
+        status: 'closed',
+      });
+
+      await expect(
+        service.createOneTime(
+          CITY_A_ID,
+          DAY_A_ID,
+          createOneTimeMatchPayload() as never,
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({
+        constructor: BadRequestException,
+        message: 'matches.day_not_editable',
+      });
+    });
+
+    it('forbids a volunteer from creating a one-time match', async () => {
+      await expect(
+        service.createOneTime(
+          CITY_A_ID,
+          DAY_A_ID,
+          createOneTimeMatchPayload() as never,
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('endOneTime', () => {
+    it('ends a one-time match and unassigns the linked delivery', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.match.findFirst.mockResolvedValue(oneTimeMatch);
+      mockPrisma.match.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.match.findFirstOrThrow.mockResolvedValue(
+        fakeOneTimeMatch({
+          endsAt: DAY_DATE,
+          endReason: 'reassigned',
+        })
+      );
+      mockPrisma.delivery.findFirst.mockResolvedValue({
+        id: '77777777-7777-4777-8777-777777777777',
+        status: 'assigned',
+        volunteerId: VOLUNTEER_A_ID,
+        matchId: MATCH_ONE_TIME_ID,
+      });
+      mockPrisma.delivery.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.deliveryEvent.create.mockResolvedValue({});
+
+      const result = await service.endOneTime(
+        CITY_A_ID,
+        DAY_A_ID,
+        MATCH_ONE_TIME_ID,
+        { endReason: 'reassigned' },
+        coordinatorA()
+      );
+
+      expect(result.endsAt).toBe('2026-11-12');
+      expect(result.endReason).toBe('reassigned');
+      expect(mockPrisma.delivery.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            volunteerId: null,
+            matchId: null,
+            status: 'unassigned',
+            assignedAt: null,
+          },
+        })
+      );
+    });
+
+    it('returns 404 when the one-time match is missing for the day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.match.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.endOneTime(
+          CITY_A_ID,
+          DAY_A_ID,
+          MATCH_ONE_TIME_ID,
+          { endReason: 'other' },
+          coordinatorA()
         )
       ).rejects.toBeInstanceOf(NotFoundException);
     });

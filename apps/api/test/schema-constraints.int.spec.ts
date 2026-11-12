@@ -234,7 +234,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
         })
       ).rejects.toThrow(/unique constraint/i);
 
-      // But can create one_time match
+      // But can create one_time match without a day (schema allows; API requires dayId)
       await expect(
         prisma.match.create({
           data: {
@@ -246,6 +246,84 @@ describe.skipIf(!process.env.DATABASE_URL)(
           },
         })
       ).resolves.toBeDefined();
+    });
+
+    it('enforces one current one-time Match per elder per day', async () => {
+      const city = await prisma.city.create({
+        data: {
+          slug: 'test-city-one-time',
+          nameHe: 'חולון בדיקה',
+          nameEn: 'Holon Test',
+        },
+      });
+
+      const coordinator = await prisma.user.create({
+        data: {
+          firstName: 'Noa',
+          lastName: 'Levi',
+          phone: '+972501234580',
+        },
+      });
+
+      const elder = await prisma.elder.create({
+        data: {
+          cityId: city.id,
+          fullName: 'Rivkah Levi',
+          street: 'Sokolov',
+          houseNumber: '10',
+        },
+      });
+
+      const volunteer1 = await prisma.user.create({
+        data: {
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+          phone: '+972501234581',
+        },
+      });
+
+      const volunteer2 = await prisma.user.create({
+        data: {
+          firstName: 'Dana',
+          lastName: 'Levi',
+          phone: '+972501234582',
+        },
+      });
+
+      const day = await prisma.distributionDay.create({
+        data: {
+          cityId: city.id,
+          date: new Date('2026-11-12'),
+          startTime: new Date('1970-01-01T09:00:00.000Z'),
+          endTime: new Date('1970-01-01T14:00:00.000Z'),
+          status: 'published',
+          createdById: coordinator.id,
+        },
+      });
+
+      await prisma.match.create({
+        data: {
+          cityId: city.id,
+          elderId: elder.id,
+          volunteerId: volunteer1.id,
+          type: 'one_time',
+          dayId: day.id,
+          startsAt: day.date,
+        },
+      });
+
+      await expect(
+        prisma.match.create({
+          data: {
+            cityId: city.id,
+            elderId: elder.id,
+            volunteerId: volunteer2.id,
+            type: 'one_time',
+            dayId: day.id,
+            startsAt: day.date,
+          },
+        })
+      ).rejects.toThrow(/unique constraint/i);
     });
 
     it('allows second permanent Match after ending first one', async () => {

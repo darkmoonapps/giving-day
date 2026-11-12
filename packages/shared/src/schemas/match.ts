@@ -52,6 +52,37 @@ export const endPermanentMatchSchema = z.object({
   endsAt: dateOnlySchema.optional(),
 });
 
+export const oneTimeMatchSchema = z.object({
+  id: z.string().uuid(),
+  cityId: z.string().uuid(),
+  elderId: z.string().uuid(),
+  volunteerId: z.string().uuid(),
+  type: z.literal('one_time'),
+  dayId: z.string().uuid(),
+  startsAt: dateOnlySchema,
+  endsAt: dateOnlySchema.nullable(),
+  endReason: matchEndReasonSchema.nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  elder: matchElderSummarySchema,
+  volunteer: matchVolunteerSummarySchema,
+});
+
+export const oneTimeMatchesResponseSchema = z.object({
+  matches: z.array(oneTimeMatchSchema),
+  availableElders: z.array(matchElderSummarySchema),
+  matchableVolunteers: z.array(matchVolunteerSummarySchema),
+});
+
+export const createOneTimeMatchSchema = z.object({
+  elderId: z.string().uuid(),
+  volunteerId: z.string().uuid(),
+});
+
+export const endOneTimeMatchSchema = z.object({
+  endReason: matchEndReasonSchema,
+});
+
 export type MatchType = z.infer<typeof matchTypeSchema>;
 export type MatchEndReason = z.infer<typeof matchEndReasonSchema>;
 export type MatchElderSummary = z.infer<typeof matchElderSummarySchema>;
@@ -62,3 +93,9 @@ export type PermanentMatchesResponse = z.infer<
 >;
 export type CreatePermanentMatch = z.infer<typeof createPermanentMatchSchema>;
 export type EndPermanentMatch = z.infer<typeof endPermanentMatchSchema>;
+export type OneTimeMatch = z.infer<typeof oneTimeMatchSchema>;
+export type OneTimeMatchesResponse = z.infer<
+  typeof oneTimeMatchesResponseSchema
+>;
+export type CreateOneTimeMatch = z.infer<typeof createOneTimeMatchSchema>;
+export type EndOneTimeMatch = z.infer<typeof endOneTimeMatchSchema>;

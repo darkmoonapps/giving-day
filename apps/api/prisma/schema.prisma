@@ -416,8 +416,11 @@ model Match {
 
   // Partial unique: one current permanent match per elder WHERE type='permanent' AND endsAt IS NULL
   // Enforced by unique index matches_elderId_current_permanent in migration
+  // Partial unique: one current one-time match per elder per day WHERE type='one_time' AND endsAt IS NULL
+  // Enforced by unique index matches_elderId_dayId_one_time in migration
   @@index([cityId, elderId, type, endsAt])
   @@index([cityId, volunteerId])
+  @@index([cityId, dayId])
   @@map("matches")
 }
 

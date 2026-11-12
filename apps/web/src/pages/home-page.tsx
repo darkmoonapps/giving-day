@@ -180,6 +180,18 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
             >
               {t('view_deliveries')}
             </AppButton>
+            <AppButton
+              size="sm"
+              variant="light"
+              data-testid="view-one-time-matches"
+              onClick={() => {
+                void navigate(
+                  `/cities/${cityId}/days/${day.id}/one-time-matches`
+                );
+              }}
+            >
+              {t('view_one_time_matches')}
+            </AppButton>
           </Stack>
         ))
       )}

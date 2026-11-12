@@ -5,16 +5,30 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  createOneTimeMatchSchema,
   createPermanentMatchSchema,
+  endOneTimeMatchSchema,
   endPermanentMatchSchema,
+  oneTimeMatchSchema,
+  oneTimeMatchesResponseSchema,
   permanentMatchSchema,
   permanentMatchesResponseSchema,
+  type CreateOneTimeMatch,
   type CreatePermanentMatch,
+  type EndOneTimeMatch,
   type EndPermanentMatch,
+  type OneTimeMatch,
+  type OneTimeMatchesResponse,
   type PermanentMatch,
   type PermanentMatchesResponse,
 } from '@giving-day/shared';
-import { Prisma, type Elder, type Match, type User } from '@prisma/client';
+import {
+  Prisma,
+  type DeliveryStatus,
+  type Elder,
+  type Match,
+  type User,
+} from '@prisma/client';
 import {
   AbilityFactory,
   type UserWithMemberships,
@@ -27,7 +41,9 @@ import {
 } from '../common/time-of-day';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePermanentMatchDto } from './dto/create-match.dto';
+import type { CreateOneTimeMatchDto } from './dto/create-one-time-match.dto';
 import type { EndPermanentMatchDto } from './dto/end-match.dto';
+import type { EndOneTimeMatchDto } from './dto/end-one-time-match.dto';
 
 const ELDER_SUMMARY_SELECT = {
   id: true,
@@ -57,6 +73,19 @@ type CityRow = {
 };
 
 const CURRENT_PERMANENT_MATCH_INDEX = 'matches_elderId_current_permanent';
+const CURRENT_ONE_TIME_MATCH_INDEX = 'matches_elderId_dayId_one_time';
+const REASSIGNABLE_DELIVERY_STATUSES: DeliveryStatus[] = [
+  'unassigned',
+  'assigned',
+];
+const EDITABLE_DAY_STATUSES = ['draft', 'published', 'in_progress'] as const;
+
+type DayRow = {
+  id: string;
+  cityId: string;
+  date: Date;
+  status: (typeof EDITABLE_DAY_STATUSES)[number] | string;
+};
 
 function uniqueConstraintTargets(
   error: Prisma.PrismaClientKnownRequestError
@@ -209,6 +238,161 @@ export class MatchesService {
     return this.toDto(updated);
   }
 
+  async listOneTime(
+    cityId: string,
+    dayId: string,
+    actor: UserWithMemberships
+  ): Promise<OneTimeMatchesResponse> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanManageOnCity(ability, 'Match', cityId);
+    await this.requireCity(cityId);
+    await this.requireDay(cityId, dayId);
+
+    const [matches, availableElders, matchableVolunteers] = await Promise.all([
+      this.prisma.match.findMany({
+        where: { cityId, dayId, type: 'one_time', endsAt: null },
+        include: MATCH_INCLUDE,
+        orderBy: [{ elder: { fullName: 'asc' } }, { createdAt: 'asc' }],
+      }),
+      this.prisma.elder.findMany({
+        where: {
+          cityId,
+          status: 'active',
+          archivedAt: null,
+          matches: {
+            none: { type: 'one_time', dayId, endsAt: null },
+          },
+        },
+        select: ELDER_SUMMARY_SELECT,
+        orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.user.findMany({
+        where: this.approvedVolunteerWhere(cityId),
+        select: VOLUNTEER_SUMMARY_SELECT,
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      }),
+    ]);
+
+    return oneTimeMatchesResponseSchema.parse({
+      matches: matches.map((row) => this.toOneTimeDto(row)),
+      availableElders,
+      matchableVolunteers,
+    });
+  }
+
+  async createOneTime(
+    cityId: string,
+    dayId: string,
+    dto: CreateOneTimeMatchDto,
+    actor: UserWithMemberships
+  ): Promise<OneTimeMatch> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'create', 'Match', cityId);
+    await this.requireCity(cityId);
+    const day = await this.requireEditableDay(cityId, dayId);
+    const parsed = this.parseCreateOneTime(dto);
+    const startsAt = day.date;
+    const assignedAt = new Date();
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        await this.requireActiveElder(tx, cityId, parsed.elderId);
+        await this.requireApprovedVolunteer(tx, cityId, parsed.volunteerId);
+        await this.assertNoCurrentOneTimeMatch(tx, parsed.elderId, dayId);
+
+        const match = await tx.match.create({
+          data: {
+            cityId,
+            elderId: parsed.elderId,
+            volunteerId: parsed.volunteerId,
+            type: 'one_time',
+            dayId,
+            startsAt,
+          },
+          include: MATCH_INCLUDE,
+        });
+
+        await this.applyOneTimeMatchToDelivery(tx, {
+          cityId,
+          dayId,
+          elderId: parsed.elderId,
+          volunteerId: parsed.volunteerId,
+          matchId: match.id,
+          actorId: actor.id,
+          assignedAt,
+        });
+
+        return match;
+      });
+
+      return this.toOneTimeDto(created);
+    } catch (error: unknown) {
+      if (this.isCurrentOneTimeMatchConflict(error)) {
+        throw new ConflictException('matches.elder_already_matched_for_day');
+      }
+      throw error;
+    }
+  }
+
+  async endOneTime(
+    cityId: string,
+    dayId: string,
+    matchId: string,
+    dto: EndOneTimeMatchDto,
+    actor: UserWithMemberships
+  ): Promise<OneTimeMatch> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'update', 'Match', cityId);
+    await this.requireCity(cityId);
+    await this.requireEditableDay(cityId, dayId);
+    const parsed = this.parseEndOneTime(dto);
+    const unassignedAt = new Date();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.match.findFirst({
+        where: { id: matchId, cityId, dayId, type: 'one_time' },
+      });
+      if (current === null) {
+        throw new NotFoundException('matches.not_found');
+      }
+      if (current.endsAt !== null) {
+        throw new BadRequestException('matches.already_ended');
+      }
+
+      const result = await tx.match.updateMany({
+        where: {
+          id: matchId,
+          cityId,
+          dayId,
+          type: 'one_time',
+          endsAt: null,
+        },
+        data: {
+          endsAt: current.startsAt,
+          endReason: parsed.endReason,
+        },
+      });
+      if (result.count === 0) {
+        throw new BadRequestException('matches.already_ended');
+      }
+
+      await this.clearOneTimeMatchFromDelivery(tx, {
+        cityId,
+        dayId,
+        matchId,
+        actorId: actor.id,
+        at: unassignedAt,
+      });
+
+      return tx.match.findFirstOrThrow({
+        where: { id: matchId, cityId, dayId },
+        include: MATCH_INCLUDE,
+      });
+    });
+
+    return this.toOneTimeDto(updated);
+  }
+
   private parseCreate(dto: CreatePermanentMatchDto): CreatePermanentMatch {
     const parsed = createPermanentMatchSchema.safeParse(dto);
     if (!parsed.success) {
@@ -225,6 +409,22 @@ export class MatchesService {
     return parsed.data;
   }
 
+  private parseCreateOneTime(dto: CreateOneTimeMatchDto): CreateOneTimeMatch {
+    const parsed = createOneTimeMatchSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('matches.invalid');
+    }
+    return parsed.data;
+  }
+
+  private parseEndOneTime(dto: EndOneTimeMatchDto): EndOneTimeMatch {
+    const parsed = endOneTimeMatchSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('matches.invalid');
+    }
+    return parsed.data;
+  }
+
   private async requireCity(cityId: string): Promise<CityRow> {
     const city = await this.prisma.city.findUnique({
       where: { id: cityId },
@@ -234,6 +434,32 @@ export class MatchesService {
       throw new NotFoundException('cities.not_found');
     }
     return { id: city.id, timezone: city.timezone };
+  }
+
+  private async requireDay(cityId: string, dayId: string): Promise<DayRow> {
+    const day = await this.prisma.distributionDay.findFirst({
+      where: { id: dayId, cityId },
+      select: { id: true, cityId: true, date: true, status: true },
+    });
+    if (day === null) {
+      throw new NotFoundException('distribution_days.not_found');
+    }
+    return day;
+  }
+
+  private async requireEditableDay(
+    cityId: string,
+    dayId: string
+  ): Promise<DayRow> {
+    const day = await this.requireDay(cityId, dayId);
+    if (
+      !EDITABLE_DAY_STATUSES.includes(
+        day.status as (typeof EDITABLE_DAY_STATUSES)[number]
+      )
+    ) {
+      throw new BadRequestException('matches.day_not_editable');
+    }
+    return day;
   }
 
   private async requireActiveElder(
@@ -283,6 +509,20 @@ export class MatchesService {
     }
   }
 
+  private async assertNoCurrentOneTimeMatch(
+    tx: Prisma.TransactionClient,
+    elderId: string,
+    dayId: string
+  ): Promise<void> {
+    const existing = await tx.match.findFirst({
+      where: { elderId, dayId, type: 'one_time', endsAt: null },
+      select: { id: true },
+    });
+    if (existing !== null) {
+      throw new ConflictException('matches.elder_already_matched_for_day');
+    }
+  }
+
   private approvedVolunteerWhere(cityId: string): Prisma.UserWhereInput {
     return {
       archivedAt: null,
@@ -309,6 +549,128 @@ export class MatchesService {
     );
   }
 
+  private isCurrentOneTimeMatchConflict(error: unknown): boolean {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
+    ) {
+      return false;
+    }
+
+    return uniqueConstraintTargets(error).includes(
+      CURRENT_ONE_TIME_MATCH_INDEX
+    );
+  }
+
+  private async applyOneTimeMatchToDelivery(
+    tx: Prisma.TransactionClient,
+    params: {
+      cityId: string;
+      dayId: string;
+      elderId: string;
+      volunteerId: string;
+      matchId: string;
+      actorId: string;
+      assignedAt: Date;
+    }
+  ): Promise<void> {
+    const delivery = await tx.delivery.findFirst({
+      where: {
+        cityId: params.cityId,
+        dayId: params.dayId,
+        elderId: params.elderId,
+        status: { in: REASSIGNABLE_DELIVERY_STATUSES },
+      },
+    });
+    if (delivery === null) {
+      return;
+    }
+
+    const result = await tx.delivery.updateMany({
+      where: {
+        id: delivery.id,
+        cityId: params.cityId,
+        dayId: params.dayId,
+        status: { in: REASSIGNABLE_DELIVERY_STATUSES },
+      },
+      data: {
+        volunteerId: params.volunteerId,
+        matchId: params.matchId,
+        status: 'assigned',
+        assignedAt: params.assignedAt,
+      },
+    });
+    if (result.count === 0) {
+      return;
+    }
+
+    await tx.deliveryEvent.create({
+      data: {
+        deliveryId: delivery.id,
+        fromStatus: delivery.status,
+        toStatus: 'assigned',
+        fromVolunteerId: delivery.volunteerId,
+        toVolunteerId: params.volunteerId,
+        actorId: params.actorId,
+        at: params.assignedAt,
+      },
+    });
+  }
+
+  private async clearOneTimeMatchFromDelivery(
+    tx: Prisma.TransactionClient,
+    params: {
+      cityId: string;
+      dayId: string;
+      matchId: string;
+      actorId: string;
+      at: Date;
+    }
+  ): Promise<void> {
+    const delivery = await tx.delivery.findFirst({
+      where: {
+        cityId: params.cityId,
+        dayId: params.dayId,
+        matchId: params.matchId,
+        status: { in: REASSIGNABLE_DELIVERY_STATUSES },
+      },
+    });
+    if (delivery === null) {
+      return;
+    }
+
+    const result = await tx.delivery.updateMany({
+      where: {
+        id: delivery.id,
+        cityId: params.cityId,
+        dayId: params.dayId,
+        matchId: params.matchId,
+        status: { in: REASSIGNABLE_DELIVERY_STATUSES },
+      },
+      data: {
+        volunteerId: null,
+        matchId: null,
+        status: 'unassigned',
+        assignedAt: null,
+      },
+    });
+    if (result.count === 0) {
+      return;
+    }
+
+    await tx.deliveryEvent.create({
+      data: {
+        deliveryId: delivery.id,
+        fromStatus: delivery.status,
+        toStatus: 'unassigned',
+        fromVolunteerId: delivery.volunteerId,
+        toVolunteerId: null,
+        actorId: params.actorId,
+        at: params.at,
+      },
+    });
+  }
+
   private toDto(row: MatchWithSummaries): PermanentMatch {
     return permanentMatchSchema.parse({
       id: row.id,
@@ -316,6 +678,28 @@ export class MatchesService {
       elderId: row.elderId,
       volunteerId: row.volunteerId,
       type: 'permanent',
+      startsAt: formatDateOnly(row.startsAt),
+      endsAt: row.endsAt ? formatDateOnly(row.endsAt) : null,
+      endReason: row.endReason,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+      elder: row.elder,
+      volunteer: row.volunteer,
+    });
+  }
+
+  private toOneTimeDto(row: MatchWithSummaries): OneTimeMatch {
+    if (row.dayId === null) {
+      throw new BadRequestException('matches.invalid');
+    }
+
+    return oneTimeMatchSchema.parse({
+      id: row.id,
+      cityId: row.cityId,
+      elderId: row.elderId,
+      volunteerId: row.volunteerId,
+      type: 'one_time',
+      dayId: row.dayId,
       startsAt: formatDateOnly(row.startsAt),
       endsAt: row.endsAt ? formatDateOnly(row.endsAt) : null,
       endReason: row.endReason,
