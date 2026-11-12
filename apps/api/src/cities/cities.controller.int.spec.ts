@@ -885,5 +885,14 @@ describe('Cities HTTP authorization', () => {
 
       expect(response.body.volunteers[0].firstName).toBe('Yonatan');
     });
+
+    it('rejects removed membership status with 400', async () => {
+      currentUser = coordinatorA();
+
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .query({ status: 'removed' })
+        .expect(400);
+    });
   });
 });

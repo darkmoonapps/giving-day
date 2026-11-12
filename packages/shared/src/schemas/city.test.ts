@@ -313,6 +313,11 @@ describe('city schemas', () => {
         status: 'unknown',
       }).success
     ).toBe(false);
+    expect(
+      listCityVolunteersQuerySchema.safeParse({
+        status: 'removed',
+      }).success
+    ).toBe(false);
 
     const volunteer = {
       membershipId: '66666666-6666-4666-8666-666666666666',

@@ -212,7 +212,7 @@ export const volunteerDayResponseStatusSchema = z.enum([
 
 export const listCityVolunteersQuerySchema = z
   .object({
-    status: membershipStatusSchema.optional(),
+    status: membershipStatusSchema.exclude(['removed']).optional(),
     search: z
       .string()
       .trim()

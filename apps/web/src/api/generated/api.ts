@@ -1314,7 +1314,6 @@ export const ListCityVolunteersStatus = {
   pending: 'pending',
   active: 'active',
   paused: 'paused',
-  removed: 'removed',
 } as const;
 
 export type ListCityEldersParams = {

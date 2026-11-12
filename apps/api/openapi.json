@@ -518,8 +518,7 @@
               "enum": [
                 "pending",
                 "active",
-                "paused",
-                "removed"
+                "paused"
               ],
               "type": "string"
             }

@@ -24,7 +24,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { CityRole, MembershipStatus } from '@prisma/client';
+import { CityRole } from '@prisma/client';
 import type {
   City,
   CityCoordinator,
@@ -62,6 +62,12 @@ import {
 } from './dto/membership-response.dto';
 import { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
 import { CityVolunteersResponseDto } from './dto/volunteer-list-response.dto';
+
+enum VolunteerMembershipStatusQuery {
+  pending = 'pending',
+  active = 'active',
+  paused = 'paused',
+}
 
 enum VolunteerDayResponseQuery {
   confirmed = 'confirmed',
@@ -217,7 +223,11 @@ export class CitiesController {
       'List city volunteers with membership status filters, search, and optional day response filters',
   })
   @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
-  @ApiQuery({ name: 'status', required: false, enum: MembershipStatus })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: VolunteerMembershipStatusQuery,
+  })
   @ApiQuery({
     name: 'search',
     required: false,
@@ -240,8 +250,11 @@ export class CitiesController {
   async listVolunteers(
     @Param('cityId', ParseUUIDPipe) cityId: string,
     @CurrentUser() user: UserWithMemberships,
-    @Query('status', new ParseEnumPipe(MembershipStatus, { optional: true }))
-    status?: MembershipStatus,
+    @Query(
+      'status',
+      new ParseEnumPipe(VolunteerMembershipStatusQuery, { optional: true })
+    )
+    status?: VolunteerMembershipStatusQuery,
     @Query('search') search?: string,
     @Query('dayId') dayId?: string,
     @Query(
