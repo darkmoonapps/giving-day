@@ -179,6 +179,7 @@ test.describe('Coordinator one-time matches', () => {
                 status: 'active',
               },
             ],
+            // Volunteers listed here are day-confirmed (API filters on DayParticipation).
             matchableVolunteers: [
               {
                 id: VOLUNTEER_YONATAN_ID,
@@ -258,6 +259,103 @@ test.describe('Coordinator one-time matches', () => {
       .getByTestId(`confirm-end-one-time-match-${ONE_TIME_MATCH_RIVKAH_ID}`)
       .click();
     await expect.poll(() => ended).toEqual([{ endReason: 'reassigned' }]);
+  });
+
+  test('create shows error when volunteer is not confirmed for the day', async ({
+    page,
+  }) => {
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+
+    await page.route(
+      `**/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}`,
+      async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: DAY_ID,
+            cityId: CITY_A_ID,
+            date: '2026-11-12',
+            startTime: '09:00:00',
+            endTime: '14:00:00',
+            notesForVolunteers: null,
+            addOns: [],
+            status: 'published',
+            publishedAt: '2026-11-01T09:00:00.000Z',
+            closedAt: null,
+            createdAt: '2026-11-01T09:00:00.000Z',
+            updatedAt: '2026-11-01T09:00:00.000Z',
+          }),
+        });
+      }
+    );
+
+    await page.route(
+      '**/api/cities/*/distribution-days/*/one-time-matches',
+      async (route) => {
+        const request = route.request();
+        if (request.method() === 'POST') {
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              statusCode: 400,
+              message: 'matches.volunteer_not_confirmed',
+            }),
+          });
+          return;
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            matches: [],
+            availableElders: [
+              {
+                id: ELDER_YOSEF_ID,
+                fullName: 'Yosef Abraham',
+                status: 'active',
+              },
+            ],
+            // Only day-confirmed volunteers appear in the assign list.
+            matchableVolunteers: [
+              {
+                id: VOLUNTEER_DANA_ID,
+                firstName: 'Dana',
+                lastName: 'Levi',
+              },
+            ],
+          }),
+        });
+      }
+    );
+
+    await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/one-time-matches`);
+    await expect(
+      page.getByTestId('coordinator-one-time-matches-page')
+    ).toBeVisible();
+    await page.getByLabel('בחירת מבוגר/ת').selectOption(ELDER_YOSEF_ID);
+    await page.getByLabel('בחירת מתנדב/ת').selectOption(VOLUNTEER_DANA_ID);
+    await page.getByTestId('create-one-time-match-submit').click();
+    await expect(page.getByTestId('create-one-time-match-error')).toHaveText(
+      'אפשר לשבץ רק מתנדב/ת שאישר/ה השתתפות ליום החלוקה הזה.'
+    );
   });
 
   test('volunteer who opens the one-time matches URL sees no access', async ({

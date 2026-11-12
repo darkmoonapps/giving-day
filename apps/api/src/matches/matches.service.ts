@@ -34,6 +34,7 @@ import {
   type UserWithMemberships,
 } from '../abilities/ability.factory';
 import { assertCanManageOnCity, assertCanOnCity } from '../cities/city-access';
+import { confirmedAssignableWhere } from '../common/confirmed-assignable-volunteer';
 import {
   formatDateOnly,
   parseDateOnly,
@@ -248,7 +249,7 @@ export class MatchesService {
     await this.requireCity(cityId);
     await this.requireDay(cityId, dayId);
 
-    const [matches, availableElders, matchableVolunteers] = await Promise.all([
+    const [matches, availableElders, confirmedRows] = await Promise.all([
       this.prisma.match.findMany({
         where: { cityId, dayId, type: 'one_time', endsAt: null },
         include: MATCH_INCLUDE,
@@ -266,17 +267,22 @@ export class MatchesService {
         select: ELDER_SUMMARY_SELECT,
         orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }],
       }),
-      this.prisma.user.findMany({
-        where: this.approvedVolunteerWhere(cityId),
-        select: VOLUNTEER_SUMMARY_SELECT,
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      this.prisma.dayParticipation.findMany({
+        where: confirmedAssignableWhere(cityId, dayId),
+        select: {
+          volunteer: { select: VOLUNTEER_SUMMARY_SELECT },
+        },
+        orderBy: [
+          { volunteer: { lastName: 'asc' } },
+          { volunteer: { firstName: 'asc' } },
+        ],
       }),
     ]);
 
     return oneTimeMatchesResponseSchema.parse({
       matches: matches.map((row) => this.toOneTimeDto(row)),
       availableElders,
-      matchableVolunteers,
+      matchableVolunteers: confirmedRows.map((row) => row.volunteer),
     });
   }
 
@@ -297,7 +303,12 @@ export class MatchesService {
     try {
       const created = await this.prisma.$transaction(async (tx) => {
         await this.requireActiveElder(tx, cityId, parsed.elderId);
-        await this.requireApprovedVolunteer(tx, cityId, parsed.volunteerId);
+        await this.requireConfirmedVolunteer(
+          tx,
+          cityId,
+          dayId,
+          parsed.volunteerId
+        );
         await this.assertNoCurrentOneTimeMatch(tx, parsed.elderId, dayId);
 
         const match = await tx.match.create({
@@ -493,6 +504,21 @@ export class MatchesService {
     });
     if (volunteer === null) {
       throw new BadRequestException('matches.invalid_volunteer');
+    }
+  }
+
+  private async requireConfirmedVolunteer(
+    tx: Prisma.TransactionClient,
+    cityId: string,
+    dayId: string,
+    volunteerId: string
+  ): Promise<void> {
+    const participation = await tx.dayParticipation.findFirst({
+      where: confirmedAssignableWhere(cityId, dayId, volunteerId),
+      select: { volunteerId: true },
+    });
+    if (participation === null) {
+      throw new BadRequestException('matches.volunteer_not_confirmed');
     }
   }
 

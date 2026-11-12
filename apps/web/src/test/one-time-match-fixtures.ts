@@ -54,6 +54,7 @@ export interface OneTimeMatchFetchStub extends AuthFetchStub {
     lastName: string | null;
   }>;
   createStatus?: number;
+  createErrorCode?: string;
   endStatus?: number;
 }
 
@@ -103,7 +104,23 @@ export function createOneTimeMatchFetchMock(
 
     if (method === 'POST' && url.includes(oneTimeBase)) {
       if (options.createStatus === 409) {
-        return mockEmptyResponse(409);
+        return mockJsonResponse(
+          { statusCode: 409, message: 'matches.elder_already_matched_for_day' },
+          409
+        );
+      }
+      if (
+        options.createStatus !== undefined &&
+        options.createStatus >= 400 &&
+        options.createErrorCode !== undefined
+      ) {
+        return mockJsonResponse(
+          {
+            statusCode: options.createStatus,
+            message: options.createErrorCode,
+          },
+          options.createStatus
+        );
       }
       if (options.createStatus !== undefined && options.createStatus >= 400) {
         return mockEmptyResponse(options.createStatus);

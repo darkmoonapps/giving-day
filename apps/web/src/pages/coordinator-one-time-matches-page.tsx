@@ -11,6 +11,7 @@ import {
   AppTitle,
   LoadingState,
 } from '@giving-day/ui';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -45,6 +46,26 @@ const END_REASONS = Object.keys(END_REASON_KEYS) as MatchEndReason[];
 
 function isConflictError(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409;
+}
+
+function isVolunteerNotConfirmedError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.code === 'matches.volunteer_not_confirmed'
+  );
+}
+
+function createOneTimeMatchErrorMessage(
+  error: unknown,
+  t: TFunction<'admin'>
+): string {
+  if (isConflictError(error)) {
+    return t('one_time_match_conflict');
+  }
+  if (isVolunteerNotConfirmedError(error)) {
+    return t('one_time_match_volunteer_not_confirmed');
+  }
+  return t('create_one_time_match_error');
 }
 
 function personName(
@@ -119,8 +140,6 @@ export function CoordinatorOneTimeMatchesPage(): JSX.Element {
     day === undefined;
   const denied = validIds && !allowed;
   const failed = !validIds || dayQuery.isError || matchesQuery.isError;
-  const createConflict = isConflictError(createMutation.error);
-
   return (
     <AppChrome
       actions={
@@ -168,9 +187,7 @@ export function CoordinatorOneTimeMatchesPage(): JSX.Element {
 
             {createMutation.isError ? (
               <AppAlert color="red" data-testid="create-one-time-match-error">
-                {createConflict
-                  ? t('one_time_match_conflict')
-                  : t('create_one_time_match_error')}
+                {createOneTimeMatchErrorMessage(createMutation.error, t)}
               </AppAlert>
             ) : null}
             {endMutation.isError ? (
@@ -298,7 +315,12 @@ export function CoordinatorOneTimeMatchesPage(): JSX.Element {
               {payload.availableElders.length === 0 ? (
                 <AppText c="dimmed">{t('no_available_elders_for_day')}</AppText>
               ) : payload.matchableVolunteers.length === 0 ? (
-                <AppText c="dimmed">{t('no_matchable_volunteers')}</AppText>
+                <AppText
+                  c="dimmed"
+                  data-testid="no-confirmed-volunteers-for-day"
+                >
+                  {t('no_confirmed_volunteers_for_day')}
+                </AppText>
               ) : (
                 <>
                   <NativeSelect

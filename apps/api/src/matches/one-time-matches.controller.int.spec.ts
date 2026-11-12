@@ -70,6 +70,12 @@ describe('One-time matches HTTP authorization', () => {
       findMany: vi.fn().mockResolvedValue([fakeVolunteerUser()]),
       findFirst: vi.fn().mockResolvedValue(fakeVolunteerUser()),
     },
+    dayParticipation: {
+      findMany: vi.fn().mockResolvedValue([{ volunteer: fakeVolunteerUser() }]),
+      findFirst: vi.fn().mockResolvedValue({
+        volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      }),
+    },
     delivery: {
       findFirst: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -138,6 +144,12 @@ describe('One-time matches HTTP authorization', () => {
       status: 'active',
     });
     mockPrisma.user.findFirst.mockResolvedValue(fakeVolunteerUser());
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([
+      { volunteer: fakeVolunteerUser() },
+    ]);
+    mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+      volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    });
     mockPrisma.delivery.findFirst.mockResolvedValue(null);
     mockPrisma.delivery.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.$transaction.mockImplementation(
@@ -195,6 +207,20 @@ describe('One-time matches HTTP authorization', () => {
       expect(response.body.id).toBe(MATCH_ONE_TIME_ID);
       expect(response.body.type).toBe('one_time');
       expect(mockPrisma.match.create).toHaveBeenCalled();
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalled();
+    });
+
+    it('rejects a volunteer who has not confirmed for the day', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .post(basePath)
+        .send(createOneTimeMatchPayload())
+        .expect(400);
+
+      expect(response.body.message).toBe('matches.volunteer_not_confirmed');
+      expect(mockPrisma.match.create).not.toHaveBeenCalled();
     });
 
     it('returns 409 when the elder already has a one-time match for the day', async () => {

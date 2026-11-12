@@ -31,6 +31,7 @@ import {
   type UserWithMemberships,
 } from '../abilities/ability.factory';
 import { assertCanOnCity } from '../cities/city-access';
+import { confirmedAssignableWhere } from '../common/confirmed-assignable-volunteer';
 import { PrismaService } from '../prisma/prisma.service';
 
 const REASSIGNABLE_STATUSES: DeliveryStatus[] = ['unassigned', 'assigned'];
@@ -504,7 +505,7 @@ export class DeliveriesService {
     dayId: string
   ): Promise<ReplacementVolunteerCandidate[]> {
     const confirmed = await this.prisma.dayParticipation.findMany({
-      where: this.confirmedAssignableWhere(cityId, dayId),
+      where: confirmedAssignableWhere(cityId, dayId),
       select: {
         volunteer: {
           select: {
@@ -590,36 +591,13 @@ export class DeliveriesService {
     volunteerId: string
   ): Promise<void> {
     const participation = await tx.dayParticipation.findFirst({
-      where: this.confirmedAssignableWhere(cityId, dayId, volunteerId),
+      where: confirmedAssignableWhere(cityId, dayId, volunteerId),
       select: { volunteerId: true },
     });
 
     if (participation === null) {
       throw new BadRequestException('deliveries.invalid_volunteer');
     }
-  }
-
-  private confirmedAssignableWhere(
-    cityId: string,
-    dayId: string,
-    volunteerId?: string
-  ): Prisma.DayParticipationWhereInput {
-    return {
-      cityId,
-      dayId,
-      status: 'confirmed',
-      ...(volunteerId === undefined ? {} : { volunteerId }),
-      volunteer: {
-        archivedAt: null,
-        memberships: {
-          some: {
-            cityId,
-            role: 'volunteer',
-            status: 'active',
-          },
-        },
-      },
-    };
   }
 
   private async requireCity(cityId: string): Promise<CityNavigationRecord> {

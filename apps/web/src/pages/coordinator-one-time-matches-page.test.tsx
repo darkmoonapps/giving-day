@@ -127,6 +127,55 @@ describe('CoordinatorOneTimeMatchesPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows empty copy when no volunteers confirmed for the day', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createOneTimeMatchFetchMock({
+          matchableVolunteers: [],
+        })
+      )
+    );
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/one-time-matches`);
+
+    expect(
+      await screen.findByTestId('no-confirmed-volunteers-for-day')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('create-one-time-match-submit')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows volunteer-not-confirmed error from create', async () => {
+    const fetchMock = vi.fn(
+      createOneTimeMatchFetchMock({
+        createStatus: 400,
+        createErrorCode: 'matches.volunteer_not_confirmed',
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/one-time-matches`);
+
+    await user.selectOptions(
+      await screen.findByLabelText('בחירת מבוגר/ת'),
+      unmatchedYosef.id
+    );
+    await user.selectOptions(
+      screen.getByLabelText('בחירת מתנדב/ת'),
+      VOLUNTEER_DANA_ID
+    );
+    await user.click(screen.getByTestId('create-one-time-match-submit'));
+
+    expect(
+      await screen.findByTestId('create-one-time-match-error')
+    ).toHaveTextContent(
+      'אפשר לשבץ רק מתנדב/ת שאישר/ה השתתפות ליום החלוקה הזה.'
+    );
+  });
+
   it('switches copy between Hebrew RTL and English LTR', async () => {
     vi.stubGlobal('fetch', vi.fn(createOneTimeMatchFetchMock()));
     const user = userEvent.setup();

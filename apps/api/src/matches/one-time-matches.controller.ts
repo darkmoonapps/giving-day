@@ -64,7 +64,7 @@ export class OneTimeMatchesController {
   @ApiOperation({
     operationId: 'createDayOneTimeMatch',
     summary:
-      'Create a one-time match for an active elder and an approved city volunteer on one distribution day',
+      'Create a one-time match for an active elder and a volunteer confirmed for that distribution day',
   })
   @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
   @ApiParam({ name: 'dayId', type: String, format: 'uuid' })

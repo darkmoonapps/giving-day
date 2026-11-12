@@ -6383,7 +6383,7 @@ export function useListDayOneTimeMatches<TData = Awaited<ReturnType<typeof listD
 
 
 /**
- * @summary Create a one-time match for an active elder and an approved city volunteer on one distribution day
+ * @summary Create a one-time match for an active elder and a volunteer confirmed for that distribution day
  */
 export const getCreateDayOneTimeMatchUrl = (cityId: string,
     dayId: string,) => {
@@ -6441,7 +6441,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateDayOneTimeMatchMutationError = void
 
     /**
- * @summary Create a one-time match for an active elder and an approved city volunteer on one distribution day
+ * @summary Create a one-time match for an active elder and a volunteer confirmed for that distribution day
  */
 export const useCreateDayOneTimeMatch = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDayOneTimeMatch>>, TError,{cityId: string;dayId: string;data: CreateOneTimeMatchDto}, TContext>, request?: SecondParameter<typeof apiFetch>}

@@ -67,6 +67,10 @@ describe('MatchesService', () => {
     },
     elder: { findMany: vi.fn(), findFirst: vi.fn() },
     user: { findMany: vi.fn(), findFirst: vi.fn() },
+    dayParticipation: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+    },
     delivery: {
       findFirst: vi.fn(),
       updateMany: vi.fn(),
@@ -393,7 +397,9 @@ describe('MatchesService', () => {
       mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
       mockPrisma.match.findMany.mockResolvedValue([oneTimeMatch]);
       mockPrisma.elder.findMany.mockResolvedValue([unmatchedElder]);
-      mockPrisma.user.findMany.mockResolvedValue([volunteerSummary]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        { volunteer: volunteerSummary },
+      ]);
 
       const result = await service.listOneTime(
         CITY_A_ID,
@@ -409,6 +415,13 @@ describe('MatchesService', () => {
         startsAt: '2026-11-12',
       });
       expect(result.availableElders).toEqual([unmatchedElder]);
+      expect(result.matchableVolunteers).toEqual([
+        {
+          id: volunteerSummary.id,
+          firstName: volunteerSummary.firstName,
+          lastName: volunteerSummary.lastName,
+        },
+      ]);
       expect(mockPrisma.match.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -419,6 +432,16 @@ describe('MatchesService', () => {
           },
         })
       );
+      expect(mockPrisma.dayParticipation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_A_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
+      expect(mockPrisma.user.findMany).not.toHaveBeenCalled();
     });
 
     it('forbids a volunteer from listing one-time matches', async () => {
@@ -435,7 +458,9 @@ describe('MatchesService', () => {
         id: ELDER_A_ID,
         status: 'active',
       });
-      mockPrisma.user.findFirst.mockResolvedValue(volunteerSummary);
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue({
+        volunteerId: VOLUNTEER_A_ID,
+      });
       mockPrisma.match.findFirst.mockResolvedValue(null);
       mockPrisma.match.create.mockResolvedValue(oneTimeMatch);
       mockPrisma.delivery.findFirst.mockResolvedValue({
@@ -460,6 +485,16 @@ describe('MatchesService', () => {
         type: 'one_time',
         dayId: DAY_A_ID,
       });
+      expect(mockPrisma.dayParticipation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            dayId: DAY_A_ID,
+            volunteerId: VOLUNTEER_A_ID,
+            status: 'confirmed',
+          }),
+        })
+      );
       expect(mockPrisma.match.create).toHaveBeenCalledWith({
         data: {
           cityId: CITY_A_ID,
@@ -481,6 +516,23 @@ describe('MatchesService', () => {
         })
       );
       expect(mockPrisma.deliveryEvent.create).toHaveBeenCalled();
+    });
+
+    it('rejects a volunteer who has not confirmed for the day', async () => {
+      mockPrisma.dayParticipation.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.createOneTime(
+          CITY_A_ID,
+          DAY_A_ID,
+          createOneTimeMatchPayload() as never,
+          coordinatorA()
+        )
+      ).rejects.toMatchObject({
+        constructor: BadRequestException,
+        message: 'matches.volunteer_not_confirmed',
+      });
+      expect(mockPrisma.match.create).not.toHaveBeenCalled();
     });
 
     it('returns 409 when the elder already has a one-time match for the day', async () => {
