@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { clearAccessToken } from '../auth/access-token';
 import { i18n } from '../i18n';
@@ -148,6 +148,89 @@ describe('CoordinatorDayDashboardPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('lets a coordinator update Holon day hours and the volunteer note', async () => {
+    const fetchMock = vi.fn(
+      createDayFetchMock({
+        refresh: 'ok',
+        user: coordinatorUser(),
+        dashboard: {
+          ...holonDayDashboard,
+          deliveries: {
+            ...holonDayDashboard.deliveries,
+            picked: 1,
+            delivered: 2,
+            notDelivered: 1,
+          },
+        },
+        responses: HOLON_RESPONSES,
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/dashboard`);
+
+    expect(await screen.findByTestId('day-details-form')).toBeInTheDocument();
+    expect(screen.getByTestId('day-details-start-time')).toHaveValue('09:00');
+    expect(screen.getByTestId('day-details-notes')).toHaveValue(
+      'Bring a folding cart'
+    );
+
+    fireEvent.change(screen.getByTestId('day-details-start-time'), {
+      target: { value: '08:00' },
+    });
+    fireEvent.change(screen.getByTestId('day-details-end-time'), {
+      target: { value: '13:00' },
+    });
+    fireEvent.change(screen.getByTestId('day-details-notes'), {
+      target: { value: 'Pick up an additional blanket/package' },
+    });
+    await user.click(screen.getByTestId('save-day-details'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('day-details-success')).toBeInTheDocument();
+    });
+
+    const updateCall = fetchMock.mock.calls.find(
+      (call) =>
+        String(call[0]).includes(
+          `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}`
+        ) &&
+        call[1]?.method === 'PATCH' &&
+        !String(call[0]).includes('/deliveries')
+    );
+    expect(updateCall).toBeDefined();
+    expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
+      startTime: '08:00',
+      endTime: '13:00',
+      notesForVolunteers: 'Pick up an additional blanket/package',
+    });
+    expect(screen.getByText('08:00 – 13:00')).toBeInTheDocument();
+  });
+
+  it('shows a save error when updating day details fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        createDayFetchMock({
+          refresh: 'ok',
+          user: coordinatorUser(),
+          updateDay: 'error',
+        })
+      )
+    );
+    const user = userEvent.setup();
+
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/dashboard`);
+    await screen.findByTestId('day-details-form');
+    await user.click(screen.getByTestId('save-day-details'));
+
+    expect(
+      await screen.findByTestId('day-details-save-error')
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('day-details-success')).not.toBeInTheDocument();
+  });
+
   it('switches dashboard copy between Hebrew RTL and English LTR', async () => {
     const user = userEvent.setup();
     renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/dashboard`);
@@ -163,6 +246,7 @@ describe('CoordinatorDayDashboardPage', () => {
     expect(
       await screen.findByText('Distribution day dashboard')
     ).toBeInTheDocument();
+    expect(screen.getByText('Day hours and notes')).toBeInTheDocument();
     expect(document.documentElement.dir).toBe('ltr');
     expect(document.documentElement.lang).toBe('en');
   });

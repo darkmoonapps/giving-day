@@ -169,6 +169,11 @@ describe('Distribution days HTTP authorization', () => {
     mockPrisma.distributionDay.create.mockResolvedValue(publishedDay);
     mockPrisma.distributionDay.findMany.mockResolvedValue([publishedDay]);
     mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+    mockPrisma.distributionDay.update.mockResolvedValue({
+      ...publishedDay,
+      status: 'closed',
+      closedAt: new Date('2026-11-15T16:00:00.000Z'),
+    });
     mockPrisma.cityMembership.findMany.mockResolvedValue([]);
     mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
     mockPrisma.dayParticipation.findUnique.mockResolvedValue(null);
@@ -353,6 +358,49 @@ describe('Distribution days HTTP authorization', () => {
 
       expect(response.body.notesForVolunteers).toBe('Bring a folding cart');
       expect(response.body.internalNotes).toBeUndefined();
+    });
+  });
+
+  describe('PATCH /api/cities/:cityId/distribution-days/:dayId', () => {
+    it('lets a coordinator update hours and the volunteer note', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.distributionDay.update.mockResolvedValueOnce({
+        ...publishedDay,
+        startTime: new Date(Date.UTC(1970, 0, 1, 8, 0, 0)),
+        endTime: new Date(Date.UTC(1970, 0, 1, 13, 0, 0)),
+        notesForVolunteers: 'Pick up an additional blanket/package',
+      });
+
+      const response = await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}`)
+        .send({
+          startTime: '08:00',
+          endTime: '13:00',
+          notesForVolunteers: 'Pick up an additional blanket/package',
+        })
+        .expect(200);
+
+      expect(response.body.startTime).toBe('08:00:00');
+      expect(response.body.endTime).toBe('13:00:00');
+      expect(response.body.notesForVolunteers).toBe(
+        'Pick up an additional blanket/package'
+      );
+    });
+
+    it('forbids a volunteer from updating a day', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}`)
+        .send({ notesForVolunteers: 'Nope' })
+        .expect(403);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      currentUser = coordinatorB();
+      await request(app.getHttpServer())
+        .patch(`/api/cities/${CITY_A_ID}/distribution-days/${publishedDay.id}`)
+        .send({ notesForVolunteers: 'Nope' })
+        .expect(404);
     });
   });
 

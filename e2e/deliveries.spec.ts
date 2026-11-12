@@ -58,6 +58,9 @@ test.describe('Distribution day deliveries', () => {
 
     await page.goto(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
     await expect(page.getByTestId('volunteer-deliveries-page')).toBeVisible();
+    await expect(page.getByTestId('day-volunteer-notes')).toContainText(
+      'Bring a folding cart'
+    );
     const card = page.getByTestId('volunteer-delivery-card');
     await expect(card.getByText('Rivkah Levi')).toBeVisible();
     await expect(card.getByText('12 Example St 12')).toBeVisible();

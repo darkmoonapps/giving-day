@@ -90,6 +90,7 @@ describe('create-day-form', () => {
   it('recognizes create-day validation keys', () => {
     expect(isCreateDayValidationKey('required')).toBe(true);
     expect(isCreateDayValidationKey('invalid_time_range')).toBe(true);
+    expect(isCreateDayValidationKey('too_long')).toBe(true);
     expect(isCreateDayValidationKey('invalid_slug')).toBe(false);
   });
 });

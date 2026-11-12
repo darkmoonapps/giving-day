@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -42,6 +43,7 @@ import {
 import { DistributionDayDashboardDto } from './dto/distribution-day-dashboard-response.dto';
 import { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
 import { RespondToDistributionDayDto } from './dto/respond-to-distribution-day.dto';
+import { UpdateDistributionDayDto } from './dto/update-distribution-day.dto';
 
 @ApiTags('distribution-days')
 @ApiBearerAuth()
@@ -84,6 +86,26 @@ export class DistributionDaysController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<DistributionDay> {
     return this.distributionDaysService.open(cityId, dto, user);
+  }
+
+  @Patch(':dayId')
+  @RequireAbilities({ action: 'update', subject: 'DistributionDay' })
+  @ApiBody({ type: UpdateDistributionDayDto })
+  @ApiOperation({
+    operationId: 'updateDistributionDay',
+    summary:
+      'Update start/end hours and the volunteer-facing note on an existing day',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'dayId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: DistributionDayResponseDto })
+  async update(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @Param('dayId', ParseUUIDPipe) dayId: string,
+    @Body() dto: UpdateDistributionDayDto,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<DistributionDay> {
+    return this.distributionDaysService.update(cityId, dayId, dto, user);
   }
 
   @Get(':dayId')

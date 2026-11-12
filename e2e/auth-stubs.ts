@@ -36,6 +36,10 @@ function fakeUserPayload(options: StubUserOptions): Record<string, unknown> {
   };
 }
 
+function withSeconds(value: string): string {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 function jsonFulfill(route: Route, payload: unknown): Promise<void> {
   return route.fulfill({
     status: 200,
@@ -167,6 +171,7 @@ export async function stubDistributionDayApi(
       elder: StubDeliveryElder;
     }>;
     onAssign?: (body: Record<string, unknown>) => void;
+    onUpdateDay?: (body: Record<string, unknown>) => void;
     onUpdateStatus?: (body: Record<string, unknown>) => void;
     cityNameHe?: string;
     cityNameEn?: string;
@@ -229,7 +234,7 @@ export async function stubDistributionDayApi(
     date: '2026-11-15',
     startTime: '09:00:00',
     endTime: '14:00:00',
-    notesForVolunteers: 'Bring a folding cart',
+    notesForVolunteers: 'Bring a folding cart' as string | null,
     addOns: ['holiday honey'],
     status: 'published',
     publishedAt: '2026-10-28T09:00:00.000Z',
@@ -238,11 +243,67 @@ export async function stubDistributionDayApi(
       options.myParticipation === undefined ? null : options.myParticipation,
   };
   const volunteerDeliveries = [...(options.volunteerDeliveries ?? [])];
+  const dashboard = options.dashboard ?? {
+    dayId: DAY_ID,
+    cityId: CITY_A_ID,
+    date: '2026-11-15',
+    startTime: '09:00:00',
+    endTime: '14:00:00',
+    status: 'published',
+    volunteers: {
+      total: 3,
+      confirmed: 1,
+      pending: 1,
+      declined: 1,
+    },
+    deliveries: {
+      unassigned: 1,
+      assigned: 1,
+      picked: 1,
+      delivered: 1,
+      notDelivered: 1,
+      cancelled: 0,
+    },
+    unassignedElders: [
+      {
+        elderId: '13131313-1313-4131-8131-131313131313',
+        fullName: 'Yosef Abraham',
+      },
+    ],
+  };
 
   await page.route('**/api/cities/*/distribution-days/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();
+    const dayPath = url.pathname.split('/distribution-days/')[1] ?? '';
+    const isDayRoot = dayPath.split('/').filter(Boolean).length === 1;
+
+    if (method === 'PATCH' && isDayRoot) {
+      const raw = request.postData();
+      const body =
+        raw === null || raw.length === 0
+          ? {}
+          : (JSON.parse(raw) as Record<string, unknown>);
+      if (options.onUpdateDay !== undefined) {
+        options.onUpdateDay(body);
+      }
+      if (typeof body.startTime === 'string') {
+        openDay.startTime = withSeconds(body.startTime);
+        dashboard.startTime = openDay.startTime;
+      }
+      if (typeof body.endTime === 'string') {
+        openDay.endTime = withSeconds(body.endTime);
+        dashboard.endTime = openDay.endTime;
+      }
+      if (body.notesForVolunteers === null) {
+        openDay.notesForVolunteers = null;
+      } else if (typeof body.notesForVolunteers === 'string') {
+        openDay.notesForVolunteers = body.notesForVolunteers;
+      }
+      await jsonFulfill(route, openDay);
+      return;
+    }
 
     if (method === 'POST' && url.pathname.endsWith('/participations')) {
       const raw = request.postData();
@@ -269,37 +330,7 @@ export async function stubDistributionDayApi(
     }
 
     if (method === 'GET' && url.pathname.endsWith('/dashboard')) {
-      await jsonFulfill(
-        route,
-        options.dashboard ?? {
-          dayId: DAY_ID,
-          cityId: CITY_A_ID,
-          date: '2026-11-15',
-          startTime: '09:00:00',
-          endTime: '14:00:00',
-          status: 'published',
-          volunteers: {
-            total: 3,
-            confirmed: 1,
-            pending: 1,
-            declined: 1,
-          },
-          deliveries: {
-            unassigned: 1,
-            assigned: 1,
-            picked: 1,
-            delivered: 1,
-            notDelivered: 1,
-            cancelled: 0,
-          },
-          unassignedElders: [
-            {
-              elderId: '13131313-1313-4131-8131-131313131313',
-              fullName: 'Yosef Abraham',
-            },
-          ],
-        }
-      );
+      await jsonFulfill(route, dashboard);
       return;
     }
 

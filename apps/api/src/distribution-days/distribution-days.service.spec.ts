@@ -709,6 +709,123 @@ describe('DistributionDaysService', () => {
     });
   });
 
+  describe('update', () => {
+    it('updates hours and the volunteer note on a published Holon day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.distributionDay.update.mockResolvedValue({
+        ...publishedDay,
+        startTime: new Date(Date.UTC(1970, 0, 1, 8, 0, 0)),
+        endTime: new Date(Date.UTC(1970, 0, 1, 13, 0, 0)),
+        notesForVolunteers: 'Pick up an additional blanket/package',
+      });
+
+      const result = await service.update(
+        CITY_A_ID,
+        publishedDay.id,
+        {
+          startTime: '08:00',
+          endTime: '13:00',
+          notesForVolunteers: 'Pick up an additional blanket/package',
+        },
+        coordinatorA()
+      );
+
+      expect(result.startTime).toBe('08:00:00');
+      expect(result.endTime).toBe('13:00:00');
+      expect(result.notesForVolunteers).toBe(
+        'Pick up an additional blanket/package'
+      );
+      expect(mockPrisma.distributionDay.update).toHaveBeenCalledWith({
+        where: { id: publishedDay.id },
+        data: expect.objectContaining({
+          notesForVolunteers: 'Pick up an additional blanket/package',
+        }),
+      });
+    });
+
+    it('keeps existing hours when only the volunteer note changes', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+      mockPrisma.distributionDay.update.mockResolvedValue({
+        ...publishedDay,
+        notesForVolunteers: null,
+      });
+
+      const result = await service.update(
+        CITY_A_ID,
+        publishedDay.id,
+        { notesForVolunteers: '   ' },
+        coordinatorA()
+      );
+
+      expect(result.startTime).toBe('09:00:00');
+      expect(result.notesForVolunteers).toBeNull();
+      expect(mockPrisma.distributionDay.update).toHaveBeenCalledWith({
+        where: { id: publishedDay.id },
+        data: expect.objectContaining({
+          notesForVolunteers: null,
+        }),
+      });
+    });
+
+    it('rejects a reversed time range', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);
+
+      await expect(
+        service.update(
+          CITY_A_ID,
+          publishedDay.id,
+          { startTime: '14:00', endTime: '09:00' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.distributionDay.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty update', async () => {
+      await expect(
+        service.update(CITY_A_ID, publishedDay.id, {}, coordinatorA())
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.distributionDay.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects updates on a closed day', async () => {
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(closedDay);
+
+      await expect(
+        service.update(
+          CITY_A_ID,
+          closedDay.id,
+          { notesForVolunteers: 'Too late' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.distributionDay.update).not.toHaveBeenCalled();
+    });
+
+    it('hides another city from a coordinator', async () => {
+      await expect(
+        service.update(
+          CITY_A_ID,
+          publishedDay.id,
+          { notesForVolunteers: 'Nope' },
+          coordinatorB()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockPrisma.distributionDay.update).not.toHaveBeenCalled();
+    });
+
+    it('forbids a volunteer from updating a day', async () => {
+      await expect(
+        service.update(
+          CITY_A_ID,
+          publishedDay.id,
+          { notesForVolunteers: 'Nope' },
+          volunteerA()
+        )
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
   describe('close', () => {
     it('closes a published day', async () => {
       mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);

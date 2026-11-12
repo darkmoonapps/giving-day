@@ -10,6 +10,7 @@
   "invalid_time_range": "End time must be after start time",
   "invalid_slug": "Use lowercase letters, numbers, and hyphens only",
   "slug_too_long": "Use at most 64 characters",
+  "too_long": "Use at most 4000 characters",
   "invalid_timezone": "Enter a valid IANA time zone, for example Asia/Jerusalem",
   "no_changes": "Change at least one detail before submitting."
 }

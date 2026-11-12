@@ -135,4 +135,60 @@ test.describe('Coordinator distribution-day dashboard', () => {
     await expect(page.getByTestId('filter-status')).toHaveValue('unassigned');
     await expect(page.getByText('Yosef Abraham')).toBeVisible();
   });
+
+  test('coordinator updates Holon day hours and the volunteer note', async ({
+    page,
+  }) => {
+    const patches: Record<string, unknown>[] = [];
+
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+    await stubDistributionDayApi(page, {
+      onUpdateDay: (body) => {
+        patches.push(body);
+      },
+    });
+
+    await page.goto('/');
+    await page.getByTestId('view-dashboard').click();
+    await expect(page.getByTestId('day-details-form')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByTestId('day-details-start-time')).toHaveValue(
+      '09:00'
+    );
+    await expect(page.getByTestId('day-details-notes')).toHaveValue(
+      'Bring a folding cart'
+    );
+
+    await page.getByTestId('day-details-start-time').fill('08:00');
+    await page.getByTestId('day-details-end-time').fill('13:00');
+    await page
+      .getByTestId('day-details-notes')
+      .fill('Pick up an additional blanket/package');
+    await page.getByTestId('save-day-details').click();
+
+    await expect(page.getByTestId('day-details-success')).toBeVisible();
+    expect(patches).toEqual([
+      {
+        startTime: '08:00',
+        endTime: '13:00',
+        notesForVolunteers: 'Pick up an additional blanket/package',
+      },
+    ]);
+    await expect(page.getByText('08:00 – 13:00')).toBeVisible();
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.getByText('Day hours and notes')).toBeVisible();
+  });
 });

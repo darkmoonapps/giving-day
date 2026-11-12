@@ -11,10 +11,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  useGetDistributionDay,
   useGetDistributionDayDashboard,
   useListDayParticipations,
   type DayParticipationCoordinatorRowDto,
 } from '../api/generated/api';
+import { CoordinatorDayDetailsForm } from '../distribution-days/coordinator-day-details-form';
 import {
   formatDayHours,
   formatDistributionDate,
@@ -98,6 +100,9 @@ export function CoordinatorDayDashboardPage(): JSX.Element {
     dayId ?? '',
     { query: { enabled: allowed } }
   );
+  const dayQuery = useGetDistributionDay(cityId ?? '', dayId ?? '', {
+    query: { enabled: allowed },
+  });
   const responsesQuery = useListDayParticipations(cityId ?? '', dayId ?? '', {
     query: { enabled: allowed },
   });
@@ -160,12 +165,30 @@ export function CoordinatorDayDashboardPage(): JSX.Element {
                 {formatDistributionDate(dashboard.date, language)}
               </AppText>
               <AppText c="dimmed">
-                {formatDayHours(dashboard.startTime, dashboard.endTime)}
+                {formatDayHours(
+                  dayQuery.data?.startTime ?? dashboard.startTime,
+                  dayQuery.data?.endTime ?? dashboard.endTime
+                )}
               </AppText>
               <AppText c="dimmed" mt="sm">
                 {t('dashboard_subtitle')}
               </AppText>
             </div>
+
+            {dayQuery.isError ? (
+              <AppAlert color="red" title={tCommon('error.unexpected_title')}>
+                {t('day_details_load_error')}
+              </AppAlert>
+            ) : dayQuery.isLoading || dayQuery.data === undefined ? (
+              <LoadingState label={tCommon('loading')} />
+            ) : cityId !== undefined && dayId !== undefined ? (
+              <CoordinatorDayDetailsForm
+                key={dayId}
+                cityId={cityId}
+                dayId={dayId}
+                day={dayQuery.data}
+              />
+            ) : null}
 
             <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
               <StatCard
