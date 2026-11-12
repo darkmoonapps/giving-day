@@ -14,6 +14,7 @@ import {
   normalizePhoneToE164,
   distributionDayDashboardSchema,
   openDistributionDaySchema,
+  updateDistributionDaySchema,
   parseDateOnly,
   respondToDistributionDaySchema,
   assignDeliverySchema,
@@ -58,6 +59,11 @@ describe('shared public exports', () => {
     expect(openDistributionDaySchema.parse({ date: '2026-11-15' }).date).toBe(
       '2026-11-15'
     );
+    expect(
+      updateDistributionDaySchema.parse({
+        notesForVolunteers: 'Pick up an additional blanket/package',
+      }).notesForVolunteers
+    ).toBe('Pick up an additional blanket/package');
     expect(
       distributionDayDashboardSchema.parse({
         dayId: '33333333-3333-4333-8333-333333333333',

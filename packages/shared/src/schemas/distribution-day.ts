@@ -51,6 +51,8 @@ export const distributionDaysResponseSchema = z.object({
   ),
 });
 
+export const NOTES_FOR_VOLUNTEERS_MAX_LENGTH = 4000;
+
 function timeOfDayToMinutes(value: string): number {
   const [hoursText, minutesText] = value.split(':');
   return Number(hoursText) * 60 + Number(minutesText);
@@ -61,7 +63,11 @@ export const openDistributionDaySchema = z
     date: dateOnlySchema,
     startTime: timeOfDaySchema.optional(),
     endTime: timeOfDaySchema.optional(),
-    notesForVolunteers: z.string().max(4000).nullable().optional(),
+    notesForVolunteers: z
+      .string()
+      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
+      .nullable()
+      .optional(),
     internalNotes: z.string().max(4000).nullable().optional(),
     addOns: z.array(z.string().max(200)).max(20).optional(),
   })
@@ -80,6 +86,24 @@ export const openDistributionDaySchema = z
     }
   });
 
+export const updateDistributionDaySchema = z
+  .object({
+    startTime: timeOfDaySchema.optional(),
+    endTime: timeOfDaySchema.optional(),
+    notesForVolunteers: z
+      .string()
+      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
+      .nullable()
+      .optional(),
+  })
+  .refine(
+    (value) =>
+      value.startTime !== undefined ||
+      value.endTime !== undefined ||
+      value.notesForVolunteers !== undefined,
+    'validation.no_changes'
+  );
+
 export type DayStatus = z.infer<typeof dayStatusSchema>;
 export type OpenDayStatus = z.infer<typeof openDayStatusSchema>;
 export type DistributionDayVolunteer = z.infer<
@@ -94,3 +118,4 @@ export type DistributionDaysResponse = z.infer<
   typeof distributionDaysResponseSchema
 >;
 export type OpenDistributionDay = z.infer<typeof openDistributionDaySchema>;
+export type UpdateDistributionDay = z.infer<typeof updateDistributionDaySchema>;

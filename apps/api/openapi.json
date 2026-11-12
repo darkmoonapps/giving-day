@@ -864,6 +864,60 @@
       }
     },
     "/api/cities/{cityId}/distribution-days/{dayId}": {
+      "patch": {
+        "operationId": "updateDistributionDay",
+        "parameters": [
+          {
+            "name": "dayId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDistributionDayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionDayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update start/end hours and the volunteer-facing note on an existing day",
+        "tags": [
+          "distribution-days"
+        ]
+      },
       "get": {
         "operationId": "getDistributionDay",
         "parameters": [
@@ -2888,6 +2942,24 @@
         "required": [
           "date"
         ]
+      },
+      "UpdateDistributionDayDto": {
+        "type": "object",
+        "properties": {
+          "startTime": {
+            "type": "string",
+            "example": "08:00"
+          },
+          "endTime": {
+            "type": "string",
+            "example": "13:00"
+          },
+          "notesForVolunteers": {
+            "type": "string",
+            "example": "Pick up an additional blanket/package",
+            "nullable": true
+          }
+        }
       },
       "DashboardVolunteerCountsDto": {
         "type": "object",

@@ -15,6 +15,17 @@ export const HOLON_NAVIGATION = {
   centerAddress: '10 Warehouse Rd, Holon',
 };
 
+function withSeconds(value: string): string {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
+function nextDayNotes(value: unknown, current: string | null): string | null {
+  if (value === undefined) {
+    return current;
+  }
+  return typeof value === 'string' ? value : null;
+}
+
 export const HOLON_CENTER_COORD = { lat: 32.0114, lng: 34.7748 };
 export const RIVKAH_COORD = { lat: 32.0188, lng: 34.7792 };
 export const YOSEF_COORD = { lat: 32.026, lng: 34.79 };
@@ -388,6 +399,8 @@ export interface DayFetchStub extends AuthFetchStub {
   settingsStatus?: number;
   openStatus?: number;
   openCode?: string;
+  updateDay?:
+    ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
 }
 
 export const holonCitySettingsForDay = {
@@ -421,6 +434,40 @@ export function createDayFetchMock(
   ): Promise<Response> => {
     const url = String(input);
     const method = init?.method ?? 'GET';
+
+    if (
+      method === 'PATCH' &&
+      url.includes(`/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}`) &&
+      !url.includes('/deliveries') &&
+      !url.includes('/participations')
+    ) {
+      if (options.updateDay === 'error') {
+        return mockJsonResponse({ message: 'error' }, 500);
+      }
+      const body =
+        typeof init?.body === 'string'
+          ? (JSON.parse(init.body) as Record<string, unknown>)
+          : {};
+      if (typeof options.updateDay === 'function') {
+        return mockJsonResponse(options.updateDay(body));
+      }
+      currentDay = {
+        ...currentDay,
+        startTime:
+          typeof body.startTime === 'string'
+            ? withSeconds(body.startTime)
+            : currentDay.startTime,
+        endTime:
+          typeof body.endTime === 'string'
+            ? withSeconds(body.endTime)
+            : currentDay.endTime,
+        notesForVolunteers: nextDayNotes(
+          body.notesForVolunteers,
+          currentDay.notesForVolunteers
+        ),
+      };
+      return mockJsonResponse(currentDay);
+    }
 
     if (
       method === 'PATCH' &&

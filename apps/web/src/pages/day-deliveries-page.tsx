@@ -22,6 +22,7 @@ import {
   UNASSIGNED_FILTER,
 } from '../deliveries/delivery-list-query';
 import { VolunteerAssignedDeliveries } from '../deliveries/volunteer-assigned-deliveries';
+import { DayVolunteerNotes } from '../distribution-days/day-volunteer-notes';
 import {
   formatDayHours,
   formatDistributionDate,
@@ -175,6 +176,7 @@ function VolunteerDeliveries({
             <AppText c="dimmed" mt="sm">
               {t('deliveries_subtitle')}
             </AppText>
+            <DayVolunteerNotes notes={day.notesForVolunteers} />
           </div>
 
           {!confirmed ? (

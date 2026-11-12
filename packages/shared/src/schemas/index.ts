@@ -102,8 +102,10 @@ export {
   distributionDayCoordinatorSchema,
   distributionDaysResponseSchema,
   distributionDayVolunteerSchema,
+  NOTES_FOR_VOLUNTEERS_MAX_LENGTH,
   openDayStatusSchema,
   openDistributionDaySchema,
+  updateDistributionDaySchema,
   type DayStatus,
   type DistributionDay,
   type DistributionDayCoordinator,
@@ -111,6 +113,7 @@ export {
   type DistributionDayVolunteer,
   type OpenDayStatus,
   type OpenDistributionDay,
+  type UpdateDistributionDay,
 } from './distribution-day';
 
 export {

@@ -4,6 +4,7 @@ import {
   distributionDayCoordinatorSchema,
   distributionDayVolunteerSchema,
   openDistributionDaySchema,
+  updateDistributionDaySchema,
 } from './distribution-day';
 
 describe('distribution-day schemas', () => {
@@ -89,5 +90,23 @@ describe('distribution-day schemas', () => {
       internalNotes: 'Need extra rice bags',
       addOns: ['holiday honey'],
     });
+  });
+
+  it('accepts a partial update of hours and volunteer notes', () => {
+    expect(
+      updateDistributionDaySchema.parse({
+        startTime: '08:00',
+        endTime: '13:00',
+        notesForVolunteers: 'Pick up an additional blanket/package',
+      })
+    ).toEqual({
+      startTime: '08:00',
+      endTime: '13:00',
+      notesForVolunteers: 'Pick up an additional blanket/package',
+    });
+    expect(
+      updateDistributionDaySchema.parse({ notesForVolunteers: null })
+    ).toEqual({ notesForVolunteers: null });
+    expect(updateDistributionDaySchema.safeParse({}).success).toBe(false);
   });
 });

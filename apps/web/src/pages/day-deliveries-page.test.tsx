@@ -65,6 +65,9 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByText(/Tamar Levi/)).toBeInTheDocument();
       expect(screen.getByText('+972506666666')).toBeInTheDocument();
       expect(screen.getByTestId('mark-picked')).toBeInTheDocument();
+      expect(screen.getByTestId('day-volunteer-notes')).toHaveTextContent(
+        'Bring a folding cart'
+      );
       expect(screen.queryByTestId('assign-delivery')).not.toBeInTheDocument();
     });
 

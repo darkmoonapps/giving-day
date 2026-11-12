@@ -13,6 +13,7 @@ import {
   openDayStatusSchema,
   ownDayParticipationSchema,
   respondToDistributionDaySchema,
+  updateDistributionDaySchema,
   type DayParticipationsResponse,
   type DistributionDay as DistributionDayDto,
   type DistributionDayDashboard,
@@ -48,9 +49,20 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { OpenDistributionDayDto } from './dto/open-distribution-day.dto';
 import type { RespondToDistributionDayDto } from './dto/respond-to-distribution-day.dto';
+import type { UpdateDistributionDayDto } from './dto/update-distribution-day.dto';
 
 const OPEN_STATUSES = openDayStatusSchema.options;
 const CLOSEABLE_STATUSES = new Set(['published', 'in_progress']);
+const EDITABLE_STATUSES = new Set(['draft', 'published', 'in_progress']);
+
+function trimToNull(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
 
 interface DeliveryCountTotals {
   unassigned: number;
@@ -168,6 +180,54 @@ export class DistributionDaysService {
 
     await this.notificationsService.announceDistributionDay(created);
     return this.toDto(created, true);
+  }
+
+  async update(
+    cityId: string,
+    dayId: string,
+    dto: UpdateDistributionDayDto,
+    actor: UserWithMemberships
+  ): Promise<DistributionDayDto> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'update', 'DistributionDay', cityId);
+    await this.requireCity(cityId);
+
+    const parsed = updateDistributionDaySchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('distribution_days.invalid_update');
+    }
+
+    const day = await this.requireDay(cityId, dayId);
+    if (!EDITABLE_STATUSES.has(day.status)) {
+      throw new BadRequestException('distribution_days.cannot_update');
+    }
+
+    const startTime = normalizeTime(
+      parsed.data.startTime ?? formatTime(day.startTime)
+    );
+    const endTime = normalizeTime(
+      parsed.data.endTime ?? formatTime(day.endTime)
+    );
+
+    if (timeToSeconds(startTime) >= timeToSeconds(endTime)) {
+      throw new BadRequestException('distribution_days.invalid_time_range');
+    }
+
+    const notesForVolunteers =
+      parsed.data.notesForVolunteers === undefined
+        ? day.notesForVolunteers
+        : trimToNull(parsed.data.notesForVolunteers);
+
+    const updated = await this.prisma.distributionDay.update({
+      where: { id: day.id },
+      data: {
+        startTime: parseTime(startTime),
+        endTime: parseTime(endTime),
+        notesForVolunteers,
+      },
+    });
+
+    return this.toDto(updated, true);
   }
 
   async list(

@@ -14,6 +14,7 @@ import {
   useGetDistributionDay,
   useRespondToDistributionDay,
 } from '../api/generated/api';
+import { DayVolunteerNotes } from '../distribution-days/day-volunteer-notes';
 import {
   formatDayHours,
   formatDistributionDate,
@@ -157,13 +158,7 @@ export function VolunteerDayPage(): JSX.Element {
               </AppText>
             </div>
 
-            {day.notesForVolunteers !== null &&
-            day.notesForVolunteers.length > 0 ? (
-              <div>
-                <AppText fw={600}>{t('notes_label')}</AppText>
-                <AppText mt="xs">{day.notesForVolunteers}</AppText>
-              </div>
-            ) : null}
+            <DayVolunteerNotes notes={day.notesForVolunteers} />
 
             {day.addOns.length > 0 ? (
               <div>

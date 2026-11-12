@@ -80,7 +80,9 @@ describe('VolunteerDayPage', () => {
     renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}`);
 
     expect(await screen.findByTestId('volunteer-day-page')).toBeInTheDocument();
-    expect(await screen.findByText('Bring a folding cart')).toBeInTheDocument();
+    expect(await screen.findByTestId('day-volunteer-notes')).toHaveTextContent(
+      'Bring a folding cart'
+    );
     await user.click(await screen.findByTestId('confirm-participation'));
 
     const fireworks = await screen.findByTestId('fireworks-thank-you');

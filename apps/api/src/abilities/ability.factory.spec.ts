@@ -179,6 +179,7 @@ describe('AbilityFactory', () => {
       const ability = factory.createForUser(coordinatorUser);
 
       expect(ability.can('create', 'DistributionDay')).toBe(true);
+      expect(ability.can('update', 'DistributionDay')).toBe(true);
       expect(ability.can('publish', 'DistributionDay')).toBe(true);
       expect(ability.can('close', 'DistributionDay')).toBe(true);
       expect(ability.can('read', 'DayParticipation')).toBe(true);
@@ -200,12 +201,21 @@ describe('AbilityFactory', () => {
       expect(
         ability.can('create', subject('DistributionDay', { cityId }))
       ).toBe(true);
+      expect(
+        ability.can('update', subject('DistributionDay', { cityId }))
+      ).toBe(true);
       expect(ability.can('close', subject('DistributionDay', { cityId }))).toBe(
         true
       );
       expect(
         ability.can(
           'create',
+          subject('DistributionDay', { cityId: 'city-other' })
+        )
+      ).toBe(false);
+      expect(
+        ability.can(
+          'update',
           subject('DistributionDay', { cityId: 'city-other' })
         )
       ).toBe(false);
@@ -409,6 +419,7 @@ describe('AbilityFactory', () => {
         )
       ).toBe(false);
       expect(ability.can('create', 'DistributionDay')).toBe(false);
+      expect(ability.can('update', 'DistributionDay')).toBe(false);
       expect(ability.can('publish', 'DistributionDay')).toBe(false);
       expect(ability.can('close', 'DistributionDay')).toBe(false);
     });
