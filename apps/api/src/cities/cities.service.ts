@@ -1051,7 +1051,7 @@ export class CitiesService {
       select: { id: true },
     });
     if (!day) {
-      throw new NotFoundException('cities.not_found');
+      throw new NotFoundException('distribution_days.not_found');
     }
   }
 

@@ -1186,6 +1186,17 @@ describe('CitiesService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
+    it('returns distribution day not found when dayId is missing', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.listVolunteers(CITY_A_ID, { dayId: DAY_ID }, coordinatorA())
+      ).rejects.toMatchObject({
+        message: 'distribution_days.not_found',
+      });
+    });
+
     it('hides another city and forbids volunteers', async () => {
       await expect(
         service.listVolunteers(CITY_A_ID, {}, coordinatorB())
