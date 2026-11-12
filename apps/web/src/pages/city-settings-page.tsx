@@ -28,6 +28,7 @@ import {
 import { isUuid } from '../distribution-days/format-day';
 import { AppChrome } from '../layout/app-chrome';
 import { CityJoinLinksSection } from './city-join-links-section';
+import { CityMessageTemplatesSection } from './city-message-templates-section';
 
 function validationMessage(t: TFunction<'validation'>, key: string): string {
   return t(isCitySettingsValidationKey(key) ? key : 'required');
@@ -153,6 +154,9 @@ export function CitySettingsPage(): JSX.Element {
             </div>
             {cityId !== undefined ? (
               <CityJoinLinksSection cityId={cityId} />
+            ) : null}
+            {cityId !== undefined ? (
+              <CityMessageTemplatesSection cityId={cityId} />
             ) : null}
             {settingsQuery.isError ? (
               <AppAlert color="red" title={tCommon('error.unexpected_title')}>

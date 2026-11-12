@@ -200,10 +200,61 @@ describe('CitySettingsPage', () => {
     ).toBe(false);
     expect(screen.queryByTestId('city-join-links')).not.toBeInTheDocument();
     expect(
+      screen.queryByTestId('city-message-templates')
+    ).not.toBeInTheDocument();
+    expect(
       fetchMock.mock.calls.some((call) =>
         String(call[0]).includes(`/api/cities/${CITY_A_ID}/join-links`)
       )
     ).toBe(false);
+    expect(
+      fetchMock.mock.calls.some((call) =>
+        String(call[0]).includes(`/api/cities/${CITY_A_ID}/message-templates`)
+      )
+    ).toBe(false);
+  });
+
+  it('loads Holon message template defaults and saves a Hebrew override', async () => {
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup({ delay: null });
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    expect(
+      await screen.findByTestId('city-message-templates')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('message-template-day_invite-he')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('template-placeholders-day_invite')
+    ).toHaveTextContent('{{date}}');
+
+    const title = screen
+      .getByTestId('message-template-day_invite-he')
+      .querySelector('input[name="title"]');
+    expect(title).toBeInstanceOf(HTMLInputElement);
+
+    await user.clear(title as HTMLInputElement);
+    await user.type(title as HTMLInputElement, 'יום חלוקה בחולון');
+    await user.click(screen.getByTestId('save-message-template-day_invite'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('message-template-success-day_invite')
+      ).toBeInTheDocument();
+    });
+
+    const upsertCall = fetchMock.mock.calls.find(
+      (call) =>
+        String(call[0]).includes(
+          `/api/cities/${CITY_A_ID}/message-templates/day_invite/he`
+        ) && call[1]?.method === 'PUT'
+    );
+    expect(upsertCall).toBeDefined();
+    expect(JSON.parse(String(upsertCall?.[1]?.body))).toMatchObject({
+      title: 'יום חלוקה בחולון',
+    });
   });
 
   it('shows a previously revealed Holon volunteer URL without regenerating', async () => {

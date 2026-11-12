@@ -300,6 +300,21 @@ export {
   type VapidPublicKey,
 } from './schemas/notifications';
 export {
+  MESSAGE_TEMPLATE_PLACEHOLDERS,
+  TEMPLATE_KEYS,
+  defaultMessageCopyFor,
+  messageTemplateSchema,
+  messageTemplatesResponseSchema,
+  placeholdersFor,
+  renderMessageTemplate,
+  upsertMessageTemplateSchema,
+  type MessageCopy,
+  type MessageTemplate,
+  type MessageTemplatePlaceholder,
+  type MessageTemplatesResponse,
+  type UpsertMessageTemplate,
+} from './schemas/message-templates';
+export {
   createSentryInitConfig,
   isSentryDsnConfigured,
   SENTRY_SEND_DEFAULT_PII,

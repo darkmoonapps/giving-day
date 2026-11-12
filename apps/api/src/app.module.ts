@@ -9,6 +9,7 @@ import { DistributionDaysModule } from './distribution-days/distribution-days.mo
 import { ElderChangeRequestsModule } from './elder-change-requests/elder-change-requests.module';
 import { EldersModule } from './elders/elders.module';
 import { MatchesModule } from './matches/matches.module';
+import { MessageTemplatesModule } from './message-templates/message-templates.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     CitiesModule,
     NotificationsModule,
+    MessageTemplatesModule,
     DistributionDaysModule,
     DeliveriesModule,
     EldersModule,

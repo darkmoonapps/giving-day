@@ -325,6 +325,51 @@ export interface PushSubscriptionsResponseDto {
   subscriptions: PushSubscriptionResponseDto[];
 }
 
+export type MessageTemplateResponseDtoKey = typeof MessageTemplateResponseDtoKey[keyof typeof MessageTemplateResponseDtoKey];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const MessageTemplateResponseDtoKey = {
+  day_invite: 'day_invite',
+  confirm_reminder: 'confirm_reminder',
+  unpicked_warning: 'unpicked_warning',
+  final_status_reminder: 'final_status_reminder',
+  reassigned: 'reassigned',
+  change_request_reviewed: 'change_request_reviewed',
+  membership_approved: 'membership_approved',
+} as const;
+
+export type MessageTemplateResponseDtoLocale = typeof MessageTemplateResponseDtoLocale[keyof typeof MessageTemplateResponseDtoLocale];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const MessageTemplateResponseDtoLocale = {
+  he: 'he',
+  en: 'en',
+} as const;
+
+export interface MessageTemplateResponseDto {
+  /** @nullable */
+  id: string | null;
+  key: MessageTemplateResponseDtoKey;
+  locale: MessageTemplateResponseDtoLocale;
+  title: string;
+  body: string;
+  defaultTitle: string;
+  defaultBody: string;
+  isCustom: boolean;
+  placeholders: string[];
+}
+
+export interface MessageTemplatesResponseDto {
+  templates: MessageTemplateResponseDto[];
+}
+
+export interface UpsertMessageTemplateDto {
+  title: string;
+  body: string;
+}
+
 export type OwnDayParticipationDtoStatus = typeof OwnDayParticipationDtoStatus[keyof typeof OwnDayParticipationDtoStatus];
 
 
@@ -3458,6 +3503,259 @@ export const useDeletePushSubscription = <TError = unknown,
       > => {
 
       const mutationOptions = getDeletePushSubscriptionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List notification message templates for a city with default fallbacks
+ */
+export const getListCityMessageTemplatesUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/message-templates`
+}
+
+export const listCityMessageTemplates = async (cityId: string, options?: RequestInit): Promise<MessageTemplatesResponseDto> => {
+  
+  return apiFetch<MessageTemplatesResponseDto>(getListCityMessageTemplatesUrl(cityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListCityMessageTemplatesQueryKey = (cityId?: string,) => {
+    return [
+    `/api/cities/${cityId}/message-templates`
+    ] as const;
+    }
+
+    
+export const getListCityMessageTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listCityMessageTemplates>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityMessageTemplatesQueryKey(cityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityMessageTemplates>>> = ({ signal }) => listCityMessageTemplates(cityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCityMessageTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listCityMessageTemplates>>>
+export type ListCityMessageTemplatesQueryError = unknown
+
+
+export function useListCityMessageTemplates<TData = Awaited<ReturnType<typeof listCityMessageTemplates>>, TError = unknown>(
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityMessageTemplates>>,
+          TError,
+          Awaited<ReturnType<typeof listCityMessageTemplates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityMessageTemplates<TData = Awaited<ReturnType<typeof listCityMessageTemplates>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityMessageTemplates>>,
+          TError,
+          Awaited<ReturnType<typeof listCityMessageTemplates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityMessageTemplates<TData = Awaited<ReturnType<typeof listCityMessageTemplates>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List notification message templates for a city with default fallbacks
+ */
+
+export function useListCityMessageTemplates<TData = Awaited<ReturnType<typeof listCityMessageTemplates>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityMessageTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListCityMessageTemplatesQueryOptions(cityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create or update a city-specific message template override
+ */
+export const getUpsertCityMessageTemplateUrl = (cityId: string,
+    key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved',
+    locale: 'he' | 'en',) => {
+
+
+  
+
+  return `/api/cities/${cityId}/message-templates/${key}/${locale}`
+}
+
+export const upsertCityMessageTemplate = async (cityId: string,
+    key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved',
+    locale: 'he' | 'en',
+    upsertMessageTemplateDto: UpsertMessageTemplateDto, options?: RequestInit): Promise<MessageTemplateResponseDto> => {
+  
+  return apiFetch<MessageTemplateResponseDto>(getUpsertCityMessageTemplateUrl(cityId,key,locale),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      upsertMessageTemplateDto,)
+  }
+);}
+
+
+
+
+export const getUpsertCityMessageTemplateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en';data: UpsertMessageTemplateDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en';data: UpsertMessageTemplateDto}, TContext> => {
+
+const mutationKey = ['upsertCityMessageTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertCityMessageTemplate>>, {cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en';data: UpsertMessageTemplateDto}> = (props) => {
+          const {cityId,key,locale,data} = props ?? {};
+
+          return  upsertCityMessageTemplate(cityId,key,locale,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertCityMessageTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof upsertCityMessageTemplate>>>
+    export type UpsertCityMessageTemplateMutationBody = UpsertMessageTemplateDto
+    export type UpsertCityMessageTemplateMutationError = unknown
+
+    /**
+ * @summary Create or update a city-specific message template override
+ */
+export const useUpsertCityMessageTemplate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en';data: UpsertMessageTemplateDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertCityMessageTemplate>>,
+        TError,
+        {cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en';data: UpsertMessageTemplateDto},
+        TContext
+      > => {
+
+      const mutationOptions = getUpsertCityMessageTemplateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Remove a city override and fall back to the default template
+ */
+export const getResetCityMessageTemplateUrl = (cityId: string,
+    key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved',
+    locale: 'he' | 'en',) => {
+
+
+  
+
+  return `/api/cities/${cityId}/message-templates/${key}/${locale}`
+}
+
+export const resetCityMessageTemplate = async (cityId: string,
+    key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved',
+    locale: 'he' | 'en', options?: RequestInit): Promise<MessageTemplateResponseDto> => {
+  
+  return apiFetch<MessageTemplateResponseDto>(getResetCityMessageTemplateUrl(cityId,key,locale),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getResetCityMessageTemplateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en'}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en'}, TContext> => {
+
+const mutationKey = ['resetCityMessageTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetCityMessageTemplate>>, {cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en'}> = (props) => {
+          const {cityId,key,locale} = props ?? {};
+
+          return  resetCityMessageTemplate(cityId,key,locale,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetCityMessageTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof resetCityMessageTemplate>>>
+    
+    export type ResetCityMessageTemplateMutationError = unknown
+
+    /**
+ * @summary Remove a city override and fall back to the default template
+ */
+export const useResetCityMessageTemplate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetCityMessageTemplate>>, TError,{cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en'}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resetCityMessageTemplate>>,
+        TError,
+        {cityId: string;key: 'day_invite' | 'confirm_reminder' | 'unpicked_warning' | 'final_status_reminder' | 'reassigned' | 'change_request_reviewed' | 'membership_approved';locale: 'he' | 'en'},
+        TContext
+      > => {
+
+      const mutationOptions = getResetCityMessageTemplateMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
