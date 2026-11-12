@@ -781,6 +781,183 @@
         ]
       }
     },
+    "/api/cities/{cityId}/message-templates": {
+      "get": {
+        "operationId": "listCityMessageTemplates",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageTemplatesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List notification message templates for a city with default fallbacks",
+        "tags": [
+          "message-templates"
+        ]
+      }
+    },
+    "/api/cities/{cityId}/message-templates/{key}/{locale}": {
+      "put": {
+        "operationId": "upsertCityMessageTemplate",
+        "parameters": [
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "he",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "day_invite",
+                "confirm_reminder",
+                "unpicked_warning",
+                "final_status_reminder",
+                "reassigned",
+                "change_request_reviewed",
+                "membership_approved"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMessageTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update a city-specific message template override",
+        "tags": [
+          "message-templates"
+        ]
+      },
+      "delete": {
+        "operationId": "resetCityMessageTemplate",
+        "parameters": [
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "he",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "day_invite",
+                "confirm_reminder",
+                "unpicked_warning",
+                "final_status_reminder",
+                "reassigned",
+                "change_request_reviewed",
+                "membership_approved"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a city override and fall back to the default template",
+        "tags": [
+          "message-templates"
+        ]
+      }
+    },
     "/api/cities/{cityId}/distribution-days": {
       "get": {
         "operationId": "listDistributionDays",
@@ -2740,6 +2917,111 @@
         },
         "required": [
           "subscriptions"
+        ]
+      },
+      "MessageTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "key": {
+            "type": "string",
+            "enum": [
+              "day_invite",
+              "confirm_reminder",
+              "unpicked_warning",
+              "final_status_reminder",
+              "reassigned",
+              "change_request_reviewed",
+              "membership_approved"
+            ],
+            "example": "day_invite"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "he",
+              "en"
+            ],
+            "example": "he"
+          },
+          "title": {
+            "type": "string",
+            "example": "יום חלוקה"
+          },
+          "body": {
+            "type": "string",
+            "example": "האם תוכל/י לחלק ב-{{date}} בין {{startTime}} ל-{{endTime}}?"
+          },
+          "defaultTitle": {
+            "type": "string",
+            "example": "יום חלוקה"
+          },
+          "defaultBody": {
+            "type": "string",
+            "example": "האם תוכל/י לחלק ב-{{date}} בין {{startTime}} ל-{{endTime}}?"
+          },
+          "isCustom": {
+            "type": "boolean",
+            "example": false
+          },
+          "placeholders": {
+            "example": [
+              "date",
+              "startTime",
+              "endTime"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "locale",
+          "title",
+          "body",
+          "defaultTitle",
+          "defaultBody",
+          "isCustom",
+          "placeholders"
+        ]
+      },
+      "MessageTemplatesResponseDto": {
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageTemplateResponseDto"
+            }
+          }
+        },
+        "required": [
+          "templates"
+        ]
+      },
+      "UpsertMessageTemplateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "יום חלוקה בחולון"
+          },
+          "body": {
+            "type": "string",
+            "example": "האם תוכל/י לחלק בחולון ב-{{date}} בין {{startTime}} ל-{{endTime}}?"
+          }
+        },
+        "required": [
+          "title",
+          "body"
         ]
       },
       "OwnDayParticipationDto": {

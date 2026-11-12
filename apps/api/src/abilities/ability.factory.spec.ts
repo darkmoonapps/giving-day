@@ -248,6 +248,15 @@ describe('AbilityFactory', () => {
       expect(ability.can('read', 'MessageTemplate')).toBe(true);
       expect(ability.can('update', 'MessageTemplate')).toBe(true);
       expect(ability.can('delete', 'MessageTemplate')).toBe(true);
+      expect(
+        ability.can('manage', subject('MessageTemplate', { cityId }))
+      ).toBe(true);
+      expect(
+        ability.can(
+          'manage',
+          subject('MessageTemplate', { cityId: 'city-other' })
+        )
+      ).toBe(false);
     });
 
     it('should allow coordinator to read, approve, and reject change requests in their city', () => {

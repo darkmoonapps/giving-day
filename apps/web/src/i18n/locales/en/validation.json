@@ -11,6 +11,9 @@
   "invalid_slug": "Use lowercase letters, numbers, and hyphens only",
   "slug_too_long": "Use at most 64 characters",
   "too_long": "Use at most 4000 characters",
+  "title_too_long": "Use at most 200 characters",
+  "body_too_long": "Use at most 2000 characters",
+  "unknown_placeholder": "Unknown placeholder: {{token}}",
   "invalid_timezone": "Enter a valid IANA time zone, for example Asia/Jerusalem",
   "no_changes": "Change at least one detail before submitting."
 }

@@ -262,3 +262,21 @@ export {
   type UpsertPushSubscription,
   type VapidPublicKey,
 } from './notifications';
+
+export {
+  MESSAGE_TEMPLATE_PLACEHOLDERS,
+  TEMPLATE_KEYS,
+  defaultMessageCopyFor,
+  extractPlaceholders,
+  findUnknownPlaceholders,
+  messageTemplateSchema,
+  messageTemplatesResponseSchema,
+  placeholdersFor,
+  renderMessageTemplate,
+  upsertMessageTemplateSchema,
+  type MessageCopy,
+  type MessageTemplate,
+  type MessageTemplatePlaceholder,
+  type MessageTemplatesResponse,
+  type UpsertMessageTemplate,
+} from './message-templates';
