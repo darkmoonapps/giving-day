@@ -19,9 +19,12 @@ import {
   citySchema,
   citySettingsExtraSchema,
   citySettingsSchema,
+  cityVolunteerListItemSchema,
+  cityVolunteersResponseSchema,
   createCitySchema,
   httpsUrlSchema,
   joinLinkPreviewSchema,
+  listCityVolunteersQuerySchema,
   redeemJoinLinkResponseSchema,
   type City as CityDto,
   type CityCoordinator,
@@ -31,8 +34,12 @@ import {
   type CityMembershipRecord,
   type CityPendingMembershipsResponse,
   type CitySettings,
+  type CityVolunteerListItem,
+  type CityVolunteersResponse,
   type JoinLinkPreview,
+  type ListCityVolunteersQuery,
   type RedeemJoinLinkResponse,
+  type VolunteerDayResponseStatus,
 } from '@giving-day/shared';
 import {
   CityRole,
@@ -41,6 +48,7 @@ import {
   type CityInvite,
   type CityMembership,
   type CitySettings as PrismaCitySettings,
+  type ParticipationStatus,
   type User,
 } from '@prisma/client';
 import {
@@ -507,6 +515,87 @@ export class CitiesService {
     }
   }
 
+  async listVolunteers(
+    cityId: string,
+    query: ListCityVolunteersQuery,
+    actor: UserWithMemberships
+  ): Promise<CityVolunteersResponse> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'read', 'CityMembership', cityId);
+    await this.requireCity(cityId);
+
+    const parsed = listCityVolunteersQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException(
+        parsed.error.issues[0]?.message ?? 'cities.invalid_volunteer_query'
+      );
+    }
+
+    const filters = parsed.data;
+    if (filters.dayId !== undefined) {
+      await this.requireDistributionDay(cityId, filters.dayId);
+    }
+
+    const memberships = await this.prisma.cityMembership.findMany({
+      where: {
+        cityId,
+        role: 'volunteer',
+        status:
+          filters.status === undefined
+            ? { in: ['pending', 'active', 'paused'] }
+            : filters.status,
+        user: {
+          archivedAt: null,
+          ...this.volunteerSearchWhere(filters.search),
+        },
+      },
+      include: {
+        user: { select: MEMBERSHIP_USER_SELECT },
+      },
+      orderBy: [
+        { user: { lastName: 'asc' } },
+        { user: { firstName: 'asc' } },
+        { createdAt: 'asc' },
+      ],
+    });
+
+    const participationByVolunteerId =
+      filters.dayId === undefined
+        ? new Map<
+            string,
+            {
+              status: ParticipationStatus;
+              cancelReason: string | null;
+            }
+          >()
+        : await this.loadDayParticipationsByVolunteer(cityId, filters.dayId);
+
+    const volunteers = memberships
+      .map((membership) => {
+        const participation = participationByVolunteerId.get(membership.userId);
+        const dayResponseStatus =
+          filters.dayId === undefined
+            ? null
+            : this.toVolunteerDayResponseStatus(participation?.status);
+
+        return this.toVolunteerListItemDto(
+          membership,
+          dayResponseStatus,
+          dayResponseStatus === 'declined'
+            ? (participation?.cancelReason ?? null)
+            : null
+        );
+      })
+      .filter((volunteer) => {
+        if (filters.dayResponse === undefined) {
+          return true;
+        }
+        return volunteer.dayResponseStatus === filters.dayResponse;
+      });
+
+    return cityVolunteersResponseSchema.parse({ volunteers });
+  }
+
   async listPendingMemberships(
     cityId: string,
     actor: UserWithMemberships
@@ -910,6 +999,104 @@ export class CitiesService {
         ? membership.approvedAt.toISOString()
         : null,
     });
+  }
+
+  private toVolunteerListItemDto(
+    membership: MembershipWithUser,
+    dayResponseStatus: VolunteerDayResponseStatus | null,
+    cancelReason: string | null
+  ): CityVolunteerListItem {
+    return cityVolunteerListItemSchema.parse({
+      ...this.toMembershipRecordDto(membership),
+      homeArea: membership.homeArea,
+      dayResponseStatus,
+      cancelReason,
+    });
+  }
+
+  private volunteerSearchWhere(
+    search: string | undefined
+  ): Prisma.UserWhereInput {
+    if (search === undefined) {
+      return {};
+    }
+
+    const terms = search.split(/\s+/).filter((term) => term.length > 0);
+    if (terms.length === 0) {
+      return {};
+    }
+
+    const termMatchers = (term: string): Prisma.UserWhereInput['OR'] => [
+      { firstName: { contains: term, mode: 'insensitive' } },
+      { lastName: { contains: term, mode: 'insensitive' } },
+      { phone: { contains: term } },
+      { email: { contains: term, mode: 'insensitive' } },
+    ];
+
+    if (terms.length === 1) {
+      return { OR: termMatchers(terms[0] ?? search) };
+    }
+
+    return {
+      AND: terms.map((term) => ({ OR: termMatchers(term) })),
+    };
+  }
+
+  private async requireDistributionDay(
+    cityId: string,
+    dayId: string
+  ): Promise<void> {
+    const day = await this.prisma.distributionDay.findFirst({
+      where: { id: dayId, cityId },
+      select: { id: true },
+    });
+    if (!day) {
+      throw new NotFoundException('cities.not_found');
+    }
+  }
+
+  private async loadDayParticipationsByVolunteer(
+    cityId: string,
+    dayId: string
+  ): Promise<
+    Map<
+      string,
+      {
+        status: ParticipationStatus;
+        cancelReason: string | null;
+      }
+    >
+  > {
+    const participations = await this.prisma.dayParticipation.findMany({
+      where: { cityId, dayId },
+      select: {
+        volunteerId: true,
+        status: true,
+        cancelReason: true,
+      },
+    });
+
+    return new Map(
+      participations.map((participation) => [
+        participation.volunteerId,
+        {
+          status: participation.status,
+          cancelReason: participation.cancelReason,
+        },
+      ])
+    );
+  }
+
+  private toVolunteerDayResponseStatus(
+    status: ParticipationStatus | undefined
+  ): VolunteerDayResponseStatus {
+    if (status === 'confirmed') {
+      return 'confirmed';
+    }
+    if (status === 'declined' || status === 'cancelled') {
+      return 'declined';
+    }
+    return 'no_response';
   }
 
   private toCityDto(city: City): CityDto {

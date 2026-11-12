@@ -9,8 +9,11 @@ import {
   cityJoinLinkStatusSchema,
   cityMembershipRecordSchema,
   cityPendingMembershipsResponseSchema,
+  cityVolunteerListItemSchema,
+  cityVolunteersResponseSchema,
   citySettingsSchema,
   joinLinkPreviewSchema,
+  listCityVolunteersQuerySchema,
   redeemJoinLinkRequestSchema,
   redeemJoinLinkResponseSchema,
   timeOfDaySchema,
@@ -283,5 +286,53 @@ describe('city schemas', () => {
         token: 'fake-join-token',
       })
     ).toEqual(row);
+  });
+
+  it('accepts volunteer list query filters and response rows', () => {
+    expect(
+      listCityVolunteersQuerySchema.parse({
+        status: 'active',
+        search: '  Yonatan  ',
+        dayId: '55555555-5555-4555-8555-555555555555',
+        dayResponse: 'confirmed',
+      })
+    ).toEqual({
+      status: 'active',
+      search: 'Yonatan',
+      dayId: '55555555-5555-4555-8555-555555555555',
+      dayResponse: 'confirmed',
+    });
+    expect(listCityVolunteersQuerySchema.parse({}).status).toBeUndefined();
+    expect(
+      listCityVolunteersQuerySchema.safeParse({
+        dayResponse: 'declined',
+      }).success
+    ).toBe(false);
+    expect(
+      listCityVolunteersQuerySchema.safeParse({
+        status: 'unknown',
+      }).success
+    ).toBe(false);
+
+    const volunteer = {
+      membershipId: '66666666-6666-4666-8666-666666666666',
+      userId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      firstName: 'Yonatan',
+      lastName: 'Bar',
+      email: 'yonatan.bar@example.com',
+      phone: '+972502222222',
+      role: 'volunteer' as const,
+      status: 'active' as const,
+      createdAt: '2026-10-01T09:00:00.000Z',
+      approvedAt: '2026-10-01T09:00:00.000Z',
+      homeArea: 'North',
+      dayResponseStatus: 'confirmed' as const,
+      cancelReason: null,
+    };
+
+    expect(cityVolunteerListItemSchema.parse(volunteer)).toEqual(volunteer);
+    expect(
+      cityVolunteersResponseSchema.parse({ volunteers: [volunteer] })
+    ).toEqual({ volunteers: [volunteer] });
   });
 });

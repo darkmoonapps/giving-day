@@ -474,6 +474,89 @@
         ]
       }
     },
+    "/api/cities/{cityId}/volunteers": {
+      "get": {
+        "operationId": "listCityVolunteers",
+        "parameters": [
+          {
+            "name": "dayResponse",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "confirmed",
+                "declined",
+                "no_response"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "dayId",
+            "required": false,
+            "in": "query",
+            "description": "Include and optionally filter by day participation response",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Match volunteer name, phone, or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pending",
+                "active",
+                "paused",
+                "removed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityVolunteersResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List city volunteers with membership status filters, search, and optional day response filters",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
     "/api/cities/{cityId}/memberships/pending": {
       "get": {
         "operationId": "listPendingCityMemberships",
@@ -2620,6 +2703,119 @@
         },
         "required": [
           "coordinators"
+        ]
+      },
+      "CityVolunteerListItemDto": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "99999999-9999-4999-8999-999999999999"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12121212-1212-4121-8121-121212121212"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Tamar",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Shalev",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "example": "tamar.shalev@example.com",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "example": "+972506666666",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "example": "volunteer",
+            "enum": [
+              "coordinator",
+              "volunteer"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "pending",
+            "enum": [
+              "pending",
+              "active",
+              "paused",
+              "removed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-28T09:00:00.000Z"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-28T09:05:00.000Z",
+            "nullable": true
+          },
+          "homeArea": {
+            "type": "string",
+            "example": "North",
+            "nullable": true
+          },
+          "dayResponseStatus": {
+            "type": "string",
+            "example": "confirmed",
+            "enum": [
+              "confirmed",
+              "declined",
+              "no_response"
+            ],
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "example": "Out of town",
+            "nullable": true
+          }
+        },
+        "required": [
+          "membershipId",
+          "userId",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "role",
+          "status",
+          "createdAt",
+          "approvedAt",
+          "homeArea",
+          "dayResponseStatus",
+          "cancelReason"
+        ]
+      },
+      "CityVolunteersResponseDto": {
+        "type": "object",
+        "properties": {
+          "volunteers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CityVolunteerListItemDto"
+            }
+          }
+        },
+        "required": [
+          "volunteers"
         ]
       },
       "CityMembershipRecordDto": {

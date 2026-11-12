@@ -202,6 +202,48 @@ export const cityPendingMembershipsResponseSchema = z.object({
   memberships: z.array(cityMembershipRecordSchema),
 });
 
+export const VOLUNTEER_SEARCH_MAX_LENGTH = 100;
+
+export const volunteerDayResponseStatusSchema = z.enum([
+  'confirmed',
+  'declined',
+  'no_response',
+]);
+
+export const listCityVolunteersQuerySchema = z
+  .object({
+    status: membershipStatusSchema.optional(),
+    search: z
+      .string()
+      .trim()
+      .max(VOLUNTEER_SEARCH_MAX_LENGTH)
+      .optional()
+      .transform((value) =>
+        value === undefined || value.length === 0 ? undefined : value
+      ),
+    dayId: z.string().uuid().optional(),
+    dayResponse: volunteerDayResponseStatusSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.dayResponse !== undefined && value.dayId === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'cities.day_id_required_for_day_response',
+        path: ['dayId'],
+      });
+    }
+  });
+
+export const cityVolunteerListItemSchema = cityMembershipRecordSchema.extend({
+  homeArea: z.string().nullable(),
+  dayResponseStatus: volunteerDayResponseStatusSchema.nullable(),
+  cancelReason: z.string().nullable(),
+});
+
+export const cityVolunteersResponseSchema = z.object({
+  volunteers: z.array(cityVolunteerListItemSchema),
+});
+
 export type CitySlug = z.infer<typeof citySlugSchema>;
 export type CityTimezone = z.infer<typeof cityTimezoneSchema>;
 export type CreateCity = z.infer<typeof createCitySchema>;
@@ -231,5 +273,15 @@ export type RedeemJoinLinkResponse = z.infer<
 export type CityMembershipRecord = z.infer<typeof cityMembershipRecordSchema>;
 export type CityPendingMembershipsResponse = z.infer<
   typeof cityPendingMembershipsResponseSchema
+>;
+export type VolunteerDayResponseStatus = z.infer<
+  typeof volunteerDayResponseStatusSchema
+>;
+export type ListCityVolunteersQuery = z.infer<
+  typeof listCityVolunteersQuerySchema
+>;
+export type CityVolunteerListItem = z.infer<typeof cityVolunteerListItemSchema>;
+export type CityVolunteersResponse = z.infer<
+  typeof cityVolunteersResponseSchema
 >;
 export type HttpsUrl = z.infer<typeof httpsUrlSchema>;

@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,9 +21,10 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { CityRole } from '@prisma/client';
+import { CityRole, MembershipStatus } from '@prisma/client';
 import type {
   City,
   CityCoordinator,
@@ -32,6 +34,9 @@ import type {
   CityMembershipRecord,
   CityPendingMembershipsResponse,
   CitySettings,
+  CityVolunteersResponse,
+  ListCityVolunteersQuery,
+  VolunteerDayResponseStatus,
 } from '@giving-day/shared';
 import type { UserWithMemberships } from '../abilities/ability.factory';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -56,6 +61,13 @@ import {
   CityPendingMembershipsResponseDto,
 } from './dto/membership-response.dto';
 import { UpdateCitySettingsDto } from './dto/update-city-settings.dto';
+import { CityVolunteersResponseDto } from './dto/volunteer-list-response.dto';
+
+enum VolunteerDayResponseQuery {
+  confirmed = 'confirmed',
+  declined = 'declined',
+  no_response = 'no_response',
+}
 
 @ApiTags('cities')
 @ApiBearerAuth()
@@ -195,6 +207,56 @@ export class CitiesController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<void> {
     await this.citiesService.removeCoordinator(cityId, userId, user);
+  }
+
+  @Get(':cityId/volunteers')
+  @RequireAbilities({ action: 'read', subject: 'CityMembership' })
+  @ApiOperation({
+    operationId: 'listCityVolunteers',
+    summary:
+      'List city volunteers with membership status filters, search, and optional day response filters',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiQuery({ name: 'status', required: false, enum: MembershipStatus })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Match volunteer name, phone, or email',
+  })
+  @ApiQuery({
+    name: 'dayId',
+    required: false,
+    type: String,
+    format: 'uuid',
+    description: 'Include and optionally filter by day participation response',
+  })
+  @ApiQuery({
+    name: 'dayResponse',
+    required: false,
+    enum: VolunteerDayResponseQuery,
+  })
+  @ApiOkResponse({ type: CityVolunteersResponseDto })
+  async listVolunteers(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @CurrentUser() user: UserWithMemberships,
+    @Query('status', new ParseEnumPipe(MembershipStatus, { optional: true }))
+    status?: MembershipStatus,
+    @Query('search') search?: string,
+    @Query('dayId') dayId?: string,
+    @Query(
+      'dayResponse',
+      new ParseEnumPipe(VolunteerDayResponseQuery, { optional: true })
+    )
+    dayResponse?: VolunteerDayResponseStatus
+  ): Promise<CityVolunteersResponse> {
+    const query: ListCityVolunteersQuery = {
+      ...(status ? { status } : {}),
+      ...(search !== undefined ? { search } : {}),
+      ...(dayId !== undefined ? { dayId } : {}),
+      ...(dayResponse !== undefined ? { dayResponse } : {}),
+    };
+    return this.citiesService.listVolunteers(cityId, query, user);
   }
 
   @Get(':cityId/memberships/pending')
