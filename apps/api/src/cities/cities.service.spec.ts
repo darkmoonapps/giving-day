@@ -14,6 +14,8 @@ import {
   CITY_A_ID,
   CITY_B_ID,
   COORDINATOR_A_ID,
+  VOLUNTEER_A_ID,
+  VOLUNTEER_B_ID,
   coordinatorA,
   coordinatorB,
   notOnboardedUser,
@@ -77,6 +79,12 @@ describe('CitiesService', () => {
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
+    },
+    distributionDay: {
+      findFirst: vi.fn(),
+    },
+    dayParticipation: {
+      findMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -1006,6 +1014,210 @@ describe('CitiesService', () => {
 
       expect(result.status).toBe('active');
       expect(result.role).toBe('coordinator');
+    });
+  });
+
+  describe('listVolunteers', () => {
+    const DAY_ID = '55555555-5555-4555-8555-555555555555';
+
+    const activeYonatan = {
+      id: '66666666-6666-4666-8666-666666666666',
+      cityId: CITY_A_ID,
+      userId: VOLUNTEER_A_ID,
+      role: 'volunteer' as const,
+      status: 'active' as const,
+      inviteId: null,
+      approvedById: COORDINATOR_A_ID,
+      approvedAt: new Date('2026-10-01T09:00:00.000Z'),
+      homeArea: 'North',
+      coordinatorNotes: null,
+      createdAt: new Date('2026-10-01T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T09:00:00.000Z'),
+      user: {
+        id: VOLUNTEER_A_ID,
+        firstName: 'Yonatan',
+        lastName: 'Bar',
+        email: 'yonatan.bar@example.com',
+        phone: '+972502222222',
+        archivedAt: null,
+      },
+    };
+
+    const pendingTamar = {
+      id: '88888888-8888-4888-8888-888888888888',
+      cityId: CITY_A_ID,
+      userId: APPLICANT_ID,
+      role: 'volunteer' as const,
+      status: 'pending' as const,
+      inviteId: null,
+      approvedById: null,
+      approvedAt: null,
+      homeArea: null,
+      coordinatorNotes: null,
+      createdAt: new Date('2026-10-28T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-28T09:00:00.000Z'),
+      user: {
+        id: APPLICANT_ID,
+        firstName: 'Tamar',
+        lastName: 'Shalev',
+        email: 'tamar.shalev@example.com',
+        phone: '+972506666666',
+        archivedAt: null,
+      },
+    };
+
+    const declinedDana = {
+      id: '77777777-7777-4777-8777-777777777777',
+      cityId: CITY_A_ID,
+      userId: VOLUNTEER_B_ID,
+      role: 'volunteer' as const,
+      status: 'active' as const,
+      inviteId: null,
+      approvedById: COORDINATOR_A_ID,
+      approvedAt: new Date('2026-10-01T09:00:00.000Z'),
+      homeArea: 'South',
+      coordinatorNotes: null,
+      createdAt: new Date('2026-10-02T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-02T09:00:00.000Z'),
+      user: {
+        id: VOLUNTEER_B_ID,
+        firstName: 'Dana',
+        lastName: 'Levi',
+        email: 'dana.levi@example.com',
+        phone: '+972505555555',
+        archivedAt: null,
+      },
+    };
+
+    it('lists Holon volunteers with search and membership status filters', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.cityMembership.findMany.mockResolvedValue([activeYonatan]);
+
+      const result = await service.listVolunteers(
+        CITY_A_ID,
+        { status: 'active', search: 'Yonatan' },
+        coordinatorA()
+      );
+
+      expect(result.volunteers).toEqual([
+        {
+          membershipId: activeYonatan.id,
+          userId: VOLUNTEER_A_ID,
+          firstName: 'Yonatan',
+          lastName: 'Bar',
+          email: 'yonatan.bar@example.com',
+          phone: '+972502222222',
+          role: 'volunteer',
+          status: 'active',
+          createdAt: '2026-10-01T09:00:00.000Z',
+          approvedAt: '2026-10-01T09:00:00.000Z',
+          homeArea: 'North',
+          dayResponseStatus: null,
+          cancelReason: null,
+        },
+      ]);
+      expect(mockPrisma.cityMembership.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cityId: CITY_A_ID,
+            role: 'volunteer',
+            status: 'active',
+            user: expect.objectContaining({
+              archivedAt: null,
+              OR: expect.any(Array),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('filters volunteers by confirmed or declined day response', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.distributionDay.findFirst.mockResolvedValue({ id: DAY_ID });
+      mockPrisma.cityMembership.findMany.mockResolvedValue([
+        activeYonatan,
+        declinedDana,
+        pendingTamar,
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        {
+          volunteerId: VOLUNTEER_A_ID,
+          status: 'confirmed',
+          cancelReason: null,
+        },
+        {
+          volunteerId: VOLUNTEER_B_ID,
+          status: 'declined',
+          cancelReason: 'Out of town',
+        },
+      ]);
+
+      const declined = await service.listVolunteers(
+        CITY_A_ID,
+        { dayId: DAY_ID, dayResponse: 'declined' },
+        coordinatorA()
+      );
+
+      expect(declined.volunteers).toHaveLength(1);
+      expect(declined.volunteers[0]).toMatchObject({
+        userId: VOLUNTEER_B_ID,
+        dayResponseStatus: 'declined',
+        cancelReason: 'Out of town',
+      });
+
+      const confirmed = await service.listVolunteers(
+        CITY_A_ID,
+        { dayId: DAY_ID, dayResponse: 'confirmed' },
+        coordinatorA()
+      );
+      expect(confirmed.volunteers[0]?.userId).toBe(VOLUNTEER_A_ID);
+      expect(confirmed.volunteers[0]?.dayResponseStatus).toBe('confirmed');
+    });
+
+    it('rejects dayResponse without dayId', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+
+      await expect(
+        service.listVolunteers(
+          CITY_A_ID,
+          { dayResponse: 'confirmed' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns distribution day not found when dayId is missing', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.distributionDay.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.listVolunteers(CITY_A_ID, { dayId: DAY_ID }, coordinatorA())
+      ).rejects.toMatchObject({
+        message: 'distribution_days.not_found',
+      });
+    });
+
+    it('hides another city and forbids volunteers', async () => {
+      await expect(
+        service.listVolunteers(CITY_A_ID, {}, coordinatorB())
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.listVolunteers(CITY_A_ID, {}, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('lets a super admin list volunteers in any city', async () => {
+      mockPrisma.city.findUnique.mockResolvedValue(city);
+      mockPrisma.cityMembership.findMany.mockResolvedValue([pendingTamar]);
+
+      const result = await service.listVolunteers(
+        CITY_A_ID,
+        { status: 'pending' },
+        superAdmin()
+      );
+
+      expect(result.volunteers[0]?.status).toBe('pending');
+      expect(result.volunteers[0]?.firstName).toBe('Tamar');
     });
   });
 });

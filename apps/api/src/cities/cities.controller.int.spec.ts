@@ -15,6 +15,8 @@ import {
   APPLICANT_ID,
   CITY_A_ID,
   CITY_B_ID,
+  COORDINATOR_A_ID,
+  VOLUNTEER_A_ID,
   coordinatorA,
   coordinatorB,
   notOnboardedUser,
@@ -98,6 +100,12 @@ describe('Cities HTTP authorization', () => {
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn().mockResolvedValue(2),
+    },
+    distributionDay: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    dayParticipation: {
+      findMany: vi.fn().mockResolvedValue([]),
     },
     user: {
       findUnique: vi.fn(),
@@ -794,6 +802,97 @@ describe('Cities HTTP authorization', () => {
         .expect(200);
 
       expect(response.body.memberships[0].status).toBe('pending');
+    });
+  });
+
+  describe('GET /cities/:cityId/volunteers', () => {
+    const DAY_ID = '55555555-5555-4555-8555-555555555555';
+
+    const activeVolunteer = {
+      id: '66666666-6666-4666-8666-666666666666',
+      cityId: CITY_A_ID,
+      userId: VOLUNTEER_A_ID,
+      role: 'volunteer' as const,
+      status: 'active' as const,
+      inviteId: null,
+      approvedById: COORDINATOR_A_ID,
+      approvedAt: new Date('2026-10-01T09:00:00.000Z'),
+      homeArea: 'North',
+      coordinatorNotes: null,
+      createdAt: new Date('2026-10-01T09:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T09:00:00.000Z'),
+      user: {
+        id: VOLUNTEER_A_ID,
+        firstName: 'Yonatan',
+        lastName: 'Bar',
+        email: 'yonatan.bar@example.com',
+        phone: '+972502222222',
+        archivedAt: null,
+      },
+    };
+
+    it('lets a coordinator list Holon volunteers with filters', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.cityMembership.findMany.mockResolvedValue([activeVolunteer]);
+      mockPrisma.distributionDay.findFirst.mockResolvedValue({ id: DAY_ID });
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        {
+          volunteerId: VOLUNTEER_A_ID,
+          status: 'confirmed',
+          cancelReason: null,
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .query({
+          status: 'active',
+          search: 'Yonatan',
+          dayId: DAY_ID,
+          dayResponse: 'confirmed',
+        })
+        .expect(200);
+
+      expect(response.body.volunteers).toHaveLength(1);
+      expect(response.body.volunteers[0]).toMatchObject({
+        userId: VOLUNTEER_A_ID,
+        firstName: 'Yonatan',
+        status: 'active',
+        homeArea: 'North',
+        dayResponseStatus: 'confirmed',
+      });
+    });
+
+    it('forbids volunteers and hides another city', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .expect(404);
+
+      currentUser = coordinatorB();
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .expect(404);
+    });
+
+    it('lets a super admin list volunteers in any city', async () => {
+      currentUser = superAdmin();
+      mockPrisma.cityMembership.findMany.mockResolvedValue([activeVolunteer]);
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .expect(200);
+
+      expect(response.body.volunteers[0].firstName).toBe('Yonatan');
+    });
+
+    it('rejects removed membership status with 400', async () => {
+      currentUser = coordinatorA();
+
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/volunteers`)
+        .query({ status: 'removed' })
+        .expect(400);
     });
   });
 });

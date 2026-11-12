@@ -190,6 +190,67 @@ export interface CityCoordinatorsResponseDto {
   coordinators: CityCoordinatorDto[];
 }
 
+export type CityVolunteerListItemDtoRole = typeof CityVolunteerListItemDtoRole[keyof typeof CityVolunteerListItemDtoRole];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityVolunteerListItemDtoRole = {
+  coordinator: 'coordinator',
+  volunteer: 'volunteer',
+} as const;
+
+export type CityVolunteerListItemDtoStatus = typeof CityVolunteerListItemDtoStatus[keyof typeof CityVolunteerListItemDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityVolunteerListItemDtoStatus = {
+  pending: 'pending',
+  active: 'active',
+  paused: 'paused',
+  removed: 'removed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CityVolunteerListItemDtoDayResponseStatus = typeof CityVolunteerListItemDtoDayResponseStatus[keyof typeof CityVolunteerListItemDtoDayResponseStatus] | null;
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CityVolunteerListItemDtoDayResponseStatus = {
+  confirmed: 'confirmed',
+  declined: 'declined',
+  no_response: 'no_response',
+} as const;
+
+export interface CityVolunteerListItemDto {
+  membershipId: string;
+  userId: string;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  role: CityVolunteerListItemDtoRole;
+  status: CityVolunteerListItemDtoStatus;
+  createdAt: string;
+  /** @nullable */
+  approvedAt: string | null;
+  /** @nullable */
+  homeArea: string | null;
+  /** @nullable */
+  dayResponseStatus: CityVolunteerListItemDtoDayResponseStatus;
+  /** @nullable */
+  cancelReason: string | null;
+}
+
+export interface CityVolunteersResponseDto {
+  volunteers: CityVolunteerListItemDto[];
+}
+
 export type CityMembershipRecordDtoRole = typeof CityMembershipRecordDtoRole[keyof typeof CityMembershipRecordDtoRole];
 
 
@@ -1221,6 +1282,39 @@ export interface EndPermanentMatchDto {
   /** Calendar end date; defaults to today in the city timezone and must not be in the future */
   endsAt?: string;
 }
+
+export type ListCityVolunteersParams = {
+dayResponse?: ListCityVolunteersDayResponse;
+/**
+ * Include and optionally filter by day participation response
+ */
+dayId?: string;
+/**
+ * Match volunteer name, phone, or email
+ */
+search?: string;
+status?: ListCityVolunteersStatus;
+};
+
+export type ListCityVolunteersDayResponse = typeof ListCityVolunteersDayResponse[keyof typeof ListCityVolunteersDayResponse];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListCityVolunteersDayResponse = {
+  confirmed: 'confirmed',
+  declined: 'declined',
+  no_response: 'no_response',
+} as const;
+
+export type ListCityVolunteersStatus = typeof ListCityVolunteersStatus[keyof typeof ListCityVolunteersStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListCityVolunteersStatus = {
+  pending: 'pending',
+  active: 'active',
+  paused: 'paused',
+} as const;
 
 export type ListCityEldersParams = {
 includeArchived?: boolean;
@@ -2743,6 +2837,122 @@ export const useRemoveCityCoordinator = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary List city volunteers with membership status filters, search, and optional day response filters
+ */
+export const getListCityVolunteersUrl = (cityId: string,
+    params?: ListCityVolunteersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/cities/${cityId}/volunteers?${stringifiedParams}` : `/api/cities/${cityId}/volunteers`
+}
+
+export const listCityVolunteers = async (cityId: string,
+    params?: ListCityVolunteersParams, options?: RequestInit): Promise<CityVolunteersResponseDto> => {
+  
+  return apiFetch<CityVolunteersResponseDto>(getListCityVolunteersUrl(cityId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListCityVolunteersQueryKey = (cityId?: string,
+    params?: ListCityVolunteersParams,) => {
+    return [
+    `/api/cities/${cityId}/volunteers`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListCityVolunteersQueryOptions = <TData = Awaited<ReturnType<typeof listCityVolunteers>>, TError = unknown>(cityId: string,
+    params?: ListCityVolunteersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityVolunteersQueryKey(cityId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityVolunteers>>> = ({ signal }) => listCityVolunteers(cityId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCityVolunteersQueryResult = NonNullable<Awaited<ReturnType<typeof listCityVolunteers>>>
+export type ListCityVolunteersQueryError = unknown
+
+
+export function useListCityVolunteers<TData = Awaited<ReturnType<typeof listCityVolunteers>>, TError = unknown>(
+ cityId: string,
+    params: undefined |  ListCityVolunteersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityVolunteers>>,
+          TError,
+          Awaited<ReturnType<typeof listCityVolunteers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityVolunteers<TData = Awaited<ReturnType<typeof listCityVolunteers>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityVolunteersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityVolunteers>>,
+          TError,
+          Awaited<ReturnType<typeof listCityVolunteers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityVolunteers<TData = Awaited<ReturnType<typeof listCityVolunteers>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityVolunteersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List city volunteers with membership status filters, search, and optional day response filters
+ */
+
+export function useListCityVolunteers<TData = Awaited<ReturnType<typeof listCityVolunteers>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityVolunteersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityVolunteers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListCityVolunteersQueryOptions(cityId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary List pending join-link memberships waiting for coordinator approval
  */
