@@ -830,6 +830,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDistributionDayDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -2838,6 +2848,45 @@
         },
         "required": [
           "days"
+        ]
+      },
+      "OpenDistributionDayDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-11-15"
+          },
+          "startTime": {
+            "type": "string",
+            "example": "09:00"
+          },
+          "endTime": {
+            "type": "string",
+            "example": "14:00"
+          },
+          "notesForVolunteers": {
+            "type": "string",
+            "example": "Bring a folding cart",
+            "nullable": true
+          },
+          "internalNotes": {
+            "type": "string",
+            "example": "Need extra rice bags",
+            "nullable": true
+          },
+          "addOns": {
+            "example": [
+              "holiday honey"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "date"
         ]
       },
       "DashboardVolunteerCountsDto": {

@@ -260,6 +260,21 @@ describe('Distribution days HTTP authorization', () => {
       });
     });
 
+    it('lets a city coordinator open a day with a custom time window', async () => {
+      currentUser = coordinatorA();
+      await request(app.getHttpServer())
+        .post(`/api/cities/${CITY_A_ID}/distribution-days`)
+        .send({
+          date: '2026-11-15',
+          startTime: '08:30',
+          endTime: '13:00',
+          notesForVolunteers: 'Bring a folding cart',
+          internalNotes: 'Need extra rice bags',
+          addOns: ['holiday honey'],
+        })
+        .expect(201);
+    });
+
     it('lets a super admin open a day', async () => {
       currentUser = superAdmin();
       await request(app.getHttpServer())

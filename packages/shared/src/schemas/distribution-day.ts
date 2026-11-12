@@ -51,14 +51,34 @@ export const distributionDaysResponseSchema = z.object({
   ),
 });
 
-export const openDistributionDaySchema = z.object({
-  date: dateOnlySchema,
-  startTime: timeOfDaySchema.optional(),
-  endTime: timeOfDaySchema.optional(),
-  notesForVolunteers: z.string().max(4000).nullable().optional(),
-  internalNotes: z.string().max(4000).nullable().optional(),
-  addOns: z.array(z.string().max(200)).max(20).optional(),
-});
+function timeOfDayToMinutes(value: string): number {
+  const [hoursText, minutesText] = value.split(':');
+  return Number(hoursText) * 60 + Number(minutesText);
+}
+
+export const openDistributionDaySchema = z
+  .object({
+    date: dateOnlySchema,
+    startTime: timeOfDaySchema.optional(),
+    endTime: timeOfDaySchema.optional(),
+    notesForVolunteers: z.string().max(4000).nullable().optional(),
+    internalNotes: z.string().max(4000).nullable().optional(),
+    addOns: z.array(z.string().max(200)).max(20).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.startTime === undefined || value.endTime === undefined) {
+      return;
+    }
+    if (
+      timeOfDayToMinutes(value.startTime) >= timeOfDayToMinutes(value.endTime)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'invalid_time_range',
+        path: ['endTime'],
+      });
+    }
+  });
 
 export type DayStatus = z.infer<typeof dayStatusSchema>;
 export type OpenDayStatus = z.infer<typeof openDayStatusSchema>;
