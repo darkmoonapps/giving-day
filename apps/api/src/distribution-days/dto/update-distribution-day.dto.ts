@@ -1,3 +1,4 @@
+import { NOTES_FOR_VOLUNTEERS_MAX_LENGTH } from '@giving-day/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsOptional,
@@ -30,6 +31,6 @@ export class UpdateDistributionDayDto {
   @IsOptional()
   @ValidateIf((_object, value) => value !== null)
   @IsString()
-  @MaxLength(4000)
+  @MaxLength(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
   notesForVolunteers?: string | null;
 }

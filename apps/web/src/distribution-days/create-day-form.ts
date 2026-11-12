@@ -31,6 +31,7 @@ const FORM_ERROR_KEYS = [
   'invalid_date',
   'invalid_time',
   'invalid_time_range',
+  'too_long',
 ] as const;
 
 export type CreateDayValidationKey = (typeof FORM_ERROR_KEYS)[number];

@@ -1,3 +1,4 @@
+import { NOTES_FOR_VOLUNTEERS_MAX_LENGTH } from '@giving-day/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -36,7 +37,7 @@ export class OpenDistributionDayDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(4000)
+  @MaxLength(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
   notesForVolunteers?: string | null;
 
   @ApiPropertyOptional({
@@ -46,7 +47,7 @@ export class OpenDistributionDayDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(4000)
+  @MaxLength(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
   internalNotes?: string | null;
 
   @ApiPropertyOptional({ type: [String], example: ['holiday honey'] })

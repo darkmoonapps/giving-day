@@ -65,10 +65,14 @@ export const openDistributionDaySchema = z
     endTime: timeOfDaySchema.optional(),
     notesForVolunteers: z
       .string()
-      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
+      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH, 'too_long')
       .nullable()
       .optional(),
-    internalNotes: z.string().max(4000).nullable().optional(),
+    internalNotes: z
+      .string()
+      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH, 'too_long')
+      .nullable()
+      .optional(),
     addOns: z.array(z.string().max(200)).max(20).optional(),
   })
   .superRefine((value, ctx) => {
@@ -92,7 +96,7 @@ export const updateDistributionDaySchema = z
     endTime: timeOfDaySchema.optional(),
     notesForVolunteers: z
       .string()
-      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH)
+      .max(NOTES_FOR_VOLUNTEERS_MAX_LENGTH, 'too_long')
       .nullable()
       .optional(),
   })
