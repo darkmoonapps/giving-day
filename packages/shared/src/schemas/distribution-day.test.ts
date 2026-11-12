@@ -55,4 +55,39 @@ describe('distribution-day schemas', () => {
       date: '2026-11-15',
     });
   });
+
+  it('rejects a time window that does not end after it starts', () => {
+    const parsed = openDistributionDaySchema.safeParse({
+      date: '2026-11-15',
+      startTime: '14:00',
+      endTime: '09:00',
+    });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) {
+      return;
+    }
+    expect(
+      parsed.error.issues.some((issue) => issue.path[0] === 'endTime')
+    ).toBe(true);
+  });
+
+  it('accepts an optional Holon time window and volunteer notes', () => {
+    expect(
+      openDistributionDaySchema.parse({
+        date: '2026-11-15',
+        startTime: '09:00',
+        endTime: '14:00',
+        notesForVolunteers: 'Bring a folding cart',
+        internalNotes: 'Need extra rice bags',
+        addOns: ['holiday honey'],
+      })
+    ).toEqual({
+      date: '2026-11-15',
+      startTime: '09:00',
+      endTime: '14:00',
+      notesForVolunteers: 'Bring a folding cart',
+      internalNotes: 'Need extra rice bags',
+      addOns: ['holiday honey'],
+    });
+  });
 });

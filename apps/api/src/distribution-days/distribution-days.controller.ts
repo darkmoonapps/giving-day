@@ -70,6 +70,7 @@ export class DistributionDaysController {
 
   @Post()
   @RequireAbilities({ action: 'create', subject: 'DistributionDay' })
+  @ApiBody({ type: OpenDistributionDayDto })
   @ApiOperation({
     operationId: 'openDistributionDay',
     summary:

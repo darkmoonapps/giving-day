@@ -201,6 +201,35 @@ describe('DistributionDaysService', () => {
       );
     });
 
+    it('uses the requested Holon time window when the coordinator sets one', async () => {
+      mockPrisma.distributionDay.create.mockResolvedValue({
+        ...publishedDay,
+        startTime: new Date(Date.UTC(1970, 0, 1, 8, 30, 0)),
+        endTime: new Date(Date.UTC(1970, 0, 1, 13, 0, 0)),
+      });
+
+      const result = await service.open(
+        CITY_A_ID,
+        {
+          date: '2026-11-15',
+          startTime: '08:30',
+          endTime: '13:00',
+          notesForVolunteers: 'Bring a folding cart',
+          addOns: ['holiday honey'],
+        },
+        coordinatorA()
+      );
+
+      expect(result.startTime).toBe('08:30:00');
+      expect(result.endTime).toBe('13:00:00');
+      expect(mockPrisma.distributionDay.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          notesForVolunteers: 'Bring a folding cart',
+          addOns: ['holiday honey'],
+        }),
+      });
+    });
+
     it('allows a super admin to open a day for any city', async () => {
       mockPrisma.distributionDay.create.mockResolvedValue({
         ...publishedDay,

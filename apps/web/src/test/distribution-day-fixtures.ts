@@ -369,13 +369,50 @@ export interface DayFetchStub extends AuthFetchStub {
     ((body: Record<string, unknown>) => Record<string, unknown>) | 'error';
   dashboard?: typeof holonDayDashboard | 'error';
   volunteerRoute?: ReturnType<typeof holonVolunteerRoute> | 'error' | 'pending';
+  settings?: {
+    cityId: string;
+    centerAddress: string;
+    centerLat: number;
+    centerLng: number;
+    defaultStartTime: string;
+    defaultEndTime: string;
+    confirmReminderAfterHours: number;
+    unpickedPushMinutesBeforeEnd: number;
+    missingFinalStatusWaitHours: number;
+    defaultLocale: 'he' | 'en';
+    defaultTheme: string;
+    orgName: string | null;
+    logoUrl: string | null;
+    extra: Record<string, unknown>;
+  };
+  settingsStatus?: number;
+  openStatus?: number;
+  openCode?: string;
 }
+
+export const holonCitySettingsForDay = {
+  cityId: CITY_A_ID,
+  centerAddress: '10 Warehouse Rd, Holon',
+  centerLat: 32.0114,
+  centerLng: 34.7748,
+  defaultStartTime: '09:00:00',
+  defaultEndTime: '14:00:00',
+  confirmReminderAfterHours: 24,
+  unpickedPushMinutesBeforeEnd: 60,
+  missingFinalStatusWaitHours: 72,
+  defaultLocale: 'he' as const,
+  defaultTheme: 'wisteria-mint',
+  orgName: 'Latet Holon',
+  logoUrl: null,
+  extra: { mapZoom: 14 },
+};
 
 export function createDayFetchMock(
   options: DayFetchStub = {}
 ): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   const authMock = createAuthFetchMock(options);
   let currentDay = options.day ?? openDay;
+  let listedDays = options.listDays ?? [currentDay];
   let volunteerRows = options.volunteerDeliveries ?? [volunteerDeliveryRivkah];
 
   return async (
@@ -575,11 +612,69 @@ export function createDayFetchMock(
     }
 
     if (
+      method === 'POST' &&
+      /\/api\/cities\/[^/]+\/distribution-days$/.test(url.replace(/\?.*$/, ''))
+    ) {
+      if (options.openStatus !== undefined && options.openStatus >= 400) {
+        if (options.openCode !== undefined) {
+          return mockJsonResponse(
+            { statusCode: options.openStatus, message: options.openCode },
+            options.openStatus
+          );
+        }
+        return mockJsonResponse({ message: 'error' }, options.openStatus);
+      }
+      const body =
+        typeof init?.body === 'string'
+          ? (JSON.parse(init.body) as Record<string, unknown>)
+          : {};
+      const addOns = Array.isArray(body.addOns)
+        ? body.addOns.filter((item): item is string => typeof item === 'string')
+        : currentDay.addOns;
+      const created = {
+        ...currentDay,
+        date: typeof body.date === 'string' ? body.date : currentDay.date,
+        startTime:
+          typeof body.startTime === 'string'
+            ? body.startTime.length === 5
+              ? `${body.startTime}:00`
+              : body.startTime
+            : currentDay.startTime,
+        endTime:
+          typeof body.endTime === 'string'
+            ? body.endTime.length === 5
+              ? `${body.endTime}:00`
+              : body.endTime
+            : currentDay.endTime,
+        notesForVolunteers:
+          typeof body.notesForVolunteers === 'string'
+            ? body.notesForVolunteers
+            : currentDay.notesForVolunteers,
+        addOns,
+        status: 'published' as const,
+        publishedAt: '2026-10-28T09:00:00.000Z',
+      };
+      currentDay = created;
+      listedDays = [created];
+      return mockJsonResponse(created, 201);
+    }
+
+    if (method === 'GET' && url.includes(`/api/cities/${CITY_A_ID}/settings`)) {
+      if (
+        options.settingsStatus !== undefined &&
+        options.settingsStatus >= 400
+      ) {
+        return mockJsonResponse({ message: 'error' }, options.settingsStatus);
+      }
+      return mockJsonResponse(options.settings ?? holonCitySettingsForDay);
+    }
+
+    if (
       method === 'GET' &&
       /\/api\/cities\/[^/]+\/distribution-days$/.test(url.replace(/\?.*$/, ''))
     ) {
       return mockJsonResponse({
-        days: options.listDays ?? [currentDay],
+        days: listedDays,
       });
     }
 

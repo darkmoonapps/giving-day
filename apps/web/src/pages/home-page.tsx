@@ -120,6 +120,15 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
       >
         {t('view_settings')}
       </AppButton>
+      <AppButton
+        size="sm"
+        data-testid="create-day"
+        onClick={() => {
+          void navigate(`/cities/${cityId}/days/new`);
+        }}
+      >
+        {t('create_day')}
+      </AppButton>
       <AppTitle order={2}>{t('open_days_title')}</AppTitle>
       {query.isLoading ? (
         <LoadingState label={tCommon('loading')} />
@@ -127,8 +136,8 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
         <AppText c="dimmed">{t('no_days')}</AppText>
       ) : (
         days.map((day) => (
-          <Stack key={day.id} gap={4}>
-            <AppText fw={600}>
+          <Stack key={day.id} gap={4} data-testid="coordinator-day">
+            <AppText fw={600} data-testid="coordinator-day-date">
               {formatDistributionDate(day.date, language)}
             </AppText>
             <AppText c="dimmed" size="sm">

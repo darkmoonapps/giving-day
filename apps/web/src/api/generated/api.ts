@@ -388,6 +388,17 @@ export interface DistributionDaysResponseDto {
   days: DistributionDayResponseDto[];
 }
 
+export interface OpenDistributionDayDto {
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  /** @nullable */
+  notesForVolunteers?: string | null;
+  /** @nullable */
+  internalNotes?: string | null;
+  addOns?: string[];
+}
+
 export interface DashboardVolunteerCountsDto {
   total: number;
   confirmed: number;
@@ -3556,14 +3567,16 @@ export const getOpenDistributionDayUrl = (cityId: string,) => {
   return `/api/cities/${cityId}/distribution-days`
 }
 
-export const openDistributionDay = async (cityId: string, options?: RequestInit): Promise<DistributionDayResponseDto> => {
+export const openDistributionDay = async (cityId: string,
+    openDistributionDayDto: OpenDistributionDayDto, options?: RequestInit): Promise<DistributionDayResponseDto> => {
   
   return apiFetch<DistributionDayResponseDto>(getOpenDistributionDayUrl(cityId),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openDistributionDayDto,)
   }
 );}
 
@@ -3571,8 +3584,8 @@ export const openDistributionDay = async (cityId: string, options?: RequestInit)
 
 
 export const getOpenDistributionDayMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string;data: OpenDistributionDayDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string;data: OpenDistributionDayDto}, TContext> => {
 
 const mutationKey = ['openDistributionDay'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -3584,10 +3597,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openDistributionDay>>, {cityId: string}> = (props) => {
-          const {cityId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openDistributionDay>>, {cityId: string;data: OpenDistributionDayDto}> = (props) => {
+          const {cityId,data} = props ?? {};
 
-          return  openDistributionDay(cityId,requestOptions)
+          return  openDistributionDay(cityId,data,requestOptions)
         }
 
         
@@ -3596,18 +3609,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type OpenDistributionDayMutationResult = NonNullable<Awaited<ReturnType<typeof openDistributionDay>>>
-    
+    export type OpenDistributionDayMutationBody = OpenDistributionDayDto
     export type OpenDistributionDayMutationError = unknown
 
     /**
  * @summary Open a published distribution day using city-settings hours and announce it to volunteers
  */
 export const useOpenDistributionDay = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDistributionDay>>, TError,{cityId: string;data: OpenDistributionDayDto}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof openDistributionDay>>,
         TError,
-        {cityId: string},
+        {cityId: string;data: OpenDistributionDayDto},
         TContext
       > => {
 
