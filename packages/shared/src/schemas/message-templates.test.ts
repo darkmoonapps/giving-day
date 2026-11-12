@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   TEMPLATE_KEYS,
   defaultMessageCopyFor,
+  extractPlaceholders,
+  findUnknownPlaceholders,
   placeholdersFor,
   renderMessageTemplate,
   upsertMessageTemplateSchema,
@@ -41,5 +43,38 @@ describe('message template defaults', () => {
         body: 'Body with {{date}}',
       }).success
     ).toBe(true);
+  });
+
+  it('rejects whitespace-only upsert payloads after trim', () => {
+    expect(
+      upsertMessageTemplateSchema.safeParse({
+        title: '   ',
+        body: 'body',
+      }).success
+    ).toBe(false);
+    expect(
+      upsertMessageTemplateSchema.safeParse({
+        title: 'Title',
+        body: '   ',
+      }).success
+    ).toBe(false);
+  });
+
+  it('extracts unique placeholders from text', () => {
+    expect(
+      extractPlaceholders('Hello {{date}} and {{date}} then {{startTime}}')
+    ).toEqual(['date', 'startTime']);
+  });
+
+  it('finds unknown placeholders for a template key', () => {
+    expect(
+      findUnknownPlaceholders('ok {{date}} {{startTime}}', 'day_invite')
+    ).toEqual([]);
+    expect(
+      findUnknownPlaceholders('broken {{dat}} and {{elderName}}', 'day_invite')
+    ).toEqual(['dat', 'elderName']);
+    expect(
+      findUnknownPlaceholders('{{elderName}} on {{date}}', 'reassigned')
+    ).toEqual([]);
   });
 });

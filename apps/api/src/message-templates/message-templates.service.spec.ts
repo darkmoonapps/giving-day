@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { defaultMessageCopyFor } from '@giving-day/shared';
 import { AbilityFactory } from '../abilities/ability.factory';
@@ -203,6 +203,47 @@ describe('MessageTemplatesService', () => {
           coordinatorA()
         )
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rejects whitespace-only title or body', async () => {
+      await expect(
+        service.upsert(
+          CITY_A_ID,
+          'day_invite',
+          'he',
+          { title: '   ', body: 'valid body {{date}}' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        service.upsert(
+          CITY_A_ID,
+          'day_invite',
+          'he',
+          { title: 'valid title', body: '   ' },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mockPrisma.messageTemplate.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown placeholders', async () => {
+      await expect(
+        service.upsert(
+          CITY_A_ID,
+          'day_invite',
+          'en',
+          {
+            title: 'Invite',
+            body: 'Wrong {{dat}} and {{elderName}}',
+          },
+          coordinatorA()
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mockPrisma.messageTemplate.upsert).not.toHaveBeenCalled();
     });
   });
 

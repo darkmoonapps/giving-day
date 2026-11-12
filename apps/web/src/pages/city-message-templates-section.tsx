@@ -52,12 +52,17 @@ function validationMessage(t: TFunction<'validation'>, key: string): string {
 function fieldError(
   tValidation: TFunction<'validation'>,
   errors: MessageTemplateFieldErrors,
-  key: keyof MessageTemplateFieldErrors
+  key: 'title' | 'body'
 ): string | undefined {
   const message = errors[key];
-  return message === undefined
-    ? undefined
-    : validationMessage(tValidation, message);
+  if (message === undefined) {
+    return undefined;
+  }
+  if (message === 'unknown_placeholder') {
+    const token = key === 'title' ? errors.titleToken : errors.bodyToken;
+    return tValidation('unknown_placeholder', { token: token ?? '' });
+  }
+  return validationMessage(tValidation, message);
 }
 
 function inputValue(
@@ -86,17 +91,27 @@ function TemplateEditorCard({
   const { t } = useTranslation('admin');
   const { t: tValidation } = useTranslation('validation');
   const queryClient = useQueryClient();
+  const serverTitle = template.title;
+  const serverBody = template.body;
   const [draft, setDraft] = useState<MessageTemplateDraft>(() =>
     draftFromTemplate(template)
   );
   const [errors, setErrors] = useState<MessageTemplateFieldErrors>({});
   const [saved, setSaved] = useState(false);
 
+  // Reset only when this card's server values change — not when the list
+  // query returns a new object identity after another card saves.
   useEffect(() => {
-    setDraft(draftFromTemplate(template));
+    setDraft({ title: serverTitle, body: serverBody });
     setErrors({});
-    setSaved(false);
-  }, [template]);
+  }, [
+    template.id,
+    serverTitle,
+    serverBody,
+    template.isCustom,
+    template.key,
+    template.locale,
+  ]);
 
   const upsertMutation = useUpsertCityMessageTemplate({
     mutation: {
@@ -130,7 +145,10 @@ function TemplateEditorCard({
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     setSaved(false);
-    const parsed = parseMessageTemplateDraft(draft);
+    const parsed = parseMessageTemplateDraft(
+      draft,
+      toTemplateKey(template.key)
+    );
     if (!parsed.success) {
       setErrors(parsed.errors);
       return;
@@ -181,12 +199,18 @@ function TemplateEditorCard({
             </AppAlert>
           ) : null}
           {upsertMutation.isError ? (
-            <AppAlert color="red" data-testid="message-template-save-error">
+            <AppAlert
+              color="red"
+              data-testid={`message-template-save-error-${template.key}`}
+            >
               {t('template_save_error')}
             </AppAlert>
           ) : null}
           {resetMutation.isError ? (
-            <AppAlert color="red" data-testid="message-template-reset-error">
+            <AppAlert
+              color="red"
+              data-testid={`message-template-reset-error-${template.key}`}
+            >
               {t('template_reset_error')}
             </AppAlert>
           ) : null}

@@ -1,4 +1,5 @@
 import {
+  findUnknownPlaceholders,
   upsertMessageTemplateSchema,
   type TemplateKey,
   type UpsertMessageTemplate,
@@ -12,6 +13,8 @@ export interface MessageTemplateDraft {
 export interface MessageTemplateFieldErrors {
   title?: string;
   body?: string;
+  titleToken?: string;
+  bodyToken?: string;
 }
 
 export type ParseMessageTemplateResult =
@@ -22,6 +25,7 @@ const FORM_ERROR_KEYS = [
   'required',
   'title_too_long',
   'body_too_long',
+  'unknown_placeholder',
 ] as const;
 
 export type MessageTemplateValidationKey = (typeof FORM_ERROR_KEYS)[number];
@@ -43,21 +47,44 @@ export function draftFromTemplate(template: {
 }
 
 export function parseMessageTemplateDraft(
-  draft: MessageTemplateDraft
+  draft: MessageTemplateDraft,
+  templateKey: TemplateKey
 ): ParseMessageTemplateResult {
   const parsed = upsertMessageTemplateSchema.safeParse(draft);
-  if (parsed.success) {
-    return { success: true, data: parsed.data };
+  if (!parsed.success) {
+    const errors: MessageTemplateFieldErrors = {};
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0];
+      if (field === 'title' || field === 'body') {
+        errors[field] = issue.message;
+      }
+    }
+    return { success: false, errors };
   }
 
-  const errors: MessageTemplateFieldErrors = {};
-  for (const issue of parsed.error.issues) {
-    const field = issue.path[0];
-    if (field === 'title' || field === 'body') {
-      errors[field] = issue.message;
-    }
+  const unknownTitle = findUnknownPlaceholders(parsed.data.title, templateKey);
+  if (unknownTitle[0] !== undefined) {
+    return {
+      success: false,
+      errors: {
+        title: 'unknown_placeholder',
+        titleToken: unknownTitle[0],
+      },
+    };
   }
-  return { success: false, errors };
+
+  const unknownBody = findUnknownPlaceholders(parsed.data.body, templateKey);
+  if (unknownBody[0] !== undefined) {
+    return {
+      success: false,
+      errors: {
+        body: 'unknown_placeholder',
+        bodyToken: unknownBody[0],
+      },
+    };
+  }
+
+  return { success: true, data: parsed.data };
 }
 
 export const TEMPLATE_LABEL_KEYS = {

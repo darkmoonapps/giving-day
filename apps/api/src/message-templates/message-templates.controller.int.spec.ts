@@ -174,6 +174,29 @@ describe('Message templates HTTP authorization', () => {
         .send({ title: 'x', body: 'y' })
         .expect(404);
     });
+
+    it('rejects whitespace-only title and body with 400', async () => {
+      currentUser = coordinatorA();
+      await request(app.getHttpServer())
+        .put(`/api/cities/${CITY_A_ID}/message-templates/day_invite/he`)
+        .send({ title: '   ', body: '   ' })
+        .expect(400);
+
+      expect(mockPrisma.messageTemplate.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown placeholders with 400', async () => {
+      currentUser = coordinatorA();
+      await request(app.getHttpServer())
+        .put(`/api/cities/${CITY_A_ID}/message-templates/day_invite/he`)
+        .send({
+          title: 'יום חלוקה',
+          body: 'Broken {{dat}} and {{elderName}}',
+        })
+        .expect(400);
+
+      expect(mockPrisma.messageTemplate.upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('DELETE /api/cities/:cityId/message-templates/:key/:locale', () => {

@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   TEMPLATE_KEYS,
   defaultMessageCopyFor,
+  findUnknownPlaceholders,
   localeSchema,
   messageTemplateSchema,
   messageTemplatesResponseSchema,
@@ -83,7 +88,16 @@ export class MessageTemplatesService {
 
     const key = this.parseTemplateKey(keyParam);
     const locale = this.parseLocale(localeParam);
-    const parsed = upsertMessageTemplateSchema.parse(dto);
+    const parsed = upsertMessageTemplateSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new BadRequestException('message_templates.invalid');
+    }
+
+    const unknownTitle = findUnknownPlaceholders(parsed.data.title, key);
+    const unknownBody = findUnknownPlaceholders(parsed.data.body, key);
+    if (unknownTitle.length > 0 || unknownBody.length > 0) {
+      throw new BadRequestException('message_templates.unknown_placeholder');
+    }
 
     const row = await this.prisma.messageTemplate.upsert({
       where: {
@@ -97,12 +111,12 @@ export class MessageTemplatesService {
         cityId,
         key,
         locale,
-        title: parsed.title,
-        body: parsed.body,
+        title: parsed.data.title,
+        body: parsed.data.body,
       },
       update: {
-        title: parsed.title,
-        body: parsed.body,
+        title: parsed.data.title,
+        body: parsed.data.body,
       },
     });
 

@@ -257,6 +257,76 @@ describe('CitySettingsPage', () => {
     });
   });
 
+  it('keeps an unsaved draft on card A after saving card B', async () => {
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup({ delay: null });
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    await screen.findByTestId('message-template-day_invite-he');
+    await screen.findByTestId('message-template-confirm_reminder-he');
+
+    const dayInviteTitle = screen
+      .getByTestId('message-template-day_invite-he')
+      .querySelector('input[name="title"]');
+    const reminderTitle = screen
+      .getByTestId('message-template-confirm_reminder-he')
+      .querySelector('input[name="title"]');
+    expect(dayInviteTitle).toBeInstanceOf(HTMLInputElement);
+    expect(reminderTitle).toBeInstanceOf(HTMLInputElement);
+
+    await user.clear(dayInviteTitle as HTMLInputElement);
+    await user.type(dayInviteTitle as HTMLInputElement, 'טיוטה לחולון');
+
+    await user.clear(reminderTitle as HTMLInputElement);
+    await user.type(reminderTitle as HTMLInputElement, 'תזכורת לחולון');
+    await user.click(
+      screen.getByTestId('save-message-template-confirm_reminder')
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('message-template-success-confirm_reminder')
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      (
+        screen
+          .getByTestId('message-template-day_invite-he')
+          .querySelector('input[name="title"]') as HTMLInputElement
+      ).value
+    ).toBe('טיוטה לחולון');
+  });
+
+  it('shows a field error for an unknown placeholder without calling the API', async () => {
+    const fetchMock = vi.fn(createCitySettingsFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup({ delay: null });
+
+    renderApp(`/cities/${CITY_A_ID}/settings`);
+    const card = await screen.findByTestId('message-template-day_invite-he');
+    const body = card.querySelector('textarea[name="body"]');
+    expect(body).toBeInstanceOf(HTMLTextAreaElement);
+
+    await user.clear(body as HTMLTextAreaElement);
+    // userEvent treats `{`/`}` as special keys; double them to type literals.
+    await user.type(body as HTMLTextAreaElement, 'Broken {{{{dat}}}}');
+    await user.click(screen.getByTestId('save-message-template-day_invite'));
+
+    expect(
+      await screen.findByText(/מציין מיקום לא מוכר: dat/)
+    ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).includes(
+            `/api/cities/${CITY_A_ID}/message-templates/day_invite/he`
+          ) && call[1]?.method === 'PUT'
+      )
+    ).toBe(false);
+  });
+
   it('shows a previously revealed Holon volunteer URL without regenerating', async () => {
     const volunteerStatus = holonJoinLinks.links.find(
       (link) => link.role === 'volunteer'

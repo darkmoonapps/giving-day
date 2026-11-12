@@ -254,7 +254,7 @@
   "logo_url": "Logo URL",
   "logo_url_hint": "Optional HTTPS link to the organization logo.",
   "settings_section_templates": "Message templates",
-  "templates_subtitle": "Edit push notification text for each language. Empty city overrides fall back to the default text shown under each field.",
+  "templates_subtitle": "Edit push notification text for each language. Without a city override, the default text shown under each field is used.",
   "templates_load_error": "We could not load message templates. Try again later.",
   "template_locale": "Template language",
   "template_title": "Title",

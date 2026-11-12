@@ -303,6 +303,8 @@ export {
   MESSAGE_TEMPLATE_PLACEHOLDERS,
   TEMPLATE_KEYS,
   defaultMessageCopyFor,
+  extractPlaceholders,
+  findUnknownPlaceholders,
   messageTemplateSchema,
   messageTemplatesResponseSchema,
   placeholdersFor,

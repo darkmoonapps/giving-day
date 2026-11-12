@@ -13,6 +13,7 @@
   "too_long": "השתמשו בעד 4000 תווים",
   "title_too_long": "השתמשו בעד 200 תווים",
   "body_too_long": "השתמשו בעד 2000 תווים",
+  "unknown_placeholder": "מציין מיקום לא מוכר: {{token}}",
   "invalid_timezone": "הזינו אזור זמן IANA תקין, למשל Asia/Jerusalem",
   "no_changes": "שנו לפחות פרט אחד לפני השליחה."
 }

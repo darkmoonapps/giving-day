@@ -32,10 +32,13 @@ describe('message-templates-form', () => {
 
   it('accepts Holon custom copy and rejects empty title', () => {
     expect(
-      parseMessageTemplateDraft({
-        title: 'יום חלוקה בחולון',
-        body: 'חולון ב-{{date}}',
-      })
+      parseMessageTemplateDraft(
+        {
+          title: 'יום חלוקה בחולון',
+          body: 'חולון ב-{{date}}',
+        },
+        'day_invite'
+      )
     ).toEqual({
       success: true,
       data: {
@@ -44,10 +47,28 @@ describe('message-templates-form', () => {
       },
     });
 
-    const empty = parseMessageTemplateDraft({ title: '', body: 'body' });
+    const empty = parseMessageTemplateDraft(
+      { title: '', body: 'body' },
+      'day_invite'
+    );
     expect(empty.success).toBe(false);
     if (!empty.success) {
       expect(empty.errors.title).toBe('required');
+    }
+  });
+
+  it('rejects unknown placeholders with the bad token', () => {
+    const result = parseMessageTemplateDraft(
+      {
+        title: 'יום חלוקה',
+        body: 'Broken {{dat}} then {{startTime}}',
+      },
+      'day_invite'
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errors.body).toBe('unknown_placeholder');
+      expect(result.errors.bodyToken).toBe('dat');
     }
   });
 

@@ -123,6 +123,27 @@ export function placeholdersFor(templateKey: TemplateKey): readonly string[] {
   return MESSAGE_TEMPLATE_PLACEHOLDERS[templateKey];
 }
 
+const PLACEHOLDER_PATTERN = /\{\{(\w+)\}\}/g;
+
+export function extractPlaceholders(text: string): readonly string[] {
+  const found: string[] = [];
+  for (const match of text.matchAll(PLACEHOLDER_PATTERN)) {
+    const token = match[1];
+    if (token !== undefined && !found.includes(token)) {
+      found.push(token);
+    }
+  }
+  return found;
+}
+
+export function findUnknownPlaceholders(
+  text: string,
+  templateKey: TemplateKey
+): readonly string[] {
+  const allowed = new Set<string>(placeholdersFor(templateKey));
+  return extractPlaceholders(text).filter((token) => !allowed.has(token));
+}
+
 export function renderMessageTemplate(
   template: string,
   vars: Record<string, string>
