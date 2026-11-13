@@ -63,6 +63,7 @@ function StatCard({
       radius="md"
       withBorder
       data-testid={testId}
+      aria-label={`${label}: ${value}`}
       style={
         color === undefined
           ? undefined
@@ -75,9 +76,9 @@ function StatCard({
       <AppText size="sm" c="dimmed">
         {label}
       </AppText>
-      <AppTitle order={2} mt={4}>
+      <AppText size="xl" fw={700} mt={4} data-testid={`${testId}-value`}>
         {value}
-      </AppTitle>
+      </AppText>
     </Card>
   );
 }

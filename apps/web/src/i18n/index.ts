@@ -16,6 +16,12 @@ export function applyDocumentLanguage(language: LanguageCode): void {
   document.documentElement.lang = language;
   document.documentElement.dir = direction;
   document.title = i18n.t('document_title', { lng: language });
+
+  const description = i18n.t('document_description', { lng: language });
+  const meta = document.querySelector('meta[name="description"]');
+  if (meta !== null) {
+    meta.setAttribute('content', description);
+  }
 }
 
 export function getCurrentLanguage(): LanguageCode {

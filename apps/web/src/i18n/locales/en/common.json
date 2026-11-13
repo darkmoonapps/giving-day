@@ -1,10 +1,13 @@
 {
   "app_name": "Giving Day",
   "document_title": "Giving Day",
+  "document_description": "Volunteer management for monthly food-package distribution days",
   "welcome_title": "Welcome to Giving Day",
   "welcome_subtitle": "Volunteer management for monthly food-package distribution",
   "about_title": "About",
   "about_body": "This app helps manage volunteers for monthly food-package distribution days. Admins can create distribution days, volunteers can confirm participation, and elders are matched to volunteers.",
+  "skip_to_content": "Skip to content",
+  "opens_in_new_tab": "(opens in a new tab)",
   "language": {
     "label": "Language",
     "he": "עברית",

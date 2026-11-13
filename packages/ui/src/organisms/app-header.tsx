@@ -1,6 +1,5 @@
-import { Container, Group } from '@mantine/core';
+import { Container, Group, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { AppTitle } from '../atoms';
 
 export interface AppHeaderProps {
   title: string;
@@ -14,7 +13,9 @@ export function AppHeader({ title, actions }: AppHeaderProps): JSX.Element {
       style={{ display: 'flex', alignItems: 'center', width: '100%' }}
     >
       <Group justify="space-between" w="100%" wrap="nowrap">
-        <AppTitle order={2}>{title}</AppTitle>
+        <Text component="p" fw={700} size="lg" m={0} data-testid="app-brand">
+          {title}
+        </Text>
         {actions}
       </Group>
     </Container>

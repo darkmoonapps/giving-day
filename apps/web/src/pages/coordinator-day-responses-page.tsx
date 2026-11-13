@@ -97,45 +97,50 @@ export function CoordinatorDayResponsesPage(): JSX.Element {
             {responses.length === 0 ? (
               <AppText>{t('no_volunteers')}</AppText>
             ) : (
-              <Table highlightOnHover data-testid="coordinator-responses-table">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('volunteer_column')}</Table.Th>
-                    <Table.Th>{t('status_column')}</Table.Th>
-                    <Table.Th>{t('reason_column')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {responses.map((row) => (
-                    <Table.Tr
-                      key={row.volunteerId}
-                      data-testid={`response-row-${row.responseStatus}`}
-                    >
-                      <Table.Td>
-                        {volunteerName(
-                          row.firstName,
-                          row.lastName,
-                          t('unnamed_volunteer')
-                        )}
-                      </Table.Td>
-                      <Table.Td>
-                        {row.responseStatus === 'confirmed'
-                          ? t('status_confirmed')
-                          : row.responseStatus === 'declined'
-                            ? t('status_declined')
-                            : t('status_no_response')}
-                      </Table.Td>
-                      <Table.Td>
-                        {row.responseStatus === 'declined' &&
-                        row.cancelReason !== null &&
-                        row.cancelReason.length > 0
-                          ? row.cancelReason
-                          : t('no_reason')}
-                      </Table.Td>
+              <Table.ScrollContainer minWidth={480}>
+                <Table
+                  highlightOnHover
+                  data-testid="coordinator-responses-table"
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('volunteer_column')}</Table.Th>
+                      <Table.Th>{t('status_column')}</Table.Th>
+                      <Table.Th>{t('reason_column')}</Table.Th>
                     </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {responses.map((row) => (
+                      <Table.Tr
+                        key={row.volunteerId}
+                        data-testid={`response-row-${row.responseStatus}`}
+                      >
+                        <Table.Td>
+                          {volunteerName(
+                            row.firstName,
+                            row.lastName,
+                            t('unnamed_volunteer')
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          {row.responseStatus === 'confirmed'
+                            ? t('status_confirmed')
+                            : row.responseStatus === 'declined'
+                              ? t('status_declined')
+                              : t('status_no_response')}
+                        </Table.Td>
+                        <Table.Td>
+                          {row.responseStatus === 'declined' &&
+                          row.cancelReason !== null &&
+                          row.cancelReason.length > 0
+                            ? row.cancelReason
+                            : t('no_reason')}
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
           </>
         )}

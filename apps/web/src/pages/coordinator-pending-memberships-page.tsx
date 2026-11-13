@@ -180,87 +180,93 @@ export function CoordinatorPendingMembershipsPage(): JSX.Element {
                 {t('join_requests_empty')}
               </AppText>
             ) : (
-              <Table
-                highlightOnHover
-                data-testid="coordinator-join-requests-table"
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('volunteer_column')}</Table.Th>
-                    <Table.Th>{t('phone_column')}</Table.Th>
-                    <Table.Th>{t('request_date_column')}</Table.Th>
-                    <Table.Th>{t('role_column')}</Table.Th>
-                    <Table.Th>{t('actions_column')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {memberships.map((membership) => {
-                    const approving =
-                      actingKind === 'approve' &&
-                      actingId === membership.membershipId;
-                    const rejecting =
-                      actingKind === 'reject' &&
-                      actingId === membership.membershipId;
-                    const busy = approving || rejecting;
+              <Table.ScrollContainer minWidth={640}>
+                <Table
+                  highlightOnHover
+                  data-testid="coordinator-join-requests-table"
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('volunteer_column')}</Table.Th>
+                      <Table.Th>{t('phone_column')}</Table.Th>
+                      <Table.Th>{t('request_date_column')}</Table.Th>
+                      <Table.Th>{t('role_column')}</Table.Th>
+                      <Table.Th>{t('actions_column')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {memberships.map((membership) => {
+                      const approving =
+                        actingKind === 'approve' &&
+                        actingId === membership.membershipId;
+                      const rejecting =
+                        actingKind === 'reject' &&
+                        actingId === membership.membershipId;
+                      const busy = approving || rejecting;
 
-                    return (
-                      <Table.Tr
-                        key={membership.membershipId}
-                        data-testid={`join-request-row-${membership.membershipId}`}
-                      >
-                        <Table.Td>
-                          {membershipDisplayName(
-                            membership.firstName,
-                            membership.lastName,
-                            t('unnamed_requester')
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {membership.phone ?? t('no_reason')}
-                        </Table.Td>
-                        <Table.Td>
-                          {formatMembershipRequestDate(
-                            membership.createdAt,
-                            language
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {membership.role === 'coordinator'
-                            ? t('role_coordinator')
-                            : t('role_volunteer')}
-                        </Table.Td>
-                        <Table.Td>
-                          <Stack gap="xs">
-                            <AppButton
-                              size="xs"
-                              data-testid={`approve-membership-${membership.membershipId}`}
-                              loading={approving}
-                              disabled={busy && !approving}
-                              onClick={() => {
-                                runAction(membership.membershipId, 'approve');
-                              }}
-                            >
-                              {t('approve_membership')}
-                            </AppButton>
-                            <AppButton
-                              size="xs"
-                              variant="light"
-                              data-testid={`reject-membership-${membership.membershipId}`}
-                              loading={rejecting}
-                              disabled={busy && !rejecting}
-                              onClick={() => {
-                                runAction(membership.membershipId, 'reject');
-                              }}
-                            >
-                              {t('reject_membership')}
-                            </AppButton>
-                          </Stack>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
+                      return (
+                        <Table.Tr
+                          key={membership.membershipId}
+                          data-testid={`join-request-row-${membership.membershipId}`}
+                        >
+                          <Table.Td>
+                            {membershipDisplayName(
+                              membership.firstName,
+                              membership.lastName,
+                              t('unnamed_requester')
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {membership.phone === null ? (
+                              t('no_reason')
+                            ) : (
+                              <span dir="ltr">{membership.phone}</span>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {formatMembershipRequestDate(
+                              membership.createdAt,
+                              language
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {membership.role === 'coordinator'
+                              ? t('role_coordinator')
+                              : t('role_volunteer')}
+                          </Table.Td>
+                          <Table.Td>
+                            <Stack gap="xs">
+                              <AppButton
+                                size="xs"
+                                data-testid={`approve-membership-${membership.membershipId}`}
+                                loading={approving}
+                                disabled={busy && !approving}
+                                onClick={() => {
+                                  runAction(membership.membershipId, 'approve');
+                                }}
+                              >
+                                {t('approve_membership')}
+                              </AppButton>
+                              <AppButton
+                                size="xs"
+                                variant="light"
+                                data-testid={`reject-membership-${membership.membershipId}`}
+                                loading={rejecting}
+                                disabled={busy && !rejecting}
+                                onClick={() => {
+                                  runAction(membership.membershipId, 'reject');
+                                }}
+                              >
+                                {t('reject_membership')}
+                              </AppButton>
+                            </Stack>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
           </>
         )}

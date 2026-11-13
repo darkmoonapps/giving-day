@@ -42,6 +42,7 @@ function StatCard({
       radius="md"
       withBorder
       data-testid={testId}
+      aria-label={`${label}: ${value}`}
       style={
         color === undefined
           ? undefined
@@ -54,9 +55,9 @@ function StatCard({
       <AppText size="sm" c="dimmed">
         {label}
       </AppText>
-      <AppTitle order={2} mt={4}>
+      <AppText size="xl" fw={700} mt={4} data-testid={`${testId}-value`}>
         {value}
-      </AppTitle>
+      </AppText>
     </Card>
   );
 }
@@ -194,32 +195,34 @@ export function CoordinatorPastDaysStatsPage(): JSX.Element {
                 {t('past_days_stats_empty')}
               </AppText>
             ) : (
-              <Table
-                striped
-                highlightOnHover
-                data-testid="past-days-stats-table"
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('past_days_stats_day_column')}</Table.Th>
-                    <Table.Th>{t('past_days_stats_elders_served')}</Table.Th>
-                    <Table.Th>{t('delivery_status_delivered')}</Table.Th>
-                    <Table.Th>{t('delivery_status_not_delivered')}</Table.Th>
-                    <Table.Th>{t('past_days_stats_packages_open')}</Table.Th>
-                    <Table.Th>{t('status_confirmed')}</Table.Th>
-                    <Table.Th>{t('status_declined')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {stats.days.map((day) => (
-                    <DayStatsRow
-                      key={day.dayId}
-                      day={day}
-                      language={language}
-                    />
-                  ))}
-                </Table.Tbody>
-              </Table>
+              <Table.ScrollContainer minWidth={720}>
+                <Table
+                  striped
+                  highlightOnHover
+                  data-testid="past-days-stats-table"
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('past_days_stats_day_column')}</Table.Th>
+                      <Table.Th>{t('past_days_stats_elders_served')}</Table.Th>
+                      <Table.Th>{t('delivery_status_delivered')}</Table.Th>
+                      <Table.Th>{t('delivery_status_not_delivered')}</Table.Th>
+                      <Table.Th>{t('past_days_stats_packages_open')}</Table.Th>
+                      <Table.Th>{t('status_confirmed')}</Table.Th>
+                      <Table.Th>{t('status_declined')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {stats.days.map((day) => (
+                      <DayStatsRow
+                        key={day.dayId}
+                        day={day}
+                        language={language}
+                      />
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
           </>
         )}

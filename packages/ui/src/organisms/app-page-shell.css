@@ -1,0 +1,20 @@
+.gd-skip-link {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 0.75rem;
+  z-index: 1000;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  border: 1px solid var(--mantine-color-default-border);
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform 120ms ease;
+}
+
+.gd-skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--mantine-color-wisteria-6);
+  outline-offset: 2px;
+}

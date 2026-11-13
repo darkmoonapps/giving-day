@@ -131,7 +131,7 @@ export function VolunteerRouteMap({
       className="volunteer-route-map"
       data-testid="volunteer-route-map"
       dir="ltr"
-      role="img"
+      role="region"
       aria-labelledby={mapLabelId}
     >
       <span id={mapLabelId} hidden>

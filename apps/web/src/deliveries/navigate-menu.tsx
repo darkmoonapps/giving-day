@@ -17,6 +17,7 @@ export function NavigateMenu({
   testId: string;
 }): JSX.Element | null {
   const { t } = useTranslation('volunteer');
+  const { t: tCommon } = useTranslation('common');
 
   if (query === null) {
     return null;
@@ -24,6 +25,7 @@ export function NavigateMenu({
 
   const links = mapsDeepLinks(query);
   const hints = visibleHints !== undefined ? visibleHints.trim() : '';
+  const newTabHint = tCommon('opens_in_new_tab');
 
   return (
     <Menu
@@ -53,6 +55,7 @@ export function NavigateMenu({
           target="_blank"
           rel="noopener noreferrer"
           data-testid={`${testId}-google`}
+          aria-label={`${t('navigate_google')} ${newTabHint}`}
         >
           {t('navigate_google')}
         </Menu.Item>
@@ -62,6 +65,7 @@ export function NavigateMenu({
           target="_blank"
           rel="noopener noreferrer"
           data-testid={`${testId}-apple`}
+          aria-label={`${t('navigate_apple')} ${newTabHint}`}
         >
           {t('navigate_apple')}
         </Menu.Item>
@@ -71,6 +75,7 @@ export function NavigateMenu({
           target="_blank"
           rel="noopener noreferrer"
           data-testid={`${testId}-waze`}
+          aria-label={`${t('navigate_waze')} ${newTabHint}`}
         >
           {t('navigate_waze')}
         </Menu.Item>

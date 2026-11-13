@@ -39,6 +39,9 @@ describe('NavigateMenu', () => {
     expect(waze).toHaveAttribute('href', links.waze);
     expect(google).toHaveAttribute('target', '_blank');
     expect(google).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(google).toHaveAccessibleName(/נפתח בלשונית חדשה/);
+    expect(apple).toHaveAccessibleName(/נפתח בלשונית חדשה/);
+    expect(waze).toHaveAccessibleName(/נפתח בלשונית חדשה/);
     expect(screen.getByTestId('navigate-menu-hints')).toHaveTextContent(HINTS);
     expect(google.getAttribute('href')).not.toContain('Entrance');
     expect(waze.getAttribute('href')).not.toContain('1234');

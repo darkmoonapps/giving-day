@@ -23,6 +23,7 @@ export function AppChrome({ children, actions }: AppChromeProps): JSX.Element {
 
   return (
     <AppPageShell
+      skipToContentLabel={t('skip_to_content')}
       header={
         <AppHeader
           title={t('app_name')}
