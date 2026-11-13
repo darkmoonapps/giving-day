@@ -294,7 +294,8 @@ The API job is **idempotent**:
 - `unpicked_warning:{dayId}:{userId}` — volunteers with `assigned`
   deliveries on today's open day, once
   `unpickedPushMinutesBeforeEnd` before the city-local window end
-- `final_status_reminder:{deliveryId}` — deliveries still `picked` after
+- `final_status_reminder:{dayId}:{userId}` — one push per volunteer per day
+  when they still have `picked` deliveries after
   `missingFinalStatusWaitHours` from `pickedAt`
 
 Per-city `unpicked_warning` and `final_status_reminder` `MessageTemplate`

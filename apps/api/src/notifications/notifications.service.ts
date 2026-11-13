@@ -401,6 +401,17 @@ export class NotificationsService {
       },
     });
 
+    type FinalStatusGroup = {
+      dayId: string;
+      cityId: string;
+      volunteerId: string;
+      locale: Locale;
+      dayDate: string;
+      count: number;
+    };
+
+    const groups = new Map<string, FinalStatusGroup>();
+
     for (const delivery of deliveries) {
       if (delivery.volunteerId === null || delivery.volunteer === null) {
         continue;
@@ -426,24 +437,40 @@ export class NotificationsService {
 
       processedDayIds.add(delivery.dayId);
 
-      result.attempted += 1;
-      const dayDate = formatDateOnly(delivery.day.date);
-      const status = await this.notifyUser({
-        userId: delivery.volunteerId,
-        cityId: delivery.cityId,
-        locale: delivery.volunteer.locale,
-        templateKey: 'final_status_reminder',
+      const groupKey = `${delivery.dayId}:${delivery.volunteerId}`;
+      const existing = groups.get(groupKey);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+
+      groups.set(groupKey, {
         dayId: delivery.dayId,
-        deliveryId: delivery.id,
-        dedupeKey: `final_status_reminder:${delivery.id}`,
+        cityId: delivery.cityId,
+        volunteerId: delivery.volunteerId,
+        locale: delivery.volunteer.locale,
+        dayDate: formatDateOnly(delivery.day.date),
+        count: 1,
+      });
+    }
+
+    for (const group of groups.values()) {
+      result.attempted += 1;
+      const status = await this.notifyUser({
+        userId: group.volunteerId,
+        cityId: group.cityId,
+        locale: group.locale,
+        templateKey: 'final_status_reminder',
+        dayId: group.dayId,
+        dedupeKey: `final_status_reminder:${group.dayId}:${group.volunteerId}`,
         vars: {
-          date: dayDate,
+          date: group.dayDate,
+          count: String(group.count),
         },
         data: {
-          dayId: delivery.dayId,
-          cityId: delivery.cityId,
-          deliveryId: delivery.id,
-          date: dayDate,
+          dayId: group.dayId,
+          cityId: group.cityId,
+          date: group.dayDate,
           templateKey: 'final_status_reminder',
         },
       });

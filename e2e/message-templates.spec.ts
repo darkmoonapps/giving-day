@@ -106,7 +106,7 @@ const holonFinalStatusReminderHe = {
   defaultBody:
     'נאספה חבילה ב-{{date}} אך עדיין אין סטטוס נמסר או לא נמסר. אנא עדכנו.',
   isCustom: false,
-  placeholders: ['date'],
+  placeholders: ['date', 'count'],
 };
 
 const holonFinalStatusReminderEn = {
@@ -119,7 +119,7 @@ const holonFinalStatusReminderEn = {
   defaultBody:
     'A package was picked on {{date}} but still has no Delivered or Not delivered status. Please update.',
   isCustom: false,
-  placeholders: ['date'],
+  placeholders: ['date', 'count'],
 };
 
 test.describe('Coordinator message templates', () => {
