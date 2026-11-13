@@ -510,6 +510,46 @@ export interface DistributionDaysResponseDto {
   days: DistributionDayResponseDto[];
 }
 
+export type PastDistributionDayStatsDtoStatus = typeof PastDistributionDayStatsDtoStatus[keyof typeof PastDistributionDayStatsDtoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PastDistributionDayStatsDtoStatus = {
+  draft: 'draft',
+  published: 'published',
+  in_progress: 'in_progress',
+  closed: 'closed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface PastDistributionDayStatsDto {
+  dayId: string;
+  date: string;
+  status: PastDistributionDayStatsDtoStatus;
+  eldersServed: number;
+  packagesDelivered: number;
+  packagesNotDelivered: number;
+  packagesOpen: number;
+  volunteersConfirmed: number;
+  volunteersDeclined: number;
+}
+
+export interface PastDistributionDayStatsTotalsDto {
+  days: number;
+  eldersServed: number;
+  packagesDelivered: number;
+  packagesNotDelivered: number;
+  packagesOpen: number;
+  volunteersConfirmed: number;
+  volunteersDeclined: number;
+}
+
+export interface CityPastDistributionDaysStatsDto {
+  cityId: string;
+  days: PastDistributionDayStatsDto[];
+  totals: PastDistributionDayStatsTotalsDto;
+}
+
 export interface OpenDistributionDayDto {
   date: string;
   startTime?: string;
@@ -4370,6 +4410,107 @@ export const useOpenDistributionDay = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary Read-only coordinator stats for past (closed) distribution days in a city
+ */
+export const getGetCityPastDistributionDaysStatsUrl = (cityId: string,) => {
+
+
+  
+
+  return `/api/cities/${cityId}/distribution-days/stats`
+}
+
+export const getCityPastDistributionDaysStats = async (cityId: string, options?: RequestInit): Promise<CityPastDistributionDaysStatsDto> => {
+  
+  return apiFetch<CityPastDistributionDaysStatsDto>(getGetCityPastDistributionDaysStatsUrl(cityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetCityPastDistributionDaysStatsQueryKey = (cityId?: string,) => {
+    return [
+    `/api/cities/${cityId}/distribution-days/stats`
+    ] as const;
+    }
+
+    
+export const getGetCityPastDistributionDaysStatsQueryOptions = <TData = Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError = unknown>(cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCityPastDistributionDaysStatsQueryKey(cityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>> = ({ signal }) => getCityPastDistributionDaysStats(cityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCityPastDistributionDaysStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>>
+export type GetCityPastDistributionDaysStatsQueryError = unknown
+
+
+export function useGetCityPastDistributionDaysStats<TData = Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError = unknown>(
+ cityId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>,
+          TError,
+          Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCityPastDistributionDaysStats<TData = Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>,
+          TError,
+          Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCityPastDistributionDaysStats<TData = Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read-only coordinator stats for past (closed) distribution days in a city
+ */
+
+export function useGetCityPastDistributionDaysStats<TData = Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError = unknown>(
+ cityId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCityPastDistributionDaysStats>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetCityPastDistributionDaysStatsQueryOptions(cityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary Update start/end hours and the volunteer-facing note on an existing day
  */

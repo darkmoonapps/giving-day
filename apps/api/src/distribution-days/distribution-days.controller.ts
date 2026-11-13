@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type {
+  CityPastDistributionDaysStats,
   DayParticipationsResponse,
   DistributionDay,
   DistributionDayDashboard,
@@ -32,6 +33,7 @@ import { RequireAbilities } from '../auth/decorators/require-abilities.decorator
 import { AbilitiesGuard } from '../auth/guards/abilities.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DistributionDaysService } from './distribution-days.service';
+import { CityPastDistributionDaysStatsDto } from './dto/city-past-distribution-days-stats-response.dto';
 import {
   DayParticipationsResponseDto,
   OwnDayParticipationDto,
@@ -68,6 +70,22 @@ export class DistributionDaysController {
     @CurrentUser() user: UserWithMemberships
   ): Promise<DistributionDaysResponse> {
     return this.distributionDaysService.list(cityId, user);
+  }
+
+  @Get('stats')
+  @RequireAbilities({ action: 'read', subject: 'DayParticipation' })
+  @ApiOperation({
+    operationId: 'getCityPastDistributionDaysStats',
+    summary:
+      'Read-only coordinator stats for past (closed) distribution days in a city',
+  })
+  @ApiParam({ name: 'cityId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: CityPastDistributionDaysStatsDto })
+  async getPastDaysStats(
+    @Param('cityId', ParseUUIDPipe) cityId: string,
+    @CurrentUser() user: UserWithMemberships
+  ): Promise<CityPastDistributionDaysStats> {
+    return this.distributionDaysService.getPastDaysStats(cityId, user);
   }
 
   @Post()

@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  cityPastDistributionDaysStatsSchema,
   dayParticipationsResponseSchema,
   distributionDayCoordinatorSchema,
   distributionDayDashboardSchema,
@@ -14,11 +15,13 @@ import {
   ownDayParticipationSchema,
   respondToDistributionDaySchema,
   updateDistributionDaySchema,
+  type CityPastDistributionDaysStats,
   type DayParticipationsResponse,
   type DistributionDay as DistributionDayDto,
   type DistributionDayDashboard,
   type DistributionDaysResponse,
   type OwnDayParticipation,
+  type PastDistributionDayStats,
   type VolunteerResponseStatus,
 } from '@giving-day/shared';
 import type { DeliveryStatus } from '@prisma/client';
@@ -71,6 +74,37 @@ interface DeliveryCountTotals {
   delivered: number;
   notDelivered: number;
   cancelled: number;
+}
+
+function emptyDeliveryCounts(): DeliveryCountTotals {
+  return {
+    unassigned: 0,
+    assigned: 0,
+    picked: 0,
+    delivered: 0,
+    notDelivered: 0,
+    cancelled: 0,
+  };
+}
+
+function emptyPastDayTotals(): {
+  days: number;
+  eldersServed: number;
+  packagesDelivered: number;
+  packagesNotDelivered: number;
+  packagesOpen: number;
+  volunteersConfirmed: number;
+  volunteersDeclined: number;
+} {
+  return {
+    days: 0,
+    eldersServed: 0,
+    packagesDelivered: 0,
+    packagesNotDelivered: 0,
+    packagesOpen: 0,
+    volunteersConfirmed: 0,
+    volunteersDeclined: 0,
+  };
 }
 
 function incrementDeliveryCount(
@@ -539,6 +573,130 @@ export class DistributionDaysService {
       volunteers: volunteerCounts,
       deliveries: deliveryCounts,
       unassignedElders,
+    });
+  }
+
+  async getPastDaysStats(
+    cityId: string,
+    actor: UserWithMemberships
+  ): Promise<CityPastDistributionDaysStats> {
+    const ability = this.abilityFactory.createForUser(actor);
+    assertCanOnCity(ability, 'read', 'DayParticipation', cityId);
+    assertCanOnCity(ability, 'read', 'Delivery', cityId);
+    await this.requireCity(cityId);
+
+    const closedDays = await this.prisma.distributionDay.findMany({
+      where: { cityId, status: 'closed' },
+      orderBy: { date: 'desc' },
+      select: {
+        id: true,
+        date: true,
+        status: true,
+      },
+    });
+
+    if (closedDays.length === 0) {
+      return cityPastDistributionDaysStatsSchema.parse({
+        cityId,
+        days: [],
+        totals: emptyPastDayTotals(),
+      });
+    }
+
+    const dayIds = closedDays.map((day) => day.id);
+    const [participations, deliveries] = await Promise.all([
+      this.prisma.dayParticipation.findMany({
+        where: { cityId, dayId: { in: dayIds } },
+        select: {
+          dayId: true,
+          status: true,
+        },
+      }),
+      this.prisma.delivery.findMany({
+        where: { cityId, dayId: { in: dayIds } },
+        select: {
+          dayId: true,
+          status: true,
+        },
+      }),
+    ]);
+
+    const volunteerCountsByDayId = new Map<
+      string,
+      { confirmed: number; declined: number }
+    >();
+    for (const participation of participations) {
+      const responseStatus = this.toCoordinatorResponseStatus(
+        participation.status
+      );
+      if (responseStatus === 'no_response') {
+        continue;
+      }
+      const current = volunteerCountsByDayId.get(participation.dayId) ?? {
+        confirmed: 0,
+        declined: 0,
+      };
+      if (responseStatus === 'confirmed') {
+        current.confirmed += 1;
+      } else {
+        current.declined += 1;
+      }
+      volunteerCountsByDayId.set(participation.dayId, current);
+    }
+
+    const deliveryCountsByDayId = new Map<string, DeliveryCountTotals>();
+    for (const delivery of deliveries) {
+      const current =
+        deliveryCountsByDayId.get(delivery.dayId) ?? emptyDeliveryCounts();
+      incrementDeliveryCount(current, delivery.status);
+      deliveryCountsByDayId.set(delivery.dayId, current);
+    }
+
+    const days: PastDistributionDayStats[] = closedDays.map((day) => {
+      const volunteerCounts = volunteerCountsByDayId.get(day.id) ?? {
+        confirmed: 0,
+        declined: 0,
+      };
+      const deliveryCounts =
+        deliveryCountsByDayId.get(day.id) ?? emptyDeliveryCounts();
+      const packagesDelivered = deliveryCounts.delivered;
+      const packagesNotDelivered = deliveryCounts.notDelivered;
+      const packagesOpen =
+        deliveryCounts.unassigned +
+        deliveryCounts.assigned +
+        deliveryCounts.picked;
+
+      return {
+        dayId: day.id,
+        date: formatDateOnly(day.date),
+        status: day.status,
+        eldersServed: packagesDelivered,
+        packagesDelivered,
+        packagesNotDelivered,
+        packagesOpen,
+        volunteersConfirmed: volunteerCounts.confirmed,
+        volunteersDeclined: volunteerCounts.declined,
+      };
+    });
+
+    const totals = days.reduce(
+      (acc, day) => ({
+        days: acc.days + 1,
+        eldersServed: acc.eldersServed + day.eldersServed,
+        packagesDelivered: acc.packagesDelivered + day.packagesDelivered,
+        packagesNotDelivered:
+          acc.packagesNotDelivered + day.packagesNotDelivered,
+        packagesOpen: acc.packagesOpen + day.packagesOpen,
+        volunteersConfirmed: acc.volunteersConfirmed + day.volunteersConfirmed,
+        volunteersDeclined: acc.volunteersDeclined + day.volunteersDeclined,
+      }),
+      emptyPastDayTotals()
+    );
+
+    return cityPastDistributionDaysStatsSchema.parse({
+      cityId,
+      days,
+      totals,
     });
   }
 
