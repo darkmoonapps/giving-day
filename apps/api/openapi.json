@@ -1204,6 +1204,43 @@
         ]
       }
     },
+    "/api/cities/{cityId}/distribution-days/stats": {
+      "get": {
+        "operationId": "getCityPastDistributionDaysStats",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityPastDistributionDaysStatsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read-only coordinator stats for past (closed) distribution days in a city",
+        "tags": [
+          "distribution-days"
+        ]
+      }
+    },
     "/api/cities/{cityId}/distribution-days/{dayId}": {
       "patch": {
         "operationId": "updateDistributionDay",
@@ -3701,6 +3738,132 @@
         },
         "required": [
           "days"
+        ]
+      },
+      "PastDistributionDayStatsDto": {
+        "type": "object",
+        "properties": {
+          "dayId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "55555555-5555-4555-8555-555555555555"
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-10-15"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "in_progress",
+              "closed",
+              "cancelled"
+            ],
+            "example": "closed"
+          },
+          "eldersServed": {
+            "type": "number",
+            "example": 2
+          },
+          "packagesDelivered": {
+            "type": "number",
+            "example": 2
+          },
+          "packagesNotDelivered": {
+            "type": "number",
+            "example": 1
+          },
+          "packagesOpen": {
+            "type": "number",
+            "example": 0
+          },
+          "volunteersConfirmed": {
+            "type": "number",
+            "example": 3
+          },
+          "volunteersDeclined": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "dayId",
+          "date",
+          "status",
+          "eldersServed",
+          "packagesDelivered",
+          "packagesNotDelivered",
+          "packagesOpen",
+          "volunteersConfirmed",
+          "volunteersDeclined"
+        ]
+      },
+      "PastDistributionDayStatsTotalsDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "example": 2
+          },
+          "eldersServed": {
+            "type": "number",
+            "example": 3
+          },
+          "packagesDelivered": {
+            "type": "number",
+            "example": 3
+          },
+          "packagesNotDelivered": {
+            "type": "number",
+            "example": 1
+          },
+          "packagesOpen": {
+            "type": "number",
+            "example": 1
+          },
+          "volunteersConfirmed": {
+            "type": "number",
+            "example": 5
+          },
+          "volunteersDeclined": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "days",
+          "eldersServed",
+          "packagesDelivered",
+          "packagesNotDelivered",
+          "packagesOpen",
+          "volunteersConfirmed",
+          "volunteersDeclined"
+        ]
+      },
+      "CityPastDistributionDaysStatsDto": {
+        "type": "object",
+        "properties": {
+          "cityId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PastDistributionDayStatsDto"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PastDistributionDayStatsTotalsDto"
+          }
+        },
+        "required": [
+          "cityId",
+          "days",
+          "totals"
         ]
       },
       "OpenDistributionDayDto": {

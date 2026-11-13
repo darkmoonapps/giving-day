@@ -631,6 +631,74 @@ describe('Distribution days HTTP authorization', () => {
     });
   });
 
+  describe('GET /api/cities/:cityId/distribution-days/stats', () => {
+    const closedDay = {
+      ...publishedDay,
+      id: '55555555-5555-4555-8555-555555555555',
+      date: new Date('2026-10-15T00:00:00.000Z'),
+      status: 'closed' as const,
+      closedAt: new Date('2026-10-15T16:00:00.000Z'),
+    };
+
+    it('lets a coordinator read past-day stats for Holon', async () => {
+      currentUser = coordinatorA();
+      mockPrisma.distributionDay.findMany.mockResolvedValue([closedDay]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        { dayId: closedDay.id, status: 'confirmed' },
+        { dayId: closedDay.id, status: 'declined' },
+      ]);
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        { dayId: closedDay.id, status: 'delivered' },
+        { dayId: closedDay.id, status: 'not_delivered' },
+        { dayId: closedDay.id, status: 'assigned' },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/distribution-days/stats`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        cityId: CITY_A_ID,
+        days: [
+          {
+            dayId: closedDay.id,
+            date: '2026-10-15',
+            status: 'closed',
+            eldersServed: 1,
+            packagesDelivered: 1,
+            packagesNotDelivered: 1,
+            packagesOpen: 1,
+            volunteersConfirmed: 1,
+            volunteersDeclined: 1,
+          },
+        ],
+        totals: {
+          days: 1,
+          eldersServed: 1,
+          packagesDelivered: 1,
+          packagesNotDelivered: 1,
+          packagesOpen: 1,
+          volunteersConfirmed: 1,
+          volunteersDeclined: 1,
+        },
+      });
+    });
+
+    it('forbids a volunteer from reading past-day stats', async () => {
+      currentUser = volunteerA();
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/distribution-days/stats`)
+        .expect(403);
+    });
+
+    it('hides another city from a coordinator', async () => {
+      currentUser = coordinatorB();
+      await request(app.getHttpServer())
+        .get(`/api/cities/${CITY_A_ID}/distribution-days/stats`)
+        .expect(404);
+    });
+  });
+
   describe('GET /api/cities/:cityId/distribution-days/:dayId/dashboard', () => {
     it('lets a coordinator read day overview counts', async () => {
       currentUser = coordinatorA();

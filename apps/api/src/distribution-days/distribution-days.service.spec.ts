@@ -709,6 +709,119 @@ describe('DistributionDaysService', () => {
     });
   });
 
+  describe('getPastDaysStats', () => {
+    it('aggregates Holon closed-day package and volunteer counts with totals', async () => {
+      const olderClosedDay = {
+        ...closedDay,
+        id: '66666666-6666-4666-8666-666666666666',
+        date: new Date('2026-09-15T00:00:00.000Z'),
+      };
+      mockPrisma.distributionDay.findMany.mockResolvedValue([
+        closedDay,
+        olderClosedDay,
+      ]);
+      mockPrisma.dayParticipation.findMany.mockResolvedValue([
+        { dayId: closedDay.id, status: 'confirmed' },
+        { dayId: closedDay.id, status: 'confirmed' },
+        { dayId: closedDay.id, status: 'declined' },
+        { dayId: closedDay.id, status: 'cancelled' },
+        { dayId: olderClosedDay.id, status: 'confirmed' },
+        { dayId: olderClosedDay.id, status: 'invited' },
+      ]);
+      mockPrisma.delivery.findMany.mockResolvedValue([
+        { dayId: closedDay.id, status: 'delivered' },
+        { dayId: closedDay.id, status: 'delivered' },
+        { dayId: closedDay.id, status: 'not_delivered' },
+        { dayId: closedDay.id, status: 'cancelled' },
+        { dayId: olderClosedDay.id, status: 'delivered' },
+        { dayId: olderClosedDay.id, status: 'assigned' },
+        { dayId: olderClosedDay.id, status: 'picked' },
+      ]);
+
+      const result = await service.getPastDaysStats(CITY_A_ID, coordinatorA());
+
+      expect(result).toEqual({
+        cityId: CITY_A_ID,
+        days: [
+          {
+            dayId: closedDay.id,
+            date: '2026-10-15',
+            status: 'closed',
+            eldersServed: 2,
+            packagesDelivered: 2,
+            packagesNotDelivered: 1,
+            packagesOpen: 0,
+            volunteersConfirmed: 2,
+            volunteersDeclined: 2,
+          },
+          {
+            dayId: olderClosedDay.id,
+            date: '2026-09-15',
+            status: 'closed',
+            eldersServed: 1,
+            packagesDelivered: 1,
+            packagesNotDelivered: 0,
+            packagesOpen: 2,
+            volunteersConfirmed: 1,
+            volunteersDeclined: 0,
+          },
+        ],
+        totals: {
+          days: 2,
+          eldersServed: 3,
+          packagesDelivered: 3,
+          packagesNotDelivered: 1,
+          packagesOpen: 2,
+          volunteersConfirmed: 3,
+          volunteersDeclined: 2,
+        },
+      });
+      expect(mockPrisma.distributionDay.findMany).toHaveBeenCalledWith({
+        where: { cityId: CITY_A_ID, status: 'closed' },
+        orderBy: { date: 'desc' },
+        select: {
+          id: true,
+          date: true,
+          status: true,
+        },
+      });
+    });
+
+    it('returns empty days and zero totals when Holon has no closed days', async () => {
+      mockPrisma.distributionDay.findMany.mockResolvedValue([]);
+
+      const result = await service.getPastDaysStats(CITY_A_ID, coordinatorA());
+
+      expect(result).toEqual({
+        cityId: CITY_A_ID,
+        days: [],
+        totals: {
+          days: 0,
+          eldersServed: 0,
+          packagesDelivered: 0,
+          packagesNotDelivered: 0,
+          packagesOpen: 0,
+          volunteersConfirmed: 0,
+          volunteersDeclined: 0,
+        },
+      });
+      expect(mockPrisma.dayParticipation.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.delivery.findMany).not.toHaveBeenCalled();
+    });
+
+    it('hides another city from a coordinator', async () => {
+      await expect(
+        service.getPastDaysStats(CITY_A_ID, coordinatorB())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('hides past-day stats from a volunteer', async () => {
+      await expect(
+        service.getPastDaysStats(CITY_A_ID, volunteerA())
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
   describe('update', () => {
     it('updates hours and the volunteer note on a published Holon day', async () => {
       mockPrisma.distributionDay.findFirst.mockResolvedValue(publishedDay);

@@ -93,6 +93,16 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
       <AppButton
         size="sm"
         variant="light"
+        data-testid="view-past-days-stats"
+        onClick={() => {
+          void navigate(`/cities/${cityId}/stats`);
+        }}
+      >
+        {t('view_past_days_stats')}
+      </AppButton>
+      <AppButton
+        size="sm"
+        variant="light"
         data-testid="view-join-requests"
         onClick={() => {
           void navigate(`/cities/${cityId}/join-requests`);

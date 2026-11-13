@@ -151,6 +151,14 @@ export {
   type DistributionDayDashboard,
 } from './schemas/distribution-day-dashboard';
 export {
+  cityPastDistributionDaysStatsSchema,
+  pastDistributionDayStatsSchema,
+  pastDistributionDayStatsTotalsSchema,
+  type CityPastDistributionDaysStats,
+  type PastDistributionDayStats,
+  type PastDistributionDayStatsTotals,
+} from './schemas/distribution-day-stats';
+export {
   CANCEL_REASON_MAX_LENGTH,
   dayParticipationCoordinatorRowSchema,
   dayParticipationsResponseSchema,

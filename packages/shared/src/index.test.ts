@@ -12,6 +12,7 @@ import {
   healthResponseSchema,
   languageCodeSchema,
   normalizePhoneToE164,
+  cityPastDistributionDaysStatsSchema,
   distributionDayDashboardSchema,
   openDistributionDaySchema,
   updateDistributionDaySchema,
@@ -84,6 +85,33 @@ describe('shared public exports', () => {
         unassignedElders: [],
       }).volunteers.total
     ).toBe(1);
+    expect(
+      cityPastDistributionDaysStatsSchema.parse({
+        cityId: '11111111-1111-4111-8111-111111111111',
+        days: [
+          {
+            dayId: '55555555-5555-4555-8555-555555555555',
+            date: '2026-10-15',
+            status: 'closed',
+            eldersServed: 2,
+            packagesDelivered: 2,
+            packagesNotDelivered: 1,
+            packagesOpen: 0,
+            volunteersConfirmed: 3,
+            volunteersDeclined: 1,
+          },
+        ],
+        totals: {
+          days: 1,
+          eldersServed: 2,
+          packagesDelivered: 2,
+          packagesNotDelivered: 1,
+          packagesOpen: 0,
+          volunteersConfirmed: 3,
+          volunteersDeclined: 1,
+        },
+      }).totals.eldersServed
+    ).toBe(2);
     expect(
       respondToDistributionDaySchema.parse({
         status: 'declined',
