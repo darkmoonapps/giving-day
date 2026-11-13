@@ -152,6 +152,9 @@ describe('Deliveries HTTP authorization', () => {
     messageTemplate: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $connect: vi.fn(),
     $disconnect: vi.fn(),
   };

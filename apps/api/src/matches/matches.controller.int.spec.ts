@@ -59,6 +59,9 @@ describe('Matches HTTP authorization', () => {
       findMany: vi.fn().mockResolvedValue([fakeVolunteerUser()]),
       findFirst: vi.fn().mockResolvedValue(fakeVolunteerUser()),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn(),
     $connect: vi.fn(),
     $disconnect: vi.fn(),

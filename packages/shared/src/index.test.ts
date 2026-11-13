@@ -24,6 +24,8 @@ import {
   createElderSchema,
   createElderChangeRequestSchema,
   createPermanentMatchSchema,
+  cityAuditLogsResponseSchema,
+  listCityAuditLogsQuerySchema,
   SENTRY_SEND_DEFAULT_PII,
   templateKeySchema,
 } from './index';
@@ -157,6 +159,15 @@ describe('shared public exports', () => {
         volunteerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       }).elderId
     ).toBe('12121212-1212-4121-8121-121212121212');
+    expect(listCityAuditLogsQuerySchema.parse({}).page).toBe(1);
+    expect(
+      cityAuditLogsResponseSchema.parse({
+        entries: [],
+        page: 1,
+        pageSize: 20,
+        total: 0,
+      }).total
+    ).toBe(0);
     expect(
       createSentryInitConfig(
         'https://examplePublicKey@o0.ingest.de.sentry.io/0'

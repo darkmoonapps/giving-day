@@ -38,6 +38,9 @@ describe('Message templates HTTP authorization', () => {
       upsert: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $connect: vi.fn(),
     $disconnect: vi.fn(),
   };

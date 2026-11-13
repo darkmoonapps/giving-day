@@ -33,6 +33,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { assertCanManageOnCity, assertCanOnCity } from '../cities/city-access';
 import { confirmedAssignableWhere } from '../common/confirmed-assignable-volunteer';
 import {
@@ -105,7 +106,8 @@ function uniqueConstraintTargets(
 export class MatchesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly abilityFactory: AbilityFactory
+    private readonly abilityFactory: AbilityFactory,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async list(
@@ -177,6 +179,19 @@ export class MatchesService {
         });
       });
 
+      await this.auditLogs.record({
+        cityId,
+        actorId: actor.id,
+        action: 'match.create',
+        entity: 'match',
+        entityId: created.id,
+        diff: {
+          type: 'permanent',
+          elderId: created.elderId,
+          volunteerId: created.volunteerId,
+        },
+      });
+
       return this.toDto(created);
     } catch (error: unknown) {
       if (this.isCurrentPermanentMatchConflict(error)) {
@@ -234,6 +249,20 @@ export class MatchesService {
         where: { id: matchId, cityId },
         include: MATCH_INCLUDE,
       });
+    });
+
+    await this.auditLogs.record({
+      cityId,
+      actorId: actor.id,
+      action: 'match.end',
+      entity: 'match',
+      entityId: updated.id,
+      diff: {
+        type: 'permanent',
+        elderId: updated.elderId,
+        volunteerId: updated.volunteerId,
+        endReason: updated.endReason,
+      },
     });
 
     return this.toDto(updated);
@@ -336,6 +365,20 @@ export class MatchesService {
         return match;
       });
 
+      await this.auditLogs.record({
+        cityId,
+        actorId: actor.id,
+        action: 'match.create',
+        entity: 'match',
+        entityId: created.id,
+        diff: {
+          type: 'one_time',
+          dayId,
+          elderId: created.elderId,
+          volunteerId: created.volunteerId,
+        },
+      });
+
       return this.toOneTimeDto(created);
     } catch (error: unknown) {
       if (this.isCurrentOneTimeMatchConflict(error)) {
@@ -399,6 +442,21 @@ export class MatchesService {
         where: { id: matchId, cityId, dayId },
         include: MATCH_INCLUDE,
       });
+    });
+
+    await this.auditLogs.record({
+      cityId,
+      actorId: actor.id,
+      action: 'match.end',
+      entity: 'match',
+      entityId: updated.id,
+      diff: {
+        type: 'one_time',
+        dayId,
+        elderId: updated.elderId,
+        volunteerId: updated.volunteerId,
+        endReason: updated.endReason,
+      },
     });
 
     return this.toOneTimeDto(updated);

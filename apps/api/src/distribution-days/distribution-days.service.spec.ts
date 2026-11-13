@@ -7,6 +7,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { AbilityFactory } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DeliveriesService } from '../deliveries/deliveries.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -161,6 +162,10 @@ describe('DistributionDaysService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: DeliveriesService, useValue: mockDeliveries },
+        {
+          provide: AuditLogsService,
+          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

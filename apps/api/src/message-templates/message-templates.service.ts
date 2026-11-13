@@ -23,6 +23,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { assertCanOnCity } from '../cities/city-access';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UpsertMessageTemplateDto } from './dto/upsert-message-template.dto';
@@ -33,7 +34,8 @@ const LOCALES = localeSchema.options;
 export class MessageTemplatesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly abilityFactory: AbilityFactory
+    private readonly abilityFactory: AbilityFactory,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async list(
@@ -120,6 +122,20 @@ export class MessageTemplatesService {
       },
     });
 
+    await this.auditLogs.record({
+      cityId,
+      actorId: actor.id,
+      action: 'message_template.upsert',
+      entity: 'message_template',
+      entityId: row.id,
+      diff: {
+        key,
+        locale,
+        title: 'changed',
+        body: 'changed',
+      },
+    });
+
     const global = await this.prisma.messageTemplate.findFirst({
       where: { cityId: null, key, locale },
     });
@@ -140,9 +156,27 @@ export class MessageTemplatesService {
     const key = this.parseTemplateKey(keyParam);
     const locale = this.parseLocale(localeParam);
 
+    const existing = await this.prisma.messageTemplate.findFirst({
+      where: { cityId, key, locale },
+    });
+
     await this.prisma.messageTemplate.deleteMany({
       where: { cityId, key, locale },
     });
+
+    if (existing !== null) {
+      await this.auditLogs.record({
+        cityId,
+        actorId: actor.id,
+        action: 'message_template.reset',
+        entity: 'message_template',
+        entityId: existing.id,
+        diff: {
+          key,
+          locale,
+        },
+      });
+    }
 
     const global = await this.prisma.messageTemplate.findFirst({
       where: { cityId: null, key, locale },

@@ -7,6 +7,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { AbilityFactory } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -110,6 +111,10 @@ describe('CitiesService', () => {
         AbilityFactory,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuthService, useValue: mockAuthService },
+        {
+          provide: AuditLogsService,
+          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

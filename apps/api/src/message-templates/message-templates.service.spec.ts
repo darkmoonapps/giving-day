@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { defaultMessageCopyFor } from '@giving-day/shared';
 import { AbilityFactory } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CITY_A_ID,
@@ -40,6 +41,10 @@ describe('MessageTemplatesService', () => {
         MessageTemplatesService,
         AbilityFactory,
         { provide: PrismaService, useValue: mockPrisma },
+        {
+          provide: AuditLogsService,
+          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

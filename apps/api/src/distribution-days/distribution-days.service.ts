@@ -35,6 +35,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   assertActiveVolunteerInCity,
   assertCanOnCity,
@@ -143,7 +144,8 @@ export class DistributionDaysService {
     private readonly prisma: PrismaService,
     private readonly abilityFactory: AbilityFactory,
     private readonly notificationsService: NotificationsService,
-    private readonly deliveriesService: DeliveriesService
+    private readonly deliveriesService: DeliveriesService,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async open(
@@ -212,6 +214,18 @@ export class DistributionDaysService {
       throw error;
     }
 
+    await this.auditLogs.record({
+      cityId,
+      actorId: actor.id,
+      action: 'distribution_day.publish',
+      entity: 'distribution_day',
+      entityId: created.id,
+      diff: {
+        status: 'published',
+      },
+      at: publishedAt,
+    });
+
     await this.notificationsService.announceDistributionDay(created);
     return this.toDto(created, true);
   }
@@ -258,6 +272,20 @@ export class DistributionDaysService {
         startTime: parseTime(startTime),
         endTime: parseTime(endTime),
         notesForVolunteers,
+      },
+    });
+
+    await this.auditLogs.record({
+      cityId,
+      actorId: actor.id,
+      action: 'distribution_day.update',
+      entity: 'distribution_day',
+      entityId: updated.id,
+      diff: {
+        startTime: parsed.data.startTime === undefined ? false : 'changed',
+        endTime: parsed.data.endTime === undefined ? false : 'changed',
+        notesForVolunteers:
+          parsed.data.notesForVolunteers === undefined ? false : 'changed',
       },
     });
 
