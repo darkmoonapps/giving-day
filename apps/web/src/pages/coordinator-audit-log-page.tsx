@@ -34,8 +34,19 @@ const AUDIT_ACTION_LABEL_KEYS = {
   'message_template.reset': 'audit_action_message_template_reset',
 } as const;
 
+const AUDIT_ENTITY_LABEL_KEYS = {
+  delivery: 'audit_entity_delivery',
+  distribution_day: 'audit_entity_distribution_day',
+  match: 'audit_entity_match',
+  membership: 'audit_entity_membership',
+  message_template: 'audit_entity_message_template',
+} as const;
+
 type AuditActionLabelKey =
   (typeof AUDIT_ACTION_LABEL_KEYS)[keyof typeof AUDIT_ACTION_LABEL_KEYS];
+
+type AuditEntityLabelKey =
+  (typeof AUDIT_ENTITY_LABEL_KEYS)[keyof typeof AUDIT_ENTITY_LABEL_KEYS];
 
 function formatAuditAt(iso: string, language: string): string {
   const date = new Date(iso);
@@ -52,10 +63,12 @@ function AuditRow({
   entry,
   language,
   actionLabel,
+  entityLabel,
 }: {
   entry: AuditLogEntryDto;
   language: string;
   actionLabel: string;
+  entityLabel: string;
 }): JSX.Element {
   return (
     <Table.Tr data-testid={`audit-log-row-${entry.id}`}>
@@ -65,7 +78,9 @@ function AuditRow({
       <Table.Td data-testid={`audit-log-action-${entry.id}`}>
         {actionLabel}
       </Table.Td>
-      <Table.Td>{entry.entity}</Table.Td>
+      <Table.Td data-testid={`audit-log-entity-${entry.id}`}>
+        {entityLabel}
+      </Table.Td>
       <Table.Td>
         <AppText size="sm" ff="monospace">
           {entry.entityId}
@@ -112,6 +127,13 @@ export function CoordinatorAuditLogPage(): JSX.Element {
       action as keyof typeof AUDIT_ACTION_LABEL_KEYS
     ] as AuditActionLabelKey | undefined;
     return key === undefined ? action : t(key);
+  };
+
+  const entityLabel = (entity: string): string => {
+    const key = AUDIT_ENTITY_LABEL_KEYS[
+      entity as keyof typeof AUDIT_ENTITY_LABEL_KEYS
+    ] as AuditEntityLabelKey | undefined;
+    return key === undefined ? entity : t(key);
   };
 
   return (
@@ -178,6 +200,7 @@ export function CoordinatorAuditLogPage(): JSX.Element {
                       entry={entry}
                       language={language}
                       actionLabel={actionLabel(entry.action)}
+                      entityLabel={entityLabel(entry.entity)}
                     />
                   ))}
                 </Table.Tbody>

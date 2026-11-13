@@ -41,11 +41,17 @@ describe('Message templates HTTP authorization', () => {
     auditLog: {
       create: vi.fn().mockResolvedValue({}),
     },
+    $transaction: vi.fn(),
     $connect: vi.fn(),
     $disconnect: vi.fn(),
   };
 
   beforeAll(async () => {
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -82,6 +88,10 @@ describe('Message templates HTTP authorization', () => {
     mockPrisma.messageTemplate.findMany.mockResolvedValue([]);
     mockPrisma.messageTemplate.findFirst.mockResolvedValue(null);
     mockPrisma.messageTemplate.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
   });
 
   describe('unauthenticated', () => {

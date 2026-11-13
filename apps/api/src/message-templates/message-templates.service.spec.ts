@@ -33,6 +33,11 @@ describe('MessageTemplatesService', () => {
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
+    $transaction: vi.fn(),
+  };
+
+  const mockAuditLogs = {
+    record: vi.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -43,7 +48,7 @@ describe('MessageTemplatesService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         {
           provide: AuditLogsService,
-          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+          useValue: mockAuditLogs,
         },
       ],
     }).compile();
@@ -53,6 +58,11 @@ describe('MessageTemplatesService', () => {
     mockPrisma.city.findUnique.mockResolvedValue(city);
     mockPrisma.messageTemplate.findMany.mockResolvedValue([]);
     mockPrisma.messageTemplate.findFirst.mockResolvedValue(null);
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
+    mockAuditLogs.record.mockResolvedValue(undefined);
   });
 
   describe('list', () => {
@@ -170,6 +180,7 @@ describe('MessageTemplatesService', () => {
         coordinatorA()
       );
 
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.messageTemplate.upsert).toHaveBeenCalledWith({
         where: {
           cityId_key_locale: {
@@ -190,6 +201,14 @@ describe('MessageTemplatesService', () => {
           body: 'Can you deliver in Holon on {{date}}?',
         },
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'message_template.upsert',
+          entity: 'message_template',
+          entityId: saved.id,
+        }),
+        mockPrisma
+      );
       expect(result).toMatchObject({
         id: saved.id,
         isCustom: true,
@@ -254,6 +273,28 @@ describe('MessageTemplatesService', () => {
 
   describe('reset', () => {
     it('deletes the city override and returns defaults', async () => {
+      const existing = {
+        id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        cityId: CITY_A_ID,
+        key: 'day_invite' as const,
+        locale: 'he' as const,
+        title: 'יום חלוקה',
+        body: 'גוף',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockPrisma.messageTemplate.findFirst.mockImplementation(
+        async ({
+          where,
+        }: {
+          where: { cityId: string | null; key: string; locale: string };
+        }) => {
+          if (where.cityId === CITY_A_ID) {
+            return existing;
+          }
+          return null;
+        }
+      );
       mockPrisma.messageTemplate.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await service.reset(
@@ -263,9 +304,22 @@ describe('MessageTemplatesService', () => {
         coordinatorA()
       );
 
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.messageTemplate.findFirst).toHaveBeenCalledWith({
+        where: { cityId: CITY_A_ID, key: 'day_invite', locale: 'he' },
+      });
       expect(mockPrisma.messageTemplate.deleteMany).toHaveBeenCalledWith({
         where: { cityId: CITY_A_ID, key: 'day_invite', locale: 'he' },
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'message_template.reset',
+          entity: 'message_template',
+          entityId: existing.id,
+          diff: { key: 'day_invite', locale: 'he' },
+        }),
+        mockPrisma
+      );
       expect(result).toMatchObject({
         id: null,
         isCustom: false,

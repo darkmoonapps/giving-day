@@ -32,6 +32,9 @@ describe('CoordinatorAuditLogPage', () => {
     expect(
       screen.getByTestId(`audit-log-action-${AUDIT_ENTRY_NEWER_ID}`)
     ).toHaveTextContent('אישור בקשת הצטרפות');
+    expect(
+      screen.getByTestId(`audit-log-entity-${AUDIT_ENTRY_NEWER_ID}`)
+    ).toHaveTextContent('חברות');
     expect(screen.getByTestId('audit-log-page-label')).toBeInTheDocument();
   });
 

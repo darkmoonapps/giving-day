@@ -202,6 +202,21 @@ export class DistributionDaysService {
           actorId: actor.id,
         });
 
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'distribution_day.publish',
+            entity: 'distribution_day',
+            entityId: day.id,
+            diff: {
+              status: 'published',
+            },
+            at: publishedAt,
+          },
+          tx
+        );
+
         return day;
       });
     } catch (error: unknown) {
@@ -213,18 +228,6 @@ export class DistributionDaysService {
       }
       throw error;
     }
-
-    await this.auditLogs.record({
-      cityId,
-      actorId: actor.id,
-      action: 'distribution_day.publish',
-      entity: 'distribution_day',
-      entityId: created.id,
-      diff: {
-        status: 'published',
-      },
-      at: publishedAt,
-    });
 
     await this.notificationsService.announceDistributionDay(created);
     return this.toDto(created, true);
@@ -266,27 +269,42 @@ export class DistributionDaysService {
         ? day.notesForVolunteers
         : trimToNull(parsed.data.notesForVolunteers);
 
-    const updated = await this.prisma.distributionDay.update({
-      where: { id: day.id },
-      data: {
-        startTime: parseTime(startTime),
-        endTime: parseTime(endTime),
-        notesForVolunteers,
-      },
-    });
+    const changedFields: string[] = [];
+    if (parsed.data.startTime !== undefined) {
+      changedFields.push('startTime');
+    }
+    if (parsed.data.endTime !== undefined) {
+      changedFields.push('endTime');
+    }
+    if (parsed.data.notesForVolunteers !== undefined) {
+      changedFields.push('notesForVolunteers');
+    }
 
-    await this.auditLogs.record({
-      cityId,
-      actorId: actor.id,
-      action: 'distribution_day.update',
-      entity: 'distribution_day',
-      entityId: updated.id,
-      diff: {
-        startTime: parsed.data.startTime === undefined ? false : 'changed',
-        endTime: parsed.data.endTime === undefined ? false : 'changed',
-        notesForVolunteers:
-          parsed.data.notesForVolunteers === undefined ? false : 'changed',
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.distributionDay.update({
+        where: { id: day.id },
+        data: {
+          startTime: parseTime(startTime),
+          endTime: parseTime(endTime),
+          notesForVolunteers,
+        },
+      });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'distribution_day.update',
+          entity: 'distribution_day',
+          entityId: row.id,
+          diff: {
+            changedFields: changedFields.join(','),
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toDto(updated, true);

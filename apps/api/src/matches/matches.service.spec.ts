@@ -80,6 +80,10 @@ describe('MatchesService', () => {
     $transaction: vi.fn(),
   };
 
+  const mockAuditLogs = {
+    record: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
@@ -93,7 +97,7 @@ describe('MatchesService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         {
           provide: AuditLogsService,
-          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+          useValue: mockAuditLogs,
         },
       ],
     }).compile();
@@ -109,6 +113,7 @@ describe('MatchesService', () => {
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
     );
+    mockAuditLogs.record.mockResolvedValue(undefined);
   });
 
   describe('list', () => {
@@ -198,6 +203,19 @@ describe('MatchesService', () => {
         },
         include: expect.any(Object),
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'match.create',
+          entity: 'match',
+          entityId: MATCH_A_ID,
+          diff: expect.objectContaining({
+            type: 'permanent',
+            elderId: ELDER_A_ID,
+            volunteerId: VOLUNTEER_A_ID,
+          }),
+        }),
+        mockPrisma
+      );
     });
 
     it('returns 409 when the elder already has a current permanent match', async () => {

@@ -99,6 +99,10 @@ describe('CitiesService', () => {
     revokeAllUserSessions: vi.fn(),
   };
 
+  const mockAuditLogs = {
+    record: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     mockPrisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
@@ -113,7 +117,7 @@ describe('CitiesService', () => {
         { provide: AuthService, useValue: mockAuthService },
         {
           provide: AuditLogsService,
-          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+          useValue: mockAuditLogs,
         },
       ],
     }).compile();
@@ -124,6 +128,7 @@ describe('CitiesService', () => {
       async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
         callback(mockPrisma)
     );
+    mockAuditLogs.record.mockResolvedValue(undefined);
   });
 
   describe('createCity', () => {
@@ -913,6 +918,7 @@ describe('CitiesService', () => {
 
       expect(result.status).toBe('active');
       expect(result.approvedAt).toBe('2026-10-28T10:00:00.000Z');
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
         where: { id: pendingMembership.id },
         data: expect.objectContaining({
@@ -921,6 +927,20 @@ describe('CitiesService', () => {
         }),
         include: expect.any(Object),
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cityId: CITY_A_ID,
+          actorId: COORDINATOR_A_ID,
+          action: 'membership.approve',
+          entity: 'membership',
+          entityId: pendingMembership.id,
+          diff: {
+            userId: pendingMembership.userId,
+            role: pendingMembership.role,
+          },
+        }),
+        mockPrisma
+      );
     });
 
     it('rejects a pending membership so the leaked link still grants no access', async () => {
@@ -938,6 +958,7 @@ describe('CitiesService', () => {
       );
 
       expect(result.status).toBe('removed');
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.cityMembership.update).toHaveBeenCalledWith({
         where: { id: pendingMembership.id },
         data: {
@@ -947,6 +968,14 @@ describe('CitiesService', () => {
         },
         include: expect.any(Object),
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'membership.reject',
+          entity: 'membership',
+          entityId: pendingMembership.id,
+        }),
+        mockPrisma
+      );
     });
 
     it('refuses to approve a membership that is not pending', async () => {

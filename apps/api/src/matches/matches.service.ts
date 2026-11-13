@@ -167,7 +167,7 @@ export class MatchesService {
         await this.requireApprovedVolunteer(tx, cityId, parsed.volunteerId);
         await this.assertNoCurrentPermanentMatch(tx, parsed.elderId);
 
-        return tx.match.create({
+        const match = await tx.match.create({
           data: {
             cityId,
             elderId: parsed.elderId,
@@ -177,19 +177,24 @@ export class MatchesService {
           },
           include: MATCH_INCLUDE,
         });
-      });
 
-      await this.auditLogs.record({
-        cityId,
-        actorId: actor.id,
-        action: 'match.create',
-        entity: 'match',
-        entityId: created.id,
-        diff: {
-          type: 'permanent',
-          elderId: created.elderId,
-          volunteerId: created.volunteerId,
-        },
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'match.create',
+            entity: 'match',
+            entityId: match.id,
+            diff: {
+              type: 'permanent',
+              elderId: match.elderId,
+              volunteerId: match.volunteerId,
+            },
+          },
+          tx
+        );
+
+        return match;
       });
 
       return this.toDto(created);
@@ -245,24 +250,29 @@ export class MatchesService {
         throw new BadRequestException('matches.already_ended');
       }
 
-      return tx.match.findFirstOrThrow({
+      const row = await tx.match.findFirstOrThrow({
         where: { id: matchId, cityId },
         include: MATCH_INCLUDE,
       });
-    });
 
-    await this.auditLogs.record({
-      cityId,
-      actorId: actor.id,
-      action: 'match.end',
-      entity: 'match',
-      entityId: updated.id,
-      diff: {
-        type: 'permanent',
-        elderId: updated.elderId,
-        volunteerId: updated.volunteerId,
-        endReason: updated.endReason,
-      },
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'match.end',
+          entity: 'match',
+          entityId: row.id,
+          diff: {
+            type: 'permanent',
+            elderId: row.elderId,
+            volunteerId: row.volunteerId,
+            endReason: row.endReason,
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toDto(updated);
@@ -362,21 +372,24 @@ export class MatchesService {
           assignedAt,
         });
 
-        return match;
-      });
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'match.create',
+            entity: 'match',
+            entityId: match.id,
+            diff: {
+              type: 'one_time',
+              dayId,
+              elderId: match.elderId,
+              volunteerId: match.volunteerId,
+            },
+          },
+          tx
+        );
 
-      await this.auditLogs.record({
-        cityId,
-        actorId: actor.id,
-        action: 'match.create',
-        entity: 'match',
-        entityId: created.id,
-        diff: {
-          type: 'one_time',
-          dayId,
-          elderId: created.elderId,
-          volunteerId: created.volunteerId,
-        },
+        return match;
       });
 
       return this.toOneTimeDto(created);
@@ -438,25 +451,30 @@ export class MatchesService {
         at: unassignedAt,
       });
 
-      return tx.match.findFirstOrThrow({
+      const row = await tx.match.findFirstOrThrow({
         where: { id: matchId, cityId, dayId },
         include: MATCH_INCLUDE,
       });
-    });
 
-    await this.auditLogs.record({
-      cityId,
-      actorId: actor.id,
-      action: 'match.end',
-      entity: 'match',
-      entityId: updated.id,
-      diff: {
-        type: 'one_time',
-        dayId,
-        elderId: updated.elderId,
-        volunteerId: updated.volunteerId,
-        endReason: updated.endReason,
-      },
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'match.end',
+          entity: 'match',
+          entityId: row.id,
+          diff: {
+            type: 'one_time',
+            dayId,
+            elderId: row.elderId,
+            volunteerId: row.volunteerId,
+            endReason: row.endReason,
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toOneTimeDto(updated);

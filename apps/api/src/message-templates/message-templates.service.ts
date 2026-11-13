@@ -101,39 +101,46 @@ export class MessageTemplatesService {
       throw new BadRequestException('message_templates.unknown_placeholder');
     }
 
-    const row = await this.prisma.messageTemplate.upsert({
-      where: {
-        cityId_key_locale: {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.messageTemplate.upsert({
+        where: {
+          cityId_key_locale: {
+            cityId,
+            key,
+            locale,
+          },
+        },
+        create: {
           cityId,
           key,
           locale,
+          title: parsed.data.title,
+          body: parsed.data.body,
         },
-      },
-      create: {
-        cityId,
-        key,
-        locale,
-        title: parsed.data.title,
-        body: parsed.data.body,
-      },
-      update: {
-        title: parsed.data.title,
-        body: parsed.data.body,
-      },
-    });
+        update: {
+          title: parsed.data.title,
+          body: parsed.data.body,
+        },
+      });
 
-    await this.auditLogs.record({
-      cityId,
-      actorId: actor.id,
-      action: 'message_template.upsert',
-      entity: 'message_template',
-      entityId: row.id,
-      diff: {
-        key,
-        locale,
-        title: 'changed',
-        body: 'changed',
-      },
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'message_template.upsert',
+          entity: 'message_template',
+          entityId: saved.id,
+          diff: {
+            key,
+            locale,
+            title: 'changed',
+            body: 'changed',
+          },
+        },
+        tx
+      );
+
+      return saved;
     });
 
     const global = await this.prisma.messageTemplate.findFirst({
@@ -156,27 +163,32 @@ export class MessageTemplatesService {
     const key = this.parseTemplateKey(keyParam);
     const locale = this.parseLocale(localeParam);
 
-    const existing = await this.prisma.messageTemplate.findFirst({
-      where: { cityId, key, locale },
-    });
-
-    await this.prisma.messageTemplate.deleteMany({
-      where: { cityId, key, locale },
-    });
-
-    if (existing !== null) {
-      await this.auditLogs.record({
-        cityId,
-        actorId: actor.id,
-        action: 'message_template.reset',
-        entity: 'message_template',
-        entityId: existing.id,
-        diff: {
-          key,
-          locale,
-        },
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.messageTemplate.findFirst({
+        where: { cityId, key, locale },
       });
-    }
+
+      await tx.messageTemplate.deleteMany({
+        where: { cityId, key, locale },
+      });
+
+      if (existing !== null) {
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'message_template.reset',
+            entity: 'message_template',
+            entityId: existing.id,
+            diff: {
+              key,
+              locale,
+            },
+          },
+          tx
+        );
+      }
+    });
 
     const global = await this.prisma.messageTemplate.findFirst({
       where: { cityId: null, key, locale },
