@@ -241,60 +241,70 @@ export function CoordinatorVolunteersPage(): JSX.Element {
                   : t('volunteers_empty')}
               </AppText>
             ) : (
-              <Table
-                highlightOnHover
-                data-testid="coordinator-volunteers-table"
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('volunteer_column')}</Table.Th>
-                    <Table.Th>{t('phone_column')}</Table.Th>
-                    <Table.Th>{t('home_area_column')}</Table.Th>
-                    <Table.Th>{t('status_column')}</Table.Th>
-                    {showDayResponse ? (
-                      <Table.Th>{t('day_response_column')}</Table.Th>
-                    ) : null}
-                    {showDayResponse ? (
-                      <Table.Th>{t('reason_column')}</Table.Th>
-                    ) : null}
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {volunteers.map((volunteer) => (
-                    <Table.Tr
-                      key={volunteer.membershipId}
-                      data-testid={`volunteer-row-${volunteer.membershipId}`}
-                    >
-                      <Table.Td>
-                        {volunteerDisplayName(
-                          volunteer.firstName,
-                          volunteer.lastName,
-                          t('unnamed_volunteer')
-                        )}
-                      </Table.Td>
-                      <Table.Td>{volunteer.phone ?? t('no_reason')}</Table.Td>
-                      <Table.Td>
-                        {volunteer.homeArea ?? t('no_reason')}
-                      </Table.Td>
-                      <Table.Td>
-                        {t(MEMBERSHIP_STATUS_KEYS[volunteer.status])}
-                      </Table.Td>
+              <Table.ScrollContainer minWidth={720}>
+                <Table
+                  highlightOnHover
+                  data-testid="coordinator-volunteers-table"
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('volunteer_column')}</Table.Th>
+                      <Table.Th>{t('phone_column')}</Table.Th>
+                      <Table.Th>{t('home_area_column')}</Table.Th>
+                      <Table.Th>{t('status_column')}</Table.Th>
                       {showDayResponse ? (
-                        <Table.Td>
-                          {volunteer.dayResponseStatus === null
-                            ? t('no_reason')
-                            : t(DAY_RESPONSE_KEYS[volunteer.dayResponseStatus])}
-                        </Table.Td>
+                        <Table.Th>{t('day_response_column')}</Table.Th>
                       ) : null}
                       {showDayResponse ? (
-                        <Table.Td>
-                          {volunteer.cancelReason ?? t('no_reason')}
-                        </Table.Td>
+                        <Table.Th>{t('reason_column')}</Table.Th>
                       ) : null}
                     </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {volunteers.map((volunteer) => (
+                      <Table.Tr
+                        key={volunteer.membershipId}
+                        data-testid={`volunteer-row-${volunteer.membershipId}`}
+                      >
+                        <Table.Td>
+                          {volunteerDisplayName(
+                            volunteer.firstName,
+                            volunteer.lastName,
+                            t('unnamed_volunteer')
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          {volunteer.phone === null ? (
+                            t('no_reason')
+                          ) : (
+                            <span dir="ltr">{volunteer.phone}</span>
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          {volunteer.homeArea ?? t('no_reason')}
+                        </Table.Td>
+                        <Table.Td>
+                          {t(MEMBERSHIP_STATUS_KEYS[volunteer.status])}
+                        </Table.Td>
+                        {showDayResponse ? (
+                          <Table.Td>
+                            {volunteer.dayResponseStatus === null
+                              ? t('no_reason')
+                              : t(
+                                  DAY_RESPONSE_KEYS[volunteer.dayResponseStatus]
+                                )}
+                          </Table.Td>
+                        ) : null}
+                        {showDayResponse ? (
+                          <Table.Td>
+                            {volunteer.cancelReason ?? t('no_reason')}
+                          </Table.Td>
+                        ) : null}
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
           </>
         )}

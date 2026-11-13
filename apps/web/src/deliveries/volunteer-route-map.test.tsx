@@ -77,11 +77,11 @@ describe('VolunteerRouteMap', () => {
 
   it('renders an accessible Holon map container without placing unlocated routes', () => {
     renderWithProviders(<VolunteerRouteMap route={holonRoute} />);
-    expect(screen.getByTestId('volunteer-route-map')).toBeInTheDocument();
-    expect(screen.getByTestId('volunteer-route-map')).toHaveAttribute(
-      'dir',
-      'ltr'
-    );
+    const map = screen.getByTestId('volunteer-route-map');
+    expect(map).toBeInTheDocument();
+    expect(map).toHaveAttribute('dir', 'ltr');
+    expect(map).toHaveAttribute('role', 'region');
+    expect(map).toHaveAccessibleName('מפת המסלול המומלץ');
   });
 
   it('hides the map when nothing can be placed', () => {

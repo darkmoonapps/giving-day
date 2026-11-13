@@ -75,6 +75,7 @@
   "pending_empty": "Everyone has responded.",
   "declined_empty": "No one has declined.",
   "view_needs_volunteer": "Open the needs-a-volunteer list",
+  "coordinator_nav_label": "City coordinator tools",
   "open_days_title": "Distribution days",
   "no_days": "No distribution days yet.",
   "create_day": "Create distribution day",

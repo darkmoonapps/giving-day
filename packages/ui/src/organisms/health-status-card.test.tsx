@@ -30,6 +30,9 @@ describe('HealthStatusCard', () => {
     expect(screen.getByText('Healthy')).toBeInTheDocument();
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
+    expect(
+      document.querySelector('[data-testid="status-badge"] svg')
+    ).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('does not fall back to the raw status token', () => {

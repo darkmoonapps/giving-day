@@ -217,6 +217,7 @@ export function VolunteerDeliveriesList({
                       <AppText size="sm">
                         <a
                           href={`tel:${contact.phone}`}
+                          dir="ltr"
                           aria-label={t('call_next_of_kin', {
                             name: contact.name,
                           })}

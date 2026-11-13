@@ -62,7 +62,7 @@ export function HealthStatusCard({
 
       {errorMessage !== null && (
         <AppAlert
-          icon={<IconAlertCircle size={16} />}
+          icon={<IconAlertCircle size={16} aria-hidden />}
           title={errorTitle}
           color="red"
         >
@@ -76,7 +76,7 @@ export function HealthStatusCard({
             label={apiStatusLabel}
             value={apiStatusValue ?? ''}
             color={statusColor(status, null)}
-            icon={<IconCircleCheck size={12} />}
+            icon={<IconCircleCheck size={12} aria-hidden />}
             testId="status-badge"
             dataStatus={status}
           />

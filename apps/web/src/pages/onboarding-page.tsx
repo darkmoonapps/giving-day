@@ -25,6 +25,7 @@ import {
   requestNotificationPermission,
   shouldShowIosInstallHelp,
 } from '../auth/pwa-install';
+import { LTR_INPUT_STYLES } from '../a11y/ltr-input-styles';
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 
@@ -257,6 +258,7 @@ export function OnboardingPage(): JSX.Element {
             withAsterisk
             autoComplete="tel"
             inputMode="tel"
+            styles={LTR_INPUT_STYLES}
           />
           <TextInput
             name="birthDate"

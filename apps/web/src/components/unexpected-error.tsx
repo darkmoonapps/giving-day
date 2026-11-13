@@ -18,7 +18,10 @@ export function UnexpectedError({
   const { t } = useTranslation('common');
 
   return (
-    <AppPageShell header={<AppHeader title={t('app_name')} />}>
+    <AppPageShell
+      skipToContentLabel={t('skip_to_content')}
+      header={<AppHeader title={t('app_name')} />}
+    >
       <Stack gap="md" component="section" data-testid="unexpected-error">
         <AppTitle order={1}>{t('error.unexpected_title')}</AppTitle>
         <AppText>{t('error.unexpected_body')}</AppText>

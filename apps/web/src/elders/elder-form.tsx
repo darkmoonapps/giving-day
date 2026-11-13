@@ -11,6 +11,7 @@ import type { TFunction } from 'i18next';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreateElder, UpdateElder } from '@giving-day/shared';
+import { LTR_INPUT_STYLES } from '../a11y/ltr-input-styles';
 import {
   CONTACT_RELATIONS,
   EDITABLE_ELDER_STATUSES,
@@ -147,6 +148,7 @@ export function ElderForm({
           value={values.phone}
           inputMode="tel"
           autoComplete="tel"
+          styles={LTR_INPUT_STYLES}
           error={
             errors.phone === undefined
               ? undefined
@@ -163,6 +165,7 @@ export function ElderForm({
           label={t('elder_phone_alt')}
           value={values.phoneAlt}
           inputMode="tel"
+          styles={LTR_INPUT_STYLES}
           error={
             errors.phoneAlt === undefined
               ? undefined
@@ -357,6 +360,7 @@ export function ElderForm({
                   label={t('next_of_kin_phone')}
                   value={contact.phone}
                   inputMode="tel"
+                  styles={LTR_INPUT_STYLES}
                   error={
                     contactErrors?.phone === undefined
                       ? undefined

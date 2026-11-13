@@ -193,163 +193,171 @@ export function CoordinatorEldersPage(): JSX.Element {
                 {showInactive ? t('elders_inactive_empty') : t('elders_empty')}
               </AppText>
             ) : (
-              <Table highlightOnHover data-testid="coordinator-elders-table">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('elder_column')}</Table.Th>
-                    <Table.Th>{t('address_column')}</Table.Th>
-                    <Table.Th>{t('phone_column')}</Table.Th>
-                    <Table.Th>{t('status_column')}</Table.Th>
-                    <Table.Th>{t('notes_column')}</Table.Th>
-                    <Table.Th>{t('actions_column')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {elders.map((elder) => {
-                    const confirmingDeactivate =
-                      confirmingElderId === elder.id &&
-                      confirmingAction === 'deactivate';
-                    const confirmingReactivate =
-                      confirmingElderId === elder.id &&
-                      confirmingAction === 'reactivate';
-                    const deactivating =
-                      deactivateMutation.isPending &&
-                      confirmingElderId === elder.id;
-                    const reactivating =
-                      updateMutation.isPending &&
-                      confirmingAction === 'reactivate' &&
-                      confirmingElderId === elder.id;
+              <Table.ScrollContainer minWidth={720}>
+                <Table highlightOnHover data-testid="coordinator-elders-table">
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('elder_column')}</Table.Th>
+                      <Table.Th>{t('address_column')}</Table.Th>
+                      <Table.Th>{t('phone_column')}</Table.Th>
+                      <Table.Th>{t('status_column')}</Table.Th>
+                      <Table.Th>{t('notes_column')}</Table.Th>
+                      <Table.Th>{t('actions_column')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {elders.map((elder) => {
+                      const confirmingDeactivate =
+                        confirmingElderId === elder.id &&
+                        confirmingAction === 'deactivate';
+                      const confirmingReactivate =
+                        confirmingElderId === elder.id &&
+                        confirmingAction === 'reactivate';
+                      const deactivating =
+                        deactivateMutation.isPending &&
+                        confirmingElderId === elder.id;
+                      const reactivating =
+                        updateMutation.isPending &&
+                        confirmingAction === 'reactivate' &&
+                        confirmingElderId === elder.id;
 
-                    return (
-                      <Table.Tr
-                        key={elder.id}
-                        data-testid={`elder-row-${elder.id}`}
-                      >
-                        <Table.Td>{elder.fullName}</Table.Td>
-                        <Table.Td>{elderAddress(elder)}</Table.Td>
-                        <Table.Td>{elder.phone ?? t('no_reason')}</Table.Td>
-                        <Table.Td>
-                          {t(STATUS_LABEL_KEYS[elder.status])}
-                        </Table.Td>
-                        <Table.Td>{elder.notes ?? t('no_reason')}</Table.Td>
-                        <Table.Td>
-                          <Stack gap="xs">
-                            {canEditElder(elder) ? (
-                              <AppButton
-                                size="xs"
-                                variant="light"
-                                data-testid={`edit-elder-${elder.id}`}
-                                onClick={() => {
-                                  setEditingElderId(elder.id);
-                                  cancelConfirm();
-                                }}
-                              >
-                                {t('edit_elder')}
-                              </AppButton>
-                            ) : null}
-                            {canDeactivateElder(elder) ? (
-                              confirmingDeactivate ? (
-                                <>
-                                  <AppText size="sm">
-                                    {t('deactivate_elder_confirm')}
-                                  </AppText>
-                                  <AppButton
-                                    size="xs"
-                                    data-testid={`confirm-deactivate-elder-${elder.id}`}
-                                    loading={deactivating}
-                                    onClick={() => {
-                                      if (!validId) {
-                                        return;
-                                      }
-                                      deactivateMutation.mutate({
-                                        cityId,
-                                        elderId: elder.id,
-                                      });
-                                    }}
-                                  >
-                                    {t('confirm_deactivate_elder')}
-                                  </AppButton>
-                                  <AppButton
-                                    size="xs"
-                                    variant="light"
-                                    data-testid={`cancel-deactivate-elder-${elder.id}`}
-                                    disabled={deactivating}
-                                    onClick={cancelConfirm}
-                                  >
-                                    {t('cancel_deactivate_elder')}
-                                  </AppButton>
-                                </>
-                              ) : (
+                      return (
+                        <Table.Tr
+                          key={elder.id}
+                          data-testid={`elder-row-${elder.id}`}
+                        >
+                          <Table.Td>{elder.fullName}</Table.Td>
+                          <Table.Td>{elderAddress(elder)}</Table.Td>
+                          <Table.Td>
+                            {elder.phone === null ? (
+                              t('no_reason')
+                            ) : (
+                              <span dir="ltr">{elder.phone}</span>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {t(STATUS_LABEL_KEYS[elder.status])}
+                          </Table.Td>
+                          <Table.Td>{elder.notes ?? t('no_reason')}</Table.Td>
+                          <Table.Td>
+                            <Stack gap="xs">
+                              {canEditElder(elder) ? (
                                 <AppButton
                                   size="xs"
                                   variant="light"
-                                  data-testid={`deactivate-elder-${elder.id}`}
+                                  data-testid={`edit-elder-${elder.id}`}
                                   onClick={() => {
-                                    startConfirm(elder.id, 'deactivate');
+                                    setEditingElderId(elder.id);
+                                    cancelConfirm();
                                   }}
                                 >
-                                  {t('deactivate_elder')}
+                                  {t('edit_elder')}
                                 </AppButton>
-                              )
-                            ) : null}
-                            {canReactivateElder(elder) ? (
-                              confirmingReactivate ? (
-                                <>
-                                  <AppText size="sm">
-                                    {t('reactivate_elder_confirm')}
-                                  </AppText>
-                                  <AppButton
-                                    size="xs"
-                                    data-testid={`confirm-reactivate-elder-${elder.id}`}
-                                    loading={reactivating}
-                                    onClick={() => {
-                                      if (!validId) {
-                                        return;
-                                      }
-                                      updateMutation.mutate({
-                                        cityId,
-                                        elderId: elder.id,
-                                        data: { status: 'active' },
-                                      });
-                                    }}
-                                  >
-                                    {t('confirm_reactivate_elder')}
-                                  </AppButton>
+                              ) : null}
+                              {canDeactivateElder(elder) ? (
+                                confirmingDeactivate ? (
+                                  <>
+                                    <AppText size="sm">
+                                      {t('deactivate_elder_confirm')}
+                                    </AppText>
+                                    <AppButton
+                                      size="xs"
+                                      data-testid={`confirm-deactivate-elder-${elder.id}`}
+                                      loading={deactivating}
+                                      onClick={() => {
+                                        if (!validId) {
+                                          return;
+                                        }
+                                        deactivateMutation.mutate({
+                                          cityId,
+                                          elderId: elder.id,
+                                        });
+                                      }}
+                                    >
+                                      {t('confirm_deactivate_elder')}
+                                    </AppButton>
+                                    <AppButton
+                                      size="xs"
+                                      variant="light"
+                                      data-testid={`cancel-deactivate-elder-${elder.id}`}
+                                      disabled={deactivating}
+                                      onClick={cancelConfirm}
+                                    >
+                                      {t('cancel_deactivate_elder')}
+                                    </AppButton>
+                                  </>
+                                ) : (
                                   <AppButton
                                     size="xs"
                                     variant="light"
-                                    data-testid={`cancel-reactivate-elder-${elder.id}`}
-                                    disabled={reactivating}
-                                    onClick={cancelConfirm}
+                                    data-testid={`deactivate-elder-${elder.id}`}
+                                    onClick={() => {
+                                      startConfirm(elder.id, 'deactivate');
+                                    }}
                                   >
-                                    {t('cancel_reactivate_elder')}
+                                    {t('deactivate_elder')}
                                   </AppButton>
-                                </>
-                              ) : (
-                                <AppButton
-                                  size="xs"
-                                  variant="light"
-                                  data-testid={`reactivate-elder-${elder.id}`}
-                                  onClick={() => {
-                                    startConfirm(elder.id, 'reactivate');
-                                  }}
-                                >
-                                  {t('reactivate_elder')}
-                                </AppButton>
-                              )
-                            ) : null}
-                            {isElderArchived(elder) ? (
-                              <AppText size="sm" c="dimmed">
-                                {t('elder_archived')}
-                              </AppText>
-                            ) : null}
-                          </Stack>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
+                                )
+                              ) : null}
+                              {canReactivateElder(elder) ? (
+                                confirmingReactivate ? (
+                                  <>
+                                    <AppText size="sm">
+                                      {t('reactivate_elder_confirm')}
+                                    </AppText>
+                                    <AppButton
+                                      size="xs"
+                                      data-testid={`confirm-reactivate-elder-${elder.id}`}
+                                      loading={reactivating}
+                                      onClick={() => {
+                                        if (!validId) {
+                                          return;
+                                        }
+                                        updateMutation.mutate({
+                                          cityId,
+                                          elderId: elder.id,
+                                          data: { status: 'active' },
+                                        });
+                                      }}
+                                    >
+                                      {t('confirm_reactivate_elder')}
+                                    </AppButton>
+                                    <AppButton
+                                      size="xs"
+                                      variant="light"
+                                      data-testid={`cancel-reactivate-elder-${elder.id}`}
+                                      disabled={reactivating}
+                                      onClick={cancelConfirm}
+                                    >
+                                      {t('cancel_reactivate_elder')}
+                                    </AppButton>
+                                  </>
+                                ) : (
+                                  <AppButton
+                                    size="xs"
+                                    variant="light"
+                                    data-testid={`reactivate-elder-${elder.id}`}
+                                    onClick={() => {
+                                      startConfirm(elder.id, 'reactivate');
+                                    }}
+                                  >
+                                    {t('reactivate_elder')}
+                                  </AppButton>
+                                )
+                              ) : null}
+                              {isElderArchived(elder) ? (
+                                <AppText size="sm" c="dimmed">
+                                  {t('elder_archived')}
+                                </AppText>
+                              ) : null}
+                            </Stack>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
 
             {editingElder === null ? (

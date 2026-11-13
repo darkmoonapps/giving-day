@@ -20,7 +20,11 @@ import {
 } from '../api/generated/api';
 import { ApiError } from '../api/mutator';
 import { useSession } from '../auth/session-provider';
-import { isUuid } from '../distribution-days/format-day';
+import {
+  formatDistributionDate,
+  isUuid,
+} from '../distribution-days/format-day';
+import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
 
 const END_REASON_KEYS: Record<
@@ -59,6 +63,7 @@ export function CoordinatorMatchesPage(): JSX.Element {
   const { cityId } = useParams();
   const navigate = useNavigate();
   const { user } = useSession();
+  const { language } = useLanguage();
   const { t } = useTranslation('admin');
   const { t: tCommon } = useTranslation('common');
   const validId = isUuid(cityId);
@@ -164,107 +169,111 @@ export function CoordinatorMatchesPage(): JSX.Element {
                 {t('matches_empty')}
               </AppText>
             ) : (
-              <Table highlightOnHover data-testid="coordinator-matches-table">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('elder_column')}</Table.Th>
-                    <Table.Th>{t('volunteer_column')}</Table.Th>
-                    <Table.Th>{t('starts_at_column')}</Table.Th>
-                    <Table.Th>{t('end_match')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {payload.matches.map((match) => {
-                    const reason = endReasons[match.id] ?? 'reassigned';
-                    const confirming = confirmingMatchId === match.id;
-                    const ending =
-                      endMutation.isPending && endingMatchId === match.id;
-                    return (
-                      <Table.Tr
-                        key={match.id}
-                        data-testid={`match-row-${match.id}`}
-                      >
-                        <Table.Td>{match.elder.fullName}</Table.Td>
-                        <Table.Td>
-                          {personName(
-                            match.volunteer.firstName,
-                            match.volunteer.lastName,
-                            t('unnamed_volunteer')
-                          )}
-                        </Table.Td>
-                        <Table.Td>{match.startsAt}</Table.Td>
-                        <Table.Td>
-                          <Stack gap="xs">
-                            <NativeSelect
-                              aria-label={t('end_reason_label')}
-                              data={END_REASONS.map((value) => ({
-                                value,
-                                label: t(END_REASON_KEYS[value]),
-                              }))}
-                              value={reason}
-                              onChange={(event) => {
-                                const next = event.currentTarget
-                                  .value as MatchEndReason;
-                                setEndReasons((current) => ({
-                                  ...current,
-                                  [match.id]: next,
-                                }));
-                              }}
-                            />
-                            {confirming ? (
-                              <>
-                                <AppText size="sm">
-                                  {t('end_match_confirm')}
-                                </AppText>
-                                <AppButton
-                                  size="xs"
-                                  data-testid={`confirm-end-match-${match.id}`}
-                                  loading={ending}
-                                  onClick={() => {
-                                    if (!validId) {
-                                      return;
-                                    }
-                                    setEndingMatchId(match.id);
-                                    endMutation.mutate({
-                                      cityId,
-                                      matchId: match.id,
-                                      data: { endReason: reason },
-                                    });
-                                  }}
-                                >
-                                  {t('confirm_end_match')}
-                                </AppButton>
+              <Table.ScrollContainer minWidth={640}>
+                <Table highlightOnHover data-testid="coordinator-matches-table">
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('elder_column')}</Table.Th>
+                      <Table.Th>{t('volunteer_column')}</Table.Th>
+                      <Table.Th>{t('starts_at_column')}</Table.Th>
+                      <Table.Th>{t('end_match')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {payload.matches.map((match) => {
+                      const reason = endReasons[match.id] ?? 'reassigned';
+                      const confirming = confirmingMatchId === match.id;
+                      const ending =
+                        endMutation.isPending && endingMatchId === match.id;
+                      return (
+                        <Table.Tr
+                          key={match.id}
+                          data-testid={`match-row-${match.id}`}
+                        >
+                          <Table.Td>{match.elder.fullName}</Table.Td>
+                          <Table.Td>
+                            {personName(
+                              match.volunteer.firstName,
+                              match.volunteer.lastName,
+                              t('unnamed_volunteer')
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {formatDistributionDate(match.startsAt, language)}
+                          </Table.Td>
+                          <Table.Td>
+                            <Stack gap="xs">
+                              <NativeSelect
+                                aria-label={t('end_reason_label')}
+                                data={END_REASONS.map((value) => ({
+                                  value,
+                                  label: t(END_REASON_KEYS[value]),
+                                }))}
+                                value={reason}
+                                onChange={(event) => {
+                                  const next = event.currentTarget
+                                    .value as MatchEndReason;
+                                  setEndReasons((current) => ({
+                                    ...current,
+                                    [match.id]: next,
+                                  }));
+                                }}
+                              />
+                              {confirming ? (
+                                <>
+                                  <AppText size="sm">
+                                    {t('end_match_confirm')}
+                                  </AppText>
+                                  <AppButton
+                                    size="xs"
+                                    data-testid={`confirm-end-match-${match.id}`}
+                                    loading={ending}
+                                    onClick={() => {
+                                      if (!validId) {
+                                        return;
+                                      }
+                                      setEndingMatchId(match.id);
+                                      endMutation.mutate({
+                                        cityId,
+                                        matchId: match.id,
+                                        data: { endReason: reason },
+                                      });
+                                    }}
+                                  >
+                                    {t('confirm_end_match')}
+                                  </AppButton>
+                                  <AppButton
+                                    size="xs"
+                                    variant="light"
+                                    data-testid={`cancel-end-match-${match.id}`}
+                                    disabled={ending}
+                                    onClick={() => {
+                                      setConfirmingMatchId(null);
+                                    }}
+                                  >
+                                    {t('cancel_end_match')}
+                                  </AppButton>
+                                </>
+                              ) : (
                                 <AppButton
                                   size="xs"
                                   variant="light"
-                                  data-testid={`cancel-end-match-${match.id}`}
-                                  disabled={ending}
+                                  data-testid={`end-match-${match.id}`}
                                   onClick={() => {
-                                    setConfirmingMatchId(null);
+                                    setConfirmingMatchId(match.id);
                                   }}
                                 >
-                                  {t('cancel_end_match')}
+                                  {t('end_match')}
                                 </AppButton>
-                              </>
-                            ) : (
-                              <AppButton
-                                size="xs"
-                                variant="light"
-                                data-testid={`end-match-${match.id}`}
-                                onClick={() => {
-                                  setConfirmingMatchId(match.id);
-                                }}
-                              >
-                                {t('end_match')}
-                              </AppButton>
-                            )}
-                          </Stack>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
+                              )}
+                            </Stack>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
 
             <Stack gap="sm" data-testid="create-match-form">

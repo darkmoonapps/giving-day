@@ -31,7 +31,12 @@ function VolunteerCityDays({ cityId }: { cityId: string }): JSX.Element {
   const days = query.data?.days ?? [];
 
   return (
-    <Stack gap="sm" data-testid="volunteer-open-days">
+    <Stack
+      gap="sm"
+      component="nav"
+      aria-label={t('volunteer_nav_label')}
+      data-testid="volunteer-open-days"
+    >
       <AppTitle order={2}>{t('open_days_title')}</AppTitle>
       {days.length === 0 ? (
         <AppText c="dimmed">{t('no_open_days')}</AppText>
@@ -69,7 +74,12 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
   const days = query.data?.days ?? [];
 
   return (
-    <Stack gap="sm" data-testid="coordinator-days">
+    <Stack
+      gap="sm"
+      component="nav"
+      aria-label={t('coordinator_nav_label')}
+      data-testid="coordinator-days"
+    >
       <AppButton
         size="sm"
         variant="light"

@@ -9,7 +9,11 @@ test.describe('Smoke Test', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'he');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { name: 'התחברות' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2 })).toBeVisible();
+    await expect(page.getByTestId('app-brand')).toHaveText('יום הנתינה');
+    await expect(page.getByRole('link', { name: 'דלג לתוכן' })).toHaveAttribute(
+      'href',
+      '#main-content'
+    );
     await expect(
       page.getByRole('button', { name: 'המשך עם Google' })
     ).toBeVisible();
