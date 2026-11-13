@@ -113,6 +113,18 @@ describe('CoordinatorDayDashboardPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('links from the day dashboard to one-time matches', async () => {
+    const user = userEvent.setup();
+    renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/dashboard`);
+
+    await user.click(
+      await screen.findByTestId('dashboard-view-one-time-matches')
+    );
+    expect(
+      await screen.findByTestId('coordinator-one-time-matches-page')
+    ).toBeInTheDocument();
+  });
+
   it('opens volunteer and elder details from the dashboard lists', async () => {
     const user = userEvent.setup();
     renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/dashboard`);

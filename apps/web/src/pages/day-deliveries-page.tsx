@@ -30,6 +30,7 @@ import {
 } from '../distribution-days/format-day';
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
+import { CoordinatorOneTimeMatchesPanel } from '../matches/coordinator-one-time-matches-panel';
 import { useSession } from '../auth/session-provider';
 
 function isCoordinatorDeliveries(
@@ -109,6 +110,12 @@ function CoordinatorDeliveries({
               {t('assign_error')}
             </AppAlert>
           ) : null}
+
+          <CoordinatorOneTimeMatchesPanel
+            cityId={cityId}
+            dayId={dayId}
+            enabled
+          />
 
           {coordinatorPayload.deliveries.length === 0 ? (
             <AppText>{t('deliveries_empty')}</AppText>

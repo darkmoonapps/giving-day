@@ -85,6 +85,8 @@
   "one_time_match_volunteer_not_confirmed": "אפשר לשבץ רק מתנדב/ת שאישר/ה השתתפות ליום החלוקה הזה.",
   "end_one_time_match_confirm": "לסיים את השיבוץ החד-יומי ליום הזה?",
   "end_one_time_match_error": "לא הצלחנו לסיים את השיבוץ החד-יומי. נסו שוב.",
+  "one_time_match_created_deliveries_updated": "השיבוץ החד-יומי נוצר. רשימת משלוחי היום עודכנה.",
+  "one_time_match_ended_deliveries_updated": "השיבוץ החד-יומי הסתיים. רשימת משלוחי היום עודכנה.",
   "no_available_elders_for_day": "כל המבוגרים הפעילים כבר משובצים חד-יומית ליום הזה.",
   "no_confirmed_volunteers_for_day": "אין מתנדבים שאישרו השתתפות ליום החלוקה הזה.",
   "deliveries_title": "משלוחי היום",

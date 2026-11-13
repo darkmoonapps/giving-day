@@ -123,6 +123,7 @@ export function CoordinatorDayDashboardPage(): JSX.Element {
   const deliveriesPath = `/cities/${cityId}/days/${dayId}/deliveries`;
   const needsVolunteerPath = `${deliveriesPath}?needsVolunteer=1`;
   const responsesPath = `/cities/${cityId}/days/${dayId}/responses`;
+  const oneTimeMatchesPath = `/cities/${cityId}/days/${dayId}/one-time-matches`;
 
   return (
     <AppChrome
@@ -266,6 +267,15 @@ export function CoordinatorDayDashboardPage(): JSX.Element {
                 }}
               >
                 {t('view_deliveries')}
+              </AppButton>
+              <AppButton
+                variant="light"
+                data-testid="dashboard-view-one-time-matches"
+                onClick={() => {
+                  void navigate(oneTimeMatchesPath);
+                }}
+              >
+                {t('view_one_time_matches')}
               </AppButton>
             </Stack>
 
