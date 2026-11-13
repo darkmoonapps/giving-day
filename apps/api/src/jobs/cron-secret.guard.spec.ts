@@ -66,4 +66,15 @@ describe('CronSecretGuard', () => {
       )
     ).toThrow(UnauthorizedException);
   });
+
+  it('rejects a bearer header without a single space separator', () => {
+    process.env.CRON_SECRET = 'holon-cron-test-secret';
+    const guard = new CronSecretGuard();
+
+    expect(() =>
+      guard.canActivate(
+        createContext({ authorization: 'Bearer\tholon-cron-test-secret' })
+      )
+    ).toThrow(UnauthorizedException);
+  });
 });

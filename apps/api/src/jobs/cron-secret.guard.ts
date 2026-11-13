@@ -8,12 +8,32 @@ import {
 import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 
+function readBearerToken(authorization: string): string | null {
+  const trimmed = authorization.trim();
+  if (trimmed.length < 8) {
+    return null;
+  }
+
+  const scheme = trimmed.slice(0, 6);
+  if (scheme.toLowerCase() !== 'bearer') {
+    return null;
+  }
+
+  // Require a single separating space (no \s+ backtracking).
+  if (trimmed.charAt(6) !== ' ') {
+    return null;
+  }
+
+  const token = trimmed.slice(7).trim();
+  return token.length > 0 ? token : null;
+}
+
 function readProvidedSecret(request: Request): string | null {
   const authorization = request.headers.authorization;
   if (typeof authorization === 'string') {
-    const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
-    if (match?.[1]) {
-      return match[1].trim();
+    const bearerToken = readBearerToken(authorization);
+    if (bearerToken !== null) {
+      return bearerToken;
     }
   }
 
