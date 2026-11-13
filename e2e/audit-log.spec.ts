@@ -85,7 +85,20 @@ test.describe('Coordinator audit log', () => {
     await expect(
       page.getByTestId(`audit-log-row-${ENTRY_NEWER_ID}`)
     ).toBeVisible();
+    await expect(page.getByTestId('sort-action')).toBeVisible();
+    await expect(page.getByTestId('filter-audit-action')).toBeVisible();
 
+    await page
+      .getByTestId('filter-audit-action')
+      .selectOption('delivery.assign');
+    await expect(
+      page.getByTestId(`audit-log-row-${ENTRY_OLDER_ID}`)
+    ).toBeVisible();
+    await expect(
+      page.getByTestId(`audit-log-row-${ENTRY_NEWER_ID}`)
+    ).toHaveCount(0);
+
+    await page.getByTestId('clear-audit-log-filters').click();
     await page.getByRole('button', { name: 'English' }).click();
     await expect(
       page.getByTestId(`audit-log-action-${ENTRY_NEWER_ID}`)
