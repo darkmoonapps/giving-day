@@ -293,4 +293,84 @@ describe('NotificationsService', () => {
     expect(result.daysProcessed).toBe(1);
     expect(provider.send).not.toHaveBeenCalled();
   });
+
+  it('skips past-dated published days and still processes today-dated ones', async () => {
+    const pastDayId = '44444444-4444-4444-8444-444444444444';
+    const todayDayId = '55555555-5555-4555-8555-555555555555';
+    const now = new Date('2026-11-15T10:00:00.000Z');
+
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        id: pastDayId,
+        date: new Date('2026-11-14T00:00:00.000Z'),
+        publishedAt: new Date('2026-11-01T09:00:00.000Z'),
+        city: {
+          id: CITY_A_ID,
+          settings: { confirmReminderAfterHours: 24 },
+        },
+      },
+      {
+        ...day,
+        id: todayDayId,
+        date: new Date('2026-11-15T00:00:00.000Z'),
+        publishedAt: new Date('2026-11-01T09:00:00.000Z'),
+        city: {
+          id: CITY_A_ID,
+          settings: { confirmReminderAfterHours: 24 },
+        },
+      },
+    ]);
+    mockPrisma.cityMembership.findMany.mockResolvedValue([
+      {
+        userId: VOLUNTEER_A_ID,
+        user: { id: VOLUNTEER_A_ID, locale: 'he' },
+      },
+    ]);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+    mockPrisma.pushSubscription.findMany.mockResolvedValue([
+      {
+        id: 'sub-1',
+        userId: VOLUNTEER_A_ID,
+        endpoint: 'https://push.example.com/fake-subscription',
+        p256dh: 'fake-p256dh-key',
+        auth: 'fake-auth-secret',
+        userAgent: 'Mozilla/5.0 GivingDayTest',
+        lastSuccessAt: null,
+        failedCount: 0,
+        disabledAt: null,
+      },
+    ]);
+
+    const result = await service.sendConfirmReminders(now);
+
+    expect(mockPrisma.distributionDay.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          date: { gte: new Date('2026-11-15T00:00:00.000Z') },
+        }),
+      })
+    );
+    expect(result).toEqual({
+      attempted: 1,
+      sent: 1,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 1,
+    });
+    expect(provider.send).toHaveBeenCalledOnce();
+    expect(mockPrisma.notificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: VOLUNTEER_A_ID,
+        templateKey: 'confirm_reminder',
+        status: 'sent',
+        dedupeKey: `confirm_reminder:${todayDayId}:${VOLUNTEER_A_ID}`,
+      }),
+    });
+    expect(mockPrisma.notificationLog.create).not.toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        dedupeKey: `confirm_reminder:${pastDayId}:${VOLUNTEER_A_ID}`,
+      }),
+    });
+  });
 });

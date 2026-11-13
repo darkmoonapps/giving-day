@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   announceDistributionDayResultSchema,
   confirmRemindersJobResultSchema,
+  DEFAULT_CITY_TIMEZONE,
   type AnnounceDistributionDayResult,
   type ConfirmRemindersJobResult,
   type Locale,
@@ -14,7 +15,12 @@ import type {
   PushSubscription as PrismaPushSubscription,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatDateOnly, formatTime } from '../common/time-of-day';
+import {
+  formatDateOnly,
+  formatTime,
+  parseDateOnly,
+  todayInTimeZone,
+} from '../common/time-of-day';
 import { defaultCopyFor, renderTemplate } from './message-copy';
 import {
   NOTIFICATION_PROVIDER,
@@ -105,10 +111,12 @@ export class NotificationsService {
   async sendConfirmReminders(
     now: Date = new Date()
   ): Promise<ConfirmRemindersJobResult> {
+    const today = todayInTimeZone(DEFAULT_CITY_TIMEZONE, now);
     const openDays = await this.prisma.distributionDay.findMany({
       where: {
         status: { in: ['published', 'in_progress'] },
         publishedAt: { not: null },
+        date: { gte: parseDateOnly(today) },
         city: { isActive: true, archivedAt: null },
       },
       include: {
@@ -132,6 +140,10 @@ export class NotificationsService {
     };
 
     for (const day of openDays) {
+      if (formatDateOnly(day.date) < today) {
+        continue;
+      }
+
       const settings = day.city.settings;
       if (!settings || day.publishedAt === null) {
         continue;
