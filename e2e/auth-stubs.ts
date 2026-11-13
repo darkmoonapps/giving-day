@@ -523,6 +523,15 @@ export async function stubDistributionDayApi(
       return;
     }
 
+    if (method === 'GET' && url.pathname.endsWith('/one-time-matches')) {
+      await jsonFulfill(route, {
+        matches: [],
+        availableElders: [],
+        matchableVolunteers: [],
+      });
+      return;
+    }
+
     if (method === 'GET') {
       await jsonFulfill(route, openDay);
     }
