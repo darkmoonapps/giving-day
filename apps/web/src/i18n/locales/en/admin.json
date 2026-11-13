@@ -85,6 +85,8 @@
   "one_time_match_volunteer_not_confirmed": "Only volunteers who confirmed for this distribution day can be assigned.",
   "end_one_time_match_confirm": "End this one-time match for the day?",
   "end_one_time_match_error": "We could not end that one-time match. Try again.",
+  "one_time_match_created_deliveries_updated": "One-time match created. The day's deliveries list was updated.",
+  "one_time_match_ended_deliveries_updated": "One-time match ended. The day's deliveries list was updated.",
   "no_available_elders_for_day": "Every active elder already has a one-time match for this day.",
   "no_confirmed_volunteers_for_day": "There are no volunteers confirmed for this distribution day.",
   "deliveries_title": "Day deliveries",

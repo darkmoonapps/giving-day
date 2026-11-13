@@ -17,6 +17,11 @@ import {
   volunteerDeliveryYosef,
   volunteerUser,
 } from '../test/distribution-day-fixtures';
+import { VOLUNTEER_DANA_ID } from '../test/match-fixtures';
+import {
+  createOneTimeMatchFetchMock,
+  oneTimeMatchRivkah,
+} from '../test/one-time-match-fixtures';
 import { renderApp } from '../test/render';
 
 describe('DayDeliveriesPage', () => {
@@ -508,6 +513,62 @@ describe('DayDeliveriesPage', () => {
       expect(screen.getByTestId('not-delivered-note')).toHaveTextContent(
         'Elder was not home in Holon'
       );
+    });
+
+    it('creates a one-time match on the day view and reflects it in deliveries', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          createOneTimeMatchFetchMock({
+            matches: [oneTimeMatchRivkah],
+            coordinatorDeliveries: [
+              {
+                ...coordinatorDeliveryRivkah,
+                matchId: oneTimeMatchRivkah.id,
+              },
+              coordinatorDeliveryUnassigned,
+            ],
+          })
+        )
+      );
+      const user = userEvent.setup();
+
+      renderApp(`/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`);
+
+      expect(
+        await screen.findByTestId('coordinator-one-time-matches-panel')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('delivery-row-unassigned')).toBeInTheDocument();
+      const createForm = await screen.findByTestId(
+        'create-one-time-match-form'
+      );
+
+      await user.selectOptions(
+        within(createForm).getByLabelText('בחירת מבוגר/ת'),
+        coordinatorDeliveryUnassigned.elder.id
+      );
+      await user.selectOptions(
+        within(createForm).getByLabelText('בחירת מתנדב/ת'),
+        VOLUNTEER_DANA_ID
+      );
+      await user.click(
+        within(createForm).getByTestId('create-one-time-match-submit')
+      );
+
+      expect(
+        await screen.findByTestId('one-time-match-deliveries-updated')
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('delivery-row-unassigned')
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.getAllByTestId('delivery-row-assigned')).toHaveLength(2);
+      expect(
+        screen.getByTestId(
+          `assign-delivery-${coordinatorDeliveryUnassigned.id}`
+        )
+      ).toHaveValue(VOLUNTEER_DANA_ID);
     });
   });
 });

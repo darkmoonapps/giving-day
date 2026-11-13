@@ -66,6 +66,9 @@ describe('CoordinatorOneTimeMatchesPage', () => {
         volunteerId: VOLUNTEER_DANA_ID,
       });
     });
+    expect(
+      await screen.findByTestId('one-time-match-deliveries-updated')
+    ).toBeInTheDocument();
   });
 
   it('ends a current one-time match with a reason', async () => {

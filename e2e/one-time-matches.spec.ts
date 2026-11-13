@@ -9,12 +9,135 @@ const ELDER_YOSEF_ID = '13131313-1313-4131-8131-131313131313';
 const VOLUNTEER_YONATAN_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const VOLUNTEER_DANA_ID = '99999999-9999-4999-8999-999999999999';
 
+const DAY_PAYLOAD = {
+  id: DAY_ID,
+  cityId: CITY_A_ID,
+  date: '2026-11-12',
+  startTime: '09:00:00',
+  endTime: '14:00:00',
+  notesForVolunteers: null,
+  addOns: [],
+  status: 'published',
+  publishedAt: '2026-11-01T09:00:00.000Z',
+  closedAt: null,
+  createdAt: '2026-11-01T09:00:00.000Z',
+  updatedAt: '2026-11-01T09:00:00.000Z',
+};
+
+const RIVKAH_MATCH = {
+  id: ONE_TIME_MATCH_RIVKAH_ID,
+  cityId: CITY_A_ID,
+  elderId: ELDER_RIVKAH_ID,
+  volunteerId: VOLUNTEER_YONATAN_ID,
+  type: 'one_time',
+  dayId: DAY_ID,
+  startsAt: '2026-11-12',
+  endsAt: null,
+  endReason: null,
+  createdAt: '2026-11-01T09:00:00.000Z',
+  updatedAt: '2026-11-01T09:00:00.000Z',
+  elder: {
+    id: ELDER_RIVKAH_ID,
+    fullName: 'Rivkah Levi',
+    status: 'active',
+  },
+  volunteer: {
+    id: VOLUNTEER_YONATAN_ID,
+    firstName: 'Yonatan',
+    lastName: 'Bar',
+  },
+};
+
+const YOSEF_MATCH = {
+  id: '17171717-1717-4171-8171-171717171717',
+  cityId: CITY_A_ID,
+  elderId: ELDER_YOSEF_ID,
+  volunteerId: VOLUNTEER_DANA_ID,
+  type: 'one_time',
+  dayId: DAY_ID,
+  startsAt: '2026-11-12',
+  endsAt: null,
+  endReason: null,
+  createdAt: '2026-11-12T09:00:00.000Z',
+  updatedAt: '2026-11-12T09:00:00.000Z',
+  elder: {
+    id: ELDER_YOSEF_ID,
+    fullName: 'Yosef Abraham',
+    status: 'active',
+  },
+  volunteer: {
+    id: VOLUNTEER_DANA_ID,
+    firstName: 'Dana',
+    lastName: 'Levi',
+  },
+};
+
+const MATCHABLE_VOLUNTEERS = [
+  {
+    id: VOLUNTEER_YONATAN_ID,
+    firstName: 'Yonatan',
+    lastName: 'Bar',
+  },
+  {
+    id: VOLUNTEER_DANA_ID,
+    firstName: 'Dana',
+    lastName: 'Levi',
+  },
+];
+
+const DELIVERY_YOSEF_ID = '17171717-1717-4171-8171-171717171717';
+
+function yosefDelivery(assigned: boolean): Record<string, unknown> {
+  return {
+    id: DELIVERY_YOSEF_ID,
+    cityId: CITY_A_ID,
+    dayId: DAY_ID,
+    status: assigned ? 'assigned' : 'unassigned',
+    note: null,
+    notDeliveredReason: null,
+    volunteerId: assigned ? VOLUNTEER_DANA_ID : null,
+    matchId: assigned ? YOSEF_MATCH.id : null,
+    assignedAt: assigned ? '2026-11-12T09:00:00.000Z' : null,
+    volunteer: assigned
+      ? {
+          id: VOLUNTEER_DANA_ID,
+          firstName: 'Dana',
+          lastName: 'Levi',
+        }
+      : null,
+    elder: {
+      id: ELDER_YOSEF_ID,
+      fullName: 'Yosef Abraham',
+      street: '4 Park Ave',
+      houseNumber: '4',
+      entrance: null,
+      floor: null,
+      apartment: null,
+      addressNotes: null,
+      notes: null,
+      contacts: [],
+    },
+    replacementSuggestions: assigned
+      ? []
+      : [
+          {
+            id: VOLUNTEER_DANA_ID,
+            firstName: 'Dana',
+            lastName: 'Levi',
+            homeArea: 'Park',
+          },
+        ],
+  };
+}
+
 test.describe('Coordinator one-time matches', () => {
-  test('coordinator lists, creates, and ends a Holon one-time match', async ({
+  test('coordinator adds a one-time match on the day view and sees deliveries update', async ({
     page,
   }) => {
     const created: Record<string, unknown>[] = [];
     const ended: Record<string, unknown>[] = [];
+    let yosefAssigned = false;
+    let rivkahMatchActive = true;
 
     await stubAuthenticatedSession(page, {
       onboarded: true,
@@ -38,22 +161,7 @@ test.describe('Coordinator one-time matches', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          days: [
-            {
-              id: DAY_ID,
-              cityId: CITY_A_ID,
-              date: '2026-11-12',
-              startTime: '09:00:00',
-              endTime: '14:00:00',
-              notesForVolunteers: null,
-              addOns: [],
-              status: 'published',
-              publishedAt: '2026-11-01T09:00:00.000Z',
-              closedAt: null,
-              createdAt: '2026-11-01T09:00:00.000Z',
-              updatedAt: '2026-11-01T09:00:00.000Z',
-            },
-          ],
+          days: [DAY_PAYLOAD],
         }),
       });
     });
@@ -69,31 +177,15 @@ test.describe('Coordinator one-time matches', () => {
               ? {}
               : (JSON.parse(raw) as Record<string, unknown>);
           ended.push(body);
+          rivkahMatchActive = false;
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
-              id: ONE_TIME_MATCH_RIVKAH_ID,
-              cityId: CITY_A_ID,
-              elderId: ELDER_RIVKAH_ID,
-              volunteerId: VOLUNTEER_YONATAN_ID,
-              type: 'one_time',
-              dayId: DAY_ID,
-              startsAt: '2026-11-12',
+              ...RIVKAH_MATCH,
               endsAt: '2026-11-12',
               endReason: body.endReason ?? 'reassigned',
-              createdAt: '2026-11-01T09:00:00.000Z',
               updatedAt: '2026-11-12T09:00:00.000Z',
-              elder: {
-                id: ELDER_RIVKAH_ID,
-                fullName: 'Rivkah Levi',
-                status: 'active',
-              },
-              volunteer: {
-                id: VOLUNTEER_YONATAN_ID,
-                firstName: 'Yonatan',
-                lastName: 'Bar',
-              },
             }),
           });
           return;
@@ -113,84 +205,88 @@ test.describe('Coordinator one-time matches', () => {
               ? {}
               : (JSON.parse(raw) as Record<string, unknown>);
           created.push(body);
+          yosefAssigned = true;
           await route.fulfill({
             status: 201,
             contentType: 'application/json',
-            body: JSON.stringify({
-              id: '17171717-1717-4171-8171-171717171717',
-              cityId: CITY_A_ID,
-              elderId: body.elderId,
-              volunteerId: body.volunteerId,
-              type: 'one_time',
-              dayId: DAY_ID,
-              startsAt: '2026-11-12',
-              endsAt: null,
-              endReason: null,
-              createdAt: '2026-11-12T09:00:00.000Z',
-              updatedAt: '2026-11-12T09:00:00.000Z',
-              elder: {
-                id: ELDER_YOSEF_ID,
-                fullName: 'Yosef Abraham',
-                status: 'active',
-              },
-              volunteer: {
-                id: VOLUNTEER_DANA_ID,
-                firstName: 'Dana',
-                lastName: 'Levi',
-              },
-            }),
+            body: JSON.stringify(YOSEF_MATCH),
           });
           return;
         }
 
+        const matches = [
+          ...(rivkahMatchActive ? [RIVKAH_MATCH] : []),
+          ...(yosefAssigned ? [YOSEF_MATCH] : []),
+        ];
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            matches: [
+            matches,
+            availableElders: yosefAssigned
+              ? []
+              : [
+                  {
+                    id: ELDER_YOSEF_ID,
+                    fullName: 'Yosef Abraham',
+                    status: 'active',
+                  },
+                ],
+            matchableVolunteers: MATCHABLE_VOLUNTEERS,
+          }),
+        });
+      }
+    );
+
+    await page.route(
+      `**/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/deliveries`,
+      async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            dayId: DAY_ID,
+            cityId: CITY_A_ID,
+            cityNameHe: 'חולון',
+            cityNameEn: 'Holon',
+            centerAddress: '10 Warehouse Rd, Holon',
+            unassignedCount: yosefAssigned ? 0 : 1,
+            assignableVolunteers: MATCHABLE_VOLUNTEERS,
+            deliveries: [
               {
-                id: ONE_TIME_MATCH_RIVKAH_ID,
+                id: '16161616-1616-4161-8161-161616161616',
                 cityId: CITY_A_ID,
-                elderId: ELDER_RIVKAH_ID,
-                volunteerId: VOLUNTEER_YONATAN_ID,
-                type: 'one_time',
                 dayId: DAY_ID,
-                startsAt: '2026-11-12',
-                endsAt: null,
-                endReason: null,
-                createdAt: '2026-11-01T09:00:00.000Z',
-                updatedAt: '2026-11-01T09:00:00.000Z',
-                elder: {
-                  id: ELDER_RIVKAH_ID,
-                  fullName: 'Rivkah Levi',
-                  status: 'active',
-                },
+                status: 'assigned',
+                note: null,
+                notDeliveredReason: null,
+                volunteerId: VOLUNTEER_YONATAN_ID,
+                matchId: ONE_TIME_MATCH_RIVKAH_ID,
+                assignedAt: '2026-11-01T09:00:00.000Z',
                 volunteer: {
                   id: VOLUNTEER_YONATAN_ID,
                   firstName: 'Yonatan',
                   lastName: 'Bar',
                 },
+                elder: {
+                  id: ELDER_RIVKAH_ID,
+                  fullName: 'Rivkah Levi',
+                  street: '12 Example St',
+                  houseNumber: '12',
+                  entrance: null,
+                  floor: null,
+                  apartment: null,
+                  addressNotes: null,
+                  notes: null,
+                  contacts: [],
+                },
+                replacementSuggestions: [],
               },
-            ],
-            availableElders: [
-              {
-                id: ELDER_YOSEF_ID,
-                fullName: 'Yosef Abraham',
-                status: 'active',
-              },
-            ],
-            // Volunteers listed here are day-confirmed (API filters on DayParticipation).
-            matchableVolunteers: [
-              {
-                id: VOLUNTEER_YONATAN_ID,
-                firstName: 'Yonatan',
-                lastName: 'Bar',
-              },
-              {
-                id: VOLUNTEER_DANA_ID,
-                firstName: 'Dana',
-                lastName: 'Levi',
-              },
+              yosefDelivery(yosefAssigned),
             ],
           }),
         });
@@ -207,38 +303,22 @@ test.describe('Coordinator one-time matches', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({
-            id: DAY_ID,
-            cityId: CITY_A_ID,
-            date: '2026-11-12',
-            startTime: '09:00:00',
-            endTime: '14:00:00',
-            notesForVolunteers: null,
-            addOns: [],
-            status: 'published',
-            publishedAt: '2026-11-01T09:00:00.000Z',
-            closedAt: null,
-            createdAt: '2026-11-01T09:00:00.000Z',
-            updatedAt: '2026-11-01T09:00:00.000Z',
-          }),
+          body: JSON.stringify(DAY_PAYLOAD),
         });
       }
     );
 
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await page.getByTestId('view-one-time-matches').click();
+    await page.getByRole('button', { name: 'צפייה במשלוחים' }).click();
     await expect(page).toHaveURL(
-      `/cities/${CITY_A_ID}/days/${DAY_ID}/one-time-matches`
+      `/cities/${CITY_A_ID}/days/${DAY_ID}/deliveries`
     );
+    await expect(page.getByTestId('coordinator-deliveries-page')).toBeVisible();
     await expect(
-      page.getByTestId('coordinator-one-time-matches-page')
+      page.getByTestId('coordinator-one-time-matches-panel')
     ).toBeVisible();
-    await expect(
-      page.getByTestId(`one-time-match-row-${ONE_TIME_MATCH_RIVKAH_ID}`)
-    ).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Rivkah Levi' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Yonatan Bar' })).toBeVisible();
+    await expect(page.getByTestId('delivery-row-unassigned')).toBeVisible();
 
     await page.getByLabel('בחירת מבוגר/ת').selectOption(ELDER_YOSEF_ID);
     await page.getByLabel('בחירת מתנדב/ת').selectOption(VOLUNTEER_DANA_ID);
@@ -246,6 +326,13 @@ test.describe('Coordinator one-time matches', () => {
     await expect
       .poll(() => created)
       .toEqual([{ elderId: ELDER_YOSEF_ID, volunteerId: VOLUNTEER_DANA_ID }]);
+    await expect(
+      page.getByTestId('one-time-match-deliveries-updated')
+    ).toBeVisible();
+    await expect(page.getByTestId('delivery-row-unassigned')).toHaveCount(0);
+    await expect(
+      page.getByTestId(`assign-delivery-${DELIVERY_YOSEF_ID}`)
+    ).toHaveValue(VOLUNTEER_DANA_ID);
 
     await page
       .getByTestId(`one-time-match-row-${ONE_TIME_MATCH_RIVKAH_ID}`)

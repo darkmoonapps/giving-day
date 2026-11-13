@@ -653,6 +653,19 @@ export function createDayFetchMock(
 
     if (
       method === 'GET' &&
+      url.includes(
+        `/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}/one-time-matches`
+      )
+    ) {
+      return mockJsonResponse({
+        matches: [],
+        availableElders: [],
+        matchableVolunteers: [],
+      });
+    }
+
+    if (
+      method === 'GET' &&
       url.includes(`/api/cities/${CITY_A_ID}/distribution-days/${DAY_ID}`)
     ) {
       return mockJsonResponse(currentDay);
