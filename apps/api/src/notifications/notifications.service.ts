@@ -3,9 +3,11 @@ import {
   announceDistributionDayResultSchema,
   confirmRemindersJobResultSchema,
   DEFAULT_CITY_TIMEZONE,
+  pickupStatusRemindersJobResultSchema,
   type AnnounceDistributionDayResult,
   type ConfirmRemindersJobResult,
   type Locale,
+  type PickupStatusRemindersJobResult,
   type TemplateKey,
 } from '@giving-day/shared';
 import type {
@@ -18,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   formatDateOnly,
   formatTime,
+  instantFromZonedParts,
   parseDateOnly,
   todayInTimeZone,
 } from '../common/time-of-day';
@@ -35,6 +38,14 @@ const RESPONDED_PARTICIPATION_STATUSES: readonly ParticipationStatus[] = [
   'no_show',
   'attended',
 ];
+
+type JobCounters = {
+  attempted: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  daysProcessed: number;
+};
 
 @Injectable()
 export class NotificationsService {
@@ -222,6 +233,236 @@ export class NotificationsService {
     }
 
     return confirmRemindersJobResultSchema.parse(result);
+  }
+
+  /**
+   * On a distribution day: (a) warn volunteers who still have assigned
+   * packages not marked picked within unpickedPushMinutesBeforeEnd of the
+   * window end; (b) remind volunteers whose deliveries are still picked with
+   * no final status after missingFinalStatusWaitHours. Idempotent via
+   * NotificationLog.dedupeKey.
+   */
+  async sendPickupStatusReminders(
+    now: Date = new Date()
+  ): Promise<PickupStatusRemindersJobResult> {
+    const result: JobCounters = {
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 0,
+    };
+
+    const processedDayIds = new Set<string>();
+
+    await this.sendUnpickedWarnings(now, result, processedDayIds);
+    await this.sendFinalStatusReminders(now, result, processedDayIds);
+
+    result.daysProcessed = processedDayIds.size;
+    return pickupStatusRemindersJobResultSchema.parse(result);
+  }
+
+  private async sendUnpickedWarnings(
+    now: Date,
+    result: JobCounters,
+    processedDayIds: Set<string>
+  ): Promise<void> {
+    const openDays = await this.prisma.distributionDay.findMany({
+      where: {
+        status: { in: ['published', 'in_progress'] },
+        city: { isActive: true, archivedAt: null },
+      },
+      include: {
+        city: {
+          select: {
+            id: true,
+            timezone: true,
+            settings: {
+              select: { unpickedPushMinutesBeforeEnd: true },
+            },
+          },
+        },
+      },
+    });
+
+    for (const day of openDays) {
+      const settings = day.city.settings;
+      if (!settings) {
+        continue;
+      }
+
+      const timeZone = day.city.timezone || DEFAULT_CITY_TIMEZONE;
+      const today = todayInTimeZone(timeZone, now);
+      const dayDate = formatDateOnly(day.date);
+      if (dayDate !== today) {
+        continue;
+      }
+
+      const endAt = instantFromZonedParts(
+        dayDate,
+        formatTime(day.endTime),
+        timeZone
+      );
+      const warningAtMs =
+        endAt.getTime() - settings.unpickedPushMinutesBeforeEnd * 60 * 1000;
+      if (now.getTime() < warningAtMs) {
+        continue;
+      }
+
+      processedDayIds.add(day.id);
+
+      const deliveries = await this.prisma.delivery.findMany({
+        where: {
+          dayId: day.id,
+          cityId: day.cityId,
+          volunteerId: { not: null },
+          status: 'assigned',
+        },
+        select: {
+          volunteerId: true,
+          volunteer: { select: { id: true, locale: true, archivedAt: true } },
+        },
+      });
+
+      const seenVolunteerIds = new Set<string>();
+
+      for (const delivery of deliveries) {
+        if (delivery.volunteerId === null || delivery.volunteer === null) {
+          continue;
+        }
+        if (delivery.volunteer.archivedAt !== null) {
+          continue;
+        }
+        if (seenVolunteerIds.has(delivery.volunteerId)) {
+          continue;
+        }
+        seenVolunteerIds.add(delivery.volunteerId);
+
+        result.attempted += 1;
+        const status = await this.notifyUser({
+          userId: delivery.volunteerId,
+          cityId: day.cityId,
+          locale: delivery.volunteer.locale,
+          templateKey: 'unpicked_warning',
+          dayId: day.id,
+          dedupeKey: `unpicked_warning:${day.id}:${delivery.volunteerId}`,
+          vars: {
+            date: dayDate,
+            endTime: formatTime(day.endTime),
+          },
+          data: {
+            dayId: day.id,
+            cityId: day.cityId,
+            date: dayDate,
+            templateKey: 'unpicked_warning',
+          },
+        });
+
+        this.tallyStatus(result, status);
+      }
+    }
+  }
+
+  private async sendFinalStatusReminders(
+    now: Date,
+    result: JobCounters,
+    processedDayIds: Set<string>
+  ): Promise<void> {
+    const deliveries = await this.prisma.delivery.findMany({
+      where: {
+        status: 'picked',
+        volunteerId: { not: null },
+        pickedAt: { not: null },
+        day: {
+          status: { in: ['published', 'in_progress', 'closed'] },
+          city: { isActive: true, archivedAt: null },
+        },
+      },
+      select: {
+        id: true,
+        cityId: true,
+        dayId: true,
+        volunteerId: true,
+        pickedAt: true,
+        volunteer: { select: { id: true, locale: true, archivedAt: true } },
+        day: {
+          select: {
+            id: true,
+            date: true,
+            city: {
+              select: {
+                settings: {
+                  select: { missingFinalStatusWaitHours: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const delivery of deliveries) {
+      if (delivery.volunteerId === null || delivery.volunteer === null) {
+        continue;
+      }
+      if (delivery.volunteer.archivedAt !== null) {
+        continue;
+      }
+      if (delivery.pickedAt === null) {
+        continue;
+      }
+
+      const settings = delivery.day.city.settings;
+      if (!settings) {
+        continue;
+      }
+
+      const dueAtMs =
+        delivery.pickedAt.getTime() +
+        settings.missingFinalStatusWaitHours * 60 * 60 * 1000;
+      if (now.getTime() < dueAtMs) {
+        continue;
+      }
+
+      processedDayIds.add(delivery.dayId);
+
+      result.attempted += 1;
+      const dayDate = formatDateOnly(delivery.day.date);
+      const status = await this.notifyUser({
+        userId: delivery.volunteerId,
+        cityId: delivery.cityId,
+        locale: delivery.volunteer.locale,
+        templateKey: 'final_status_reminder',
+        dayId: delivery.dayId,
+        deliveryId: delivery.id,
+        dedupeKey: `final_status_reminder:${delivery.id}`,
+        vars: {
+          date: dayDate,
+        },
+        data: {
+          dayId: delivery.dayId,
+          cityId: delivery.cityId,
+          deliveryId: delivery.id,
+          date: dayDate,
+          templateKey: 'final_status_reminder',
+        },
+      });
+
+      this.tallyStatus(result, status);
+    }
+  }
+
+  private tallyStatus(
+    result: JobCounters,
+    status: 'sent' | 'failed' | 'skipped'
+  ): void {
+    if (status === 'skipped') {
+      result.skipped += 1;
+    } else if (status === 'sent') {
+      result.sent += 1;
+    } else {
+      result.failed += 1;
+    }
   }
 
   async notifyUser(input: {

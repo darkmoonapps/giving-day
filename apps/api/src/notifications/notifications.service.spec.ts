@@ -34,6 +34,7 @@ describe('NotificationsService', () => {
   const mockPrisma = {
     cityMembership: { findMany: vi.fn() },
     dayParticipation: { findMany: vi.fn() },
+    delivery: { findMany: vi.fn() },
     distributionDay: { findMany: vi.fn() },
     notificationLog: { findUnique: vi.fn(), create: vi.fn() },
     pushSubscription: {
@@ -41,6 +42,18 @@ describe('NotificationsService', () => {
       update: vi.fn(),
     },
     messageTemplate: { findMany: vi.fn() },
+  };
+
+  const pushSub = {
+    id: 'sub-1',
+    userId: VOLUNTEER_A_ID,
+    endpoint: 'https://push.example.com/fake-subscription',
+    p256dh: 'fake-p256dh-key',
+    auth: 'fake-auth-secret',
+    userAgent: 'Mozilla/5.0 GivingDayTest',
+    lastSuccessAt: null,
+    failedCount: 0,
+    disabledAt: null,
   };
 
   beforeEach(async () => {
@@ -372,5 +385,172 @@ describe('NotificationsService', () => {
         dedupeKey: `confirm_reminder:${pastDayId}:${VOLUNTEER_A_ID}`,
       }),
     });
+  });
+
+  it('sends unpicked warnings near the Holon window end for assigned packages', async () => {
+    // Holon end 14:00 Asia/Jerusalem (UTC+2 in Nov) => 12:00 UTC; 60 min before => 11:00 UTC.
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        date: new Date('2026-11-15T00:00:00.000Z'),
+        endTime: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
+        city: {
+          id: CITY_A_ID,
+          timezone: 'Asia/Jerusalem',
+          settings: { unpickedPushMinutesBeforeEnd: 60 },
+        },
+      },
+    ]);
+    mockPrisma.delivery.findMany
+      .mockResolvedValueOnce([
+        {
+          volunteerId: VOLUNTEER_A_ID,
+          volunteer: {
+            id: VOLUNTEER_A_ID,
+            locale: 'he',
+            archivedAt: null,
+          },
+        },
+        {
+          volunteerId: VOLUNTEER_A_ID,
+          volunteer: {
+            id: VOLUNTEER_A_ID,
+            locale: 'he',
+            archivedAt: null,
+          },
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    mockPrisma.pushSubscription.findMany.mockResolvedValue([pushSub]);
+
+    const result = await service.sendPickupStatusReminders(
+      new Date('2026-11-15T11:05:00.000Z')
+    );
+
+    expect(result).toEqual({
+      attempted: 1,
+      sent: 1,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 1,
+    });
+    expect(provider.send).toHaveBeenCalledOnce();
+    expect(mockPrisma.notificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: VOLUNTEER_A_ID,
+        templateKey: 'unpicked_warning',
+        status: 'sent',
+        dedupeKey: `unpicked_warning:${day.id}:${VOLUNTEER_A_ID}`,
+      }),
+    });
+  });
+
+  it('skips unpicked warnings until unpickedPushMinutesBeforeEnd', async () => {
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        date: new Date('2026-11-15T00:00:00.000Z'),
+        endTime: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
+        city: {
+          id: CITY_A_ID,
+          timezone: 'Asia/Jerusalem',
+          settings: { unpickedPushMinutesBeforeEnd: 60 },
+        },
+      },
+    ]);
+    mockPrisma.delivery.findMany.mockResolvedValue([]);
+
+    const result = await service.sendPickupStatusReminders(
+      new Date('2026-11-15T10:00:00.000Z')
+    );
+
+    expect(result.daysProcessed).toBe(0);
+    expect(result.attempted).toBe(0);
+    expect(provider.send).not.toHaveBeenCalled();
+  });
+
+  it('sends final-status reminders after missingFinalStatusWaitHours', async () => {
+    const deliveryId = '66666666-6666-4666-8666-666666666666';
+    mockPrisma.distributionDay.findMany.mockResolvedValue([]);
+    mockPrisma.delivery.findMany.mockResolvedValue([
+      {
+        id: deliveryId,
+        cityId: CITY_A_ID,
+        dayId: day.id,
+        volunteerId: VOLUNTEER_A_ID,
+        pickedAt: new Date('2026-11-15T12:00:00.000Z'),
+        volunteer: {
+          id: VOLUNTEER_A_ID,
+          locale: 'en',
+          archivedAt: null,
+        },
+        day: {
+          id: day.id,
+          date: new Date('2026-11-15T00:00:00.000Z'),
+          city: {
+            settings: { missingFinalStatusWaitHours: 72 },
+          },
+        },
+      },
+    ]);
+    mockPrisma.pushSubscription.findMany.mockResolvedValue([
+      { ...pushSub, userId: VOLUNTEER_A_ID },
+    ]);
+
+    const result = await service.sendPickupStatusReminders(
+      new Date('2026-11-18T13:00:00.000Z')
+    );
+
+    expect(result).toEqual({
+      attempted: 1,
+      sent: 1,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 1,
+    });
+    expect(mockPrisma.notificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: VOLUNTEER_A_ID,
+        templateKey: 'final_status_reminder',
+        deliveryId,
+        status: 'sent',
+        dedupeKey: `final_status_reminder:${deliveryId}`,
+      }),
+    });
+  });
+
+  it('is idempotent when a final-status reminder was already logged', async () => {
+    const deliveryId = '77777777-7777-4777-8777-777777777777';
+    mockPrisma.distributionDay.findMany.mockResolvedValue([]);
+    mockPrisma.delivery.findMany.mockResolvedValue([
+      {
+        id: deliveryId,
+        cityId: CITY_A_ID,
+        dayId: day.id,
+        volunteerId: VOLUNTEER_A_ID,
+        pickedAt: new Date('2026-11-15T12:00:00.000Z'),
+        volunteer: {
+          id: VOLUNTEER_A_ID,
+          locale: 'he',
+          archivedAt: null,
+        },
+        day: {
+          id: day.id,
+          date: new Date('2026-11-15T00:00:00.000Z'),
+          city: {
+            settings: { missingFinalStatusWaitHours: 72 },
+          },
+        },
+      },
+    ]);
+    mockPrisma.notificationLog.findUnique.mockResolvedValue({ id: 'log-1' });
+
+    const result = await service.sendPickupStatusReminders(
+      new Date('2026-11-18T13:00:00.000Z')
+    );
+
+    expect(result.skipped).toBe(1);
+    expect(result.daysProcessed).toBe(1);
+    expect(provider.send).not.toHaveBeenCalled();
   });
 });

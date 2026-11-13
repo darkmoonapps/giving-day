@@ -59,3 +59,63 @@ export function parseDateOnly(value: string): Date {
 
   return parsed;
 }
+
+/**
+ * Convert a calendar date + wall-clock time in `timeZone` to a UTC Instant.
+ * Hours on DistributionDay / CitySettings are city-local (see data-model.md).
+ */
+export function instantFromZonedParts(
+  dateOnly: string,
+  timeHms: string,
+  timeZone: string
+): Date {
+  if (!DATE_ONLY_PATTERN.test(dateOnly)) {
+    throw new BadRequestException('validation.invalid_date');
+  }
+
+  const [year, month, day] = dateOnly.split('-').map((part) => Number(part));
+  const [hours, minutes, seconds] = normalizeTime(timeHms)
+    .split(':')
+    .map((part) => Number(part));
+
+  let utcGuess = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const offsetMs = zonedOffsetMs(new Date(utcGuess), timeZone);
+    const next =
+      Date.UTC(year, month - 1, day, hours, minutes, seconds) - offsetMs;
+    if (next === utcGuess) {
+      break;
+    }
+    utcGuess = next;
+  }
+
+  return new Date(utcGuess);
+}
+
+function zonedOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const read = (type: Intl.DateTimeFormatPartTypes): number => {
+    const value = parts.find((part) => part.type === type)?.value;
+    return value === undefined ? 0 : Number(value);
+  };
+
+  const asUtc = Date.UTC(
+    read('year'),
+    read('month') - 1,
+    read('day'),
+    read('hour'),
+    read('minute'),
+    read('second')
+  );
+  return asUtc - date.getTime();
+}

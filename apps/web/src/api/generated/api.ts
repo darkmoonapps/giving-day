@@ -394,6 +394,14 @@ export interface ConfirmRemindersJobResultDto {
   daysProcessed: number;
 }
 
+export interface PickupStatusRemindersJobResultDto {
+  attempted: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  daysProcessed: number;
+}
+
 export type MessageTemplateResponseDtoKey = typeof MessageTemplateResponseDtoKey[keyof typeof MessageTemplateResponseDtoKey];
 
 
@@ -3859,6 +3867,78 @@ export const useRunConfirmRemindersJob = <TError = void,
       > => {
 
       const mutationOptions = getRunConfirmRemindersJobMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * Free-tier friendly cron endpoint. Protect with CRON_SECRET via Authorization: Bearer or X-Cron-Secret. Safe to call repeatedly; NotificationLog.dedupeKey prevents duplicate pushes for unpicked_warning and final_status_reminder.
+ * @summary Send idempotent unpicked-package and missing-final-status reminder pushes
+ */
+export const getRunPickupStatusRemindersJobUrl = () => {
+
+
+  
+
+  return `/api/jobs/pickup-status-reminders`
+}
+
+export const runPickupStatusRemindersJob = async ( options?: RequestInit): Promise<PickupStatusRemindersJobResultDto> => {
+  
+  return apiFetch<PickupStatusRemindersJobResultDto>(getRunPickupStatusRemindersJobUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getRunPickupStatusRemindersJobMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runPickupStatusRemindersJob>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runPickupStatusRemindersJob>>, TError,void, TContext> => {
+
+const mutationKey = ['runPickupStatusRemindersJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runPickupStatusRemindersJob>>, void> = () => {
+          
+
+          return  runPickupStatusRemindersJob(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunPickupStatusRemindersJobMutationResult = NonNullable<Awaited<ReturnType<typeof runPickupStatusRemindersJob>>>
+    
+    export type RunPickupStatusRemindersJobMutationError = void
+
+    /**
+ * @summary Send idempotent unpicked-package and missing-final-status reminder pushes
+ */
+export const useRunPickupStatusRemindersJob = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runPickupStatusRemindersJob>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof runPickupStatusRemindersJob>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getRunPickupStatusRemindersJobMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

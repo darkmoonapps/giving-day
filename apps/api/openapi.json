@@ -904,6 +904,47 @@
         ]
       }
     },
+    "/api/jobs/pickup-status-reminders": {
+      "post": {
+        "description": "Free-tier friendly cron endpoint. Protect with CRON_SECRET via Authorization: Bearer or X-Cron-Secret. Safe to call repeatedly; NotificationLog.dedupeKey prevents duplicate pushes for unpicked_warning and final_status_reminder.",
+        "operationId": "runPickupStatusRemindersJob",
+        "parameters": [
+          {
+            "name": "X-Cron-Secret",
+            "in": "header",
+            "description": "Alternative to Authorization: Bearer <CRON_SECRET>",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickupStatusRemindersJobResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid cron secret"
+          }
+        },
+        "security": [
+          {
+            "cron": []
+          }
+        ],
+        "summary": "Send idempotent unpicked-package and missing-final-status reminder pushes",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/api/cities/{cityId}/message-templates": {
       "get": {
         "operationId": "listCityMessageTemplates",
@@ -3332,6 +3373,38 @@
         ]
       },
       "ConfirmRemindersJobResultDto": {
+        "type": "object",
+        "properties": {
+          "attempted": {
+            "type": "number",
+            "example": 3
+          },
+          "sent": {
+            "type": "number",
+            "example": 1
+          },
+          "failed": {
+            "type": "number",
+            "example": 1
+          },
+          "skipped": {
+            "type": "number",
+            "example": 1
+          },
+          "daysProcessed": {
+            "type": "number",
+            "example": 2
+          }
+        },
+        "required": [
+          "attempted",
+          "sent",
+          "failed",
+          "skipped",
+          "daysProcessed"
+        ]
+      },
+      "PickupStatusRemindersJobResultDto": {
         "type": "object",
         "properties": {
           "attempted": {

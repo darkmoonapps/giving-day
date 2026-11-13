@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatDateOnly,
   formatTime,
+  instantFromZonedParts,
   normalizeTime,
   parseDateOnly,
   parseTime,
@@ -27,5 +28,19 @@ describe('time-of-day helpers', () => {
     const lateUtc = new Date('2026-10-31T22:00:00.000Z');
     expect(todayInTimeZone('UTC', lateUtc)).toBe('2026-10-31');
     expect(todayInTimeZone('Asia/Jerusalem', lateUtc)).toBe('2026-11-01');
+  });
+
+  it('converts Holon wall-clock end times in Asia/Jerusalem to UTC', () => {
+    // November is Israel Standard Time (UTC+2).
+    expect(
+      instantFromZonedParts(
+        '2026-11-15',
+        '14:00:00',
+        'Asia/Jerusalem'
+      ).toISOString()
+    ).toBe('2026-11-15T12:00:00.000Z');
+    expect(
+      instantFromZonedParts('2026-11-15', '14:00:00', 'UTC').toISOString()
+    ).toBe('2026-11-15T14:00:00.000Z');
   });
 });
