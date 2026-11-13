@@ -114,6 +114,9 @@ describe('Cities HTTP authorization', () => {
     session: {
       updateMany: vi.fn(),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn(),
     $queryRaw: vi.fn().mockResolvedValue([]),
     $connect: vi.fn(),

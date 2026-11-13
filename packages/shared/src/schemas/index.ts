@@ -296,3 +296,22 @@ export {
   type MessageTemplatesResponse,
   type UpsertMessageTemplate,
 } from './message-templates';
+
+export {
+  AUDIT_ACTIONS,
+  AUDIT_LOG_PAGE_SIZE_DEFAULT,
+  AUDIT_LOG_PAGE_SIZE_MAX,
+  auditActionSchema,
+  auditDiffSchema,
+  auditDiffValueSchema,
+  auditEntitySchema,
+  auditLogEntrySchema,
+  cityAuditLogsResponseSchema,
+  listCityAuditLogsQuerySchema,
+  type AuditAction,
+  type AuditDiff,
+  type AuditEntity,
+  type AuditLogEntry,
+  type CityAuditLogsResponse,
+  type ListCityAuditLogsQuery,
+} from './audit';

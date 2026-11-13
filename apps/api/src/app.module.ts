@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SentryModule } from '@sentry/nestjs/setup';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -28,6 +29,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     EldersModule,
     ElderChangeRequestsModule,
     MatchesModule,
+    AuditLogsModule,
   ],
 })
 export class AppModule {}

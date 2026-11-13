@@ -35,6 +35,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   assertActiveVolunteerInCity,
   assertCanOnCity,
@@ -143,7 +144,8 @@ export class DistributionDaysService {
     private readonly prisma: PrismaService,
     private readonly abilityFactory: AbilityFactory,
     private readonly notificationsService: NotificationsService,
-    private readonly deliveriesService: DeliveriesService
+    private readonly deliveriesService: DeliveriesService,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async open(
@@ -200,6 +202,21 @@ export class DistributionDaysService {
           actorId: actor.id,
         });
 
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'distribution_day.publish',
+            entity: 'distribution_day',
+            entityId: day.id,
+            diff: {
+              status: 'published',
+            },
+            at: publishedAt,
+          },
+          tx
+        );
+
         return day;
       });
     } catch (error: unknown) {
@@ -252,13 +269,42 @@ export class DistributionDaysService {
         ? day.notesForVolunteers
         : trimToNull(parsed.data.notesForVolunteers);
 
-    const updated = await this.prisma.distributionDay.update({
-      where: { id: day.id },
-      data: {
-        startTime: parseTime(startTime),
-        endTime: parseTime(endTime),
-        notesForVolunteers,
-      },
+    const changedFields: string[] = [];
+    if (parsed.data.startTime !== undefined) {
+      changedFields.push('startTime');
+    }
+    if (parsed.data.endTime !== undefined) {
+      changedFields.push('endTime');
+    }
+    if (parsed.data.notesForVolunteers !== undefined) {
+      changedFields.push('notesForVolunteers');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.distributionDay.update({
+        where: { id: day.id },
+        data: {
+          startTime: parseTime(startTime),
+          endTime: parseTime(endTime),
+          notesForVolunteers,
+        },
+      });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'distribution_day.update',
+          entity: 'distribution_day',
+          entityId: row.id,
+          diff: {
+            changedFields: changedFields.join(','),
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toDto(updated, true);

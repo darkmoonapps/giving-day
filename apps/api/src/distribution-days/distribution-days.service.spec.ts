@@ -7,6 +7,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { AbilityFactory } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DeliveriesService } from '../deliveries/deliveries.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -130,6 +131,10 @@ describe('DistributionDaysService', () => {
     prefillFromPermanentMatches: vi.fn(),
   };
 
+  const mockAuditLogs = {
+    record: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockPrisma.city.findUnique.mockResolvedValue(city);
@@ -153,6 +158,7 @@ describe('DistributionDaysService', () => {
       failed: 0,
       skipped: 0,
     });
+    mockAuditLogs.record.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -161,6 +167,10 @@ describe('DistributionDaysService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: DeliveriesService, useValue: mockDeliveries },
+        {
+          provide: AuditLogsService,
+          useValue: mockAuditLogs,
+        },
       ],
     }).compile();
 
@@ -848,12 +858,24 @@ describe('DistributionDaysService', () => {
       expect(result.notesForVolunteers).toBe(
         'Pick up an additional blanket/package'
       );
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.distributionDay.update).toHaveBeenCalledWith({
         where: { id: publishedDay.id },
         data: expect.objectContaining({
           notesForVolunteers: 'Pick up an additional blanket/package',
         }),
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'distribution_day.update',
+          entity: 'distribution_day',
+          entityId: publishedDay.id,
+          diff: {
+            changedFields: 'startTime,endTime,notesForVolunteers',
+          },
+        }),
+        mockPrisma
+      );
     });
 
     it('keeps existing hours when only the volunteer note changes', async () => {
@@ -878,6 +900,12 @@ describe('DistributionDaysService', () => {
           notesForVolunteers: null,
         }),
       });
+      expect(mockAuditLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diff: { changedFields: 'notesForVolunteers' },
+        }),
+        mockPrisma
+      );
     });
 
     it('rejects a reversed time range', async () => {

@@ -83,6 +83,9 @@ describe('One-time matches HTTP authorization', () => {
     deliveryEvent: {
       create: vi.fn().mockResolvedValue({}),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn(),
     $connect: vi.fn(),
     $disconnect: vi.fn(),

@@ -55,6 +55,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCanOnCity } from './city-access';
@@ -89,7 +90,8 @@ export class CitiesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly abilityFactory: AbilityFactory,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async createCity(
@@ -637,16 +639,35 @@ export class CitiesService {
       membershipId
     );
 
-    const saved = await this.prisma.cityMembership.update({
-      where: { id: membership.id },
-      data: {
-        status: 'active',
-        approvedById: actor.id,
-        approvedAt: new Date(),
-      },
-      include: {
-        user: { select: MEMBERSHIP_USER_SELECT },
-      },
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.cityMembership.update({
+        where: { id: membership.id },
+        data: {
+          status: 'active',
+          approvedById: actor.id,
+          approvedAt: new Date(),
+        },
+        include: {
+          user: { select: MEMBERSHIP_USER_SELECT },
+        },
+      });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'membership.approve',
+          entity: 'membership',
+          entityId: updated.id,
+          diff: {
+            userId: updated.userId,
+            role: updated.role,
+          },
+        },
+        tx
+      );
+
+      return updated;
     });
 
     // TODO(notifications): send membership_approved push to saved.userId
@@ -672,16 +693,35 @@ export class CitiesService {
       membershipId
     );
 
-    const saved = await this.prisma.cityMembership.update({
-      where: { id: membership.id },
-      data: {
-        status: 'removed',
-        approvedById: null,
-        approvedAt: null,
-      },
-      include: {
-        user: { select: MEMBERSHIP_USER_SELECT },
-      },
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.cityMembership.update({
+        where: { id: membership.id },
+        data: {
+          status: 'removed',
+          approvedById: null,
+          approvedAt: null,
+        },
+        include: {
+          user: { select: MEMBERSHIP_USER_SELECT },
+        },
+      });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'membership.reject',
+          entity: 'membership',
+          entityId: updated.id,
+          diff: {
+            userId: updated.userId,
+            role: updated.role,
+          },
+        },
+        tx
+      );
+
+      return updated;
     });
 
     return this.toMembershipRecordDto(saved);

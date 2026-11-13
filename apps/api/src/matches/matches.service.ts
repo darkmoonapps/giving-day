@@ -33,6 +33,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { assertCanManageOnCity, assertCanOnCity } from '../cities/city-access';
 import { confirmedAssignableWhere } from '../common/confirmed-assignable-volunteer';
 import {
@@ -105,7 +106,8 @@ function uniqueConstraintTargets(
 export class MatchesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly abilityFactory: AbilityFactory
+    private readonly abilityFactory: AbilityFactory,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async list(
@@ -165,7 +167,7 @@ export class MatchesService {
         await this.requireApprovedVolunteer(tx, cityId, parsed.volunteerId);
         await this.assertNoCurrentPermanentMatch(tx, parsed.elderId);
 
-        return tx.match.create({
+        const match = await tx.match.create({
           data: {
             cityId,
             elderId: parsed.elderId,
@@ -175,6 +177,24 @@ export class MatchesService {
           },
           include: MATCH_INCLUDE,
         });
+
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'match.create',
+            entity: 'match',
+            entityId: match.id,
+            diff: {
+              type: 'permanent',
+              elderId: match.elderId,
+              volunteerId: match.volunteerId,
+            },
+          },
+          tx
+        );
+
+        return match;
       });
 
       return this.toDto(created);
@@ -230,10 +250,29 @@ export class MatchesService {
         throw new BadRequestException('matches.already_ended');
       }
 
-      return tx.match.findFirstOrThrow({
+      const row = await tx.match.findFirstOrThrow({
         where: { id: matchId, cityId },
         include: MATCH_INCLUDE,
       });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'match.end',
+          entity: 'match',
+          entityId: row.id,
+          diff: {
+            type: 'permanent',
+            elderId: row.elderId,
+            volunteerId: row.volunteerId,
+            endReason: row.endReason,
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toDto(updated);
@@ -333,6 +372,23 @@ export class MatchesService {
           assignedAt,
         });
 
+        await this.auditLogs.record(
+          {
+            cityId,
+            actorId: actor.id,
+            action: 'match.create',
+            entity: 'match',
+            entityId: match.id,
+            diff: {
+              type: 'one_time',
+              dayId,
+              elderId: match.elderId,
+              volunteerId: match.volunteerId,
+            },
+          },
+          tx
+        );
+
         return match;
       });
 
@@ -395,10 +451,30 @@ export class MatchesService {
         at: unassignedAt,
       });
 
-      return tx.match.findFirstOrThrow({
+      const row = await tx.match.findFirstOrThrow({
         where: { id: matchId, cityId, dayId },
         include: MATCH_INCLUDE,
       });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action: 'match.end',
+          entity: 'match',
+          entityId: row.id,
+          diff: {
+            type: 'one_time',
+            dayId,
+            elderId: row.elderId,
+            volunteerId: row.volunteerId,
+            endReason: row.endReason,
+          },
+        },
+        tx
+      );
+
+      return row;
     });
 
     return this.toOneTimeDto(updated);

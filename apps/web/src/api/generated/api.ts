@@ -364,6 +364,27 @@ export interface RedeemJoinLinkResponseDto {
   membership: RedeemedCityMembershipDto;
 }
 
+export type AuditLogEntryDtoDiff = { [key: string]: unknown };
+
+export interface AuditLogEntryDto {
+  id: string;
+  /** @nullable */
+  cityId: string | null;
+  actorId: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  diff: AuditLogEntryDtoDiff;
+  at: string;
+}
+
+export interface CityAuditLogsResponseDto {
+  entries: AuditLogEntryDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
 export interface VapidPublicKeyDto {
   /** @nullable */
   publicKey: string | null;
@@ -1437,6 +1458,11 @@ export const ListCityVolunteersStatus = {
   active: 'active',
   paused: 'paused',
 } as const;
+
+export type ListCityAuditLogsParams = {
+pageSize?: number;
+page?: number;
+};
 
 export type ListCityEldersParams = {
 includeArchived?: boolean;
@@ -3495,6 +3521,122 @@ export const useRedeemCityJoinLink = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary List city audit log entries for coordinators (newest first, paged)
+ */
+export const getListCityAuditLogsUrl = (cityId: string,
+    params?: ListCityAuditLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/cities/${cityId}/audit-logs?${stringifiedParams}` : `/api/cities/${cityId}/audit-logs`
+}
+
+export const listCityAuditLogs = async (cityId: string,
+    params?: ListCityAuditLogsParams, options?: RequestInit): Promise<CityAuditLogsResponseDto> => {
+  
+  return apiFetch<CityAuditLogsResponseDto>(getListCityAuditLogsUrl(cityId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListCityAuditLogsQueryKey = (cityId?: string,
+    params?: ListCityAuditLogsParams,) => {
+    return [
+    `/api/cities/${cityId}/audit-logs`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListCityAuditLogsQueryOptions = <TData = Awaited<ReturnType<typeof listCityAuditLogs>>, TError = unknown>(cityId: string,
+    params?: ListCityAuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityAuditLogsQueryKey(cityId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityAuditLogs>>> = ({ signal }) => listCityAuditLogs(cityId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCityAuditLogsQueryResult = NonNullable<Awaited<ReturnType<typeof listCityAuditLogs>>>
+export type ListCityAuditLogsQueryError = unknown
+
+
+export function useListCityAuditLogs<TData = Awaited<ReturnType<typeof listCityAuditLogs>>, TError = unknown>(
+ cityId: string,
+    params: undefined |  ListCityAuditLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityAuditLogs>>,
+          TError,
+          Awaited<ReturnType<typeof listCityAuditLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityAuditLogs<TData = Awaited<ReturnType<typeof listCityAuditLogs>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityAuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listCityAuditLogs>>,
+          TError,
+          Awaited<ReturnType<typeof listCityAuditLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListCityAuditLogs<TData = Awaited<ReturnType<typeof listCityAuditLogs>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityAuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List city audit log entries for coordinators (newest first, paged)
+ */
+
+export function useListCityAuditLogs<TData = Awaited<ReturnType<typeof listCityAuditLogs>>, TError = unknown>(
+ cityId: string,
+    params?: ListCityAuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCityAuditLogs>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListCityAuditLogsQueryOptions(cityId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary Get the Web Push VAPID public key when configured
  */

@@ -603,6 +603,7 @@ model AuditLog {
   at       DateTime @db.Timestamptz
 
   @@index([cityId, entity])
+  @@index([cityId, at])
   @@index([actorId])
   @@map("audit_logs")
 }

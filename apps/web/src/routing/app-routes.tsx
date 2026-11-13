@@ -8,6 +8,7 @@ import { CoordinatorEldersPage } from '../pages/coordinator-elders-page';
 import { CoordinatorMatchesPage } from '../pages/coordinator-matches-page';
 import { CoordinatorOneTimeMatchesPage } from '../pages/coordinator-one-time-matches-page';
 import { CoordinatorPastDaysStatsPage } from '../pages/coordinator-past-days-stats-page';
+import { CoordinatorAuditLogPage } from '../pages/coordinator-audit-log-page';
 import { CoordinatorPendingMembershipsPage } from '../pages/coordinator-pending-memberships-page';
 import { CoordinatorVolunteersPage } from '../pages/coordinator-volunteers-page';
 import { CreateDistributionDayPage } from '../pages/create-distribution-day-page';
@@ -158,6 +159,14 @@ export function AppRoutes(): JSX.Element {
         element={
           <ProtectedRoute>
             <CitySettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cities/:cityId/audit-log"
+        element={
+          <ProtectedRoute>
+            <CoordinatorAuditLogPage />
           </ProtectedRoute>
         }
       />

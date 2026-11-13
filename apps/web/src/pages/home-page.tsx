@@ -142,6 +142,16 @@ function CoordinatorCityDays({ cityId }: { cityId: string }): JSX.Element {
       </AppButton>
       <AppButton
         size="sm"
+        variant="light"
+        data-testid="view-audit-log"
+        onClick={() => {
+          void navigate(`/cities/${cityId}/audit-log`);
+        }}
+      >
+        {t('view_audit_log')}
+      </AppButton>
+      <AppButton
+        size="sm"
         data-testid="create-day"
         onClick={() => {
           void navigate(`/cities/${cityId}/days/new`);

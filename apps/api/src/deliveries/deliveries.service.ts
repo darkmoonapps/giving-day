@@ -30,6 +30,7 @@ import {
   AbilityFactory,
   type UserWithMemberships,
 } from '../abilities/ability.factory';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { assertCanOnCity } from '../cities/city-access';
 import { confirmedAssignableWhere } from '../common/confirmed-assignable-volunteer';
 import { PrismaService } from '../prisma/prisma.service';
@@ -104,7 +105,8 @@ type DeliveryWithRelations = Prisma.DeliveryGetPayload<{
 export class DeliveriesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly abilityFactory: AbilityFactory
+    private readonly abilityFactory: AbilityFactory,
+    private readonly auditLogs: AuditLogsService
   ) {}
 
   async prefillFromPermanentMatches(
@@ -343,6 +345,7 @@ export class DeliveriesService {
         throw new NotFoundException('deliveries.not_found');
       }
 
+      const at = assignedAt ?? new Date();
       await tx.deliveryEvent.create({
         data: {
           deliveryId: row.id,
@@ -351,9 +354,29 @@ export class DeliveriesService {
           fromVolunteerId: current.volunteerId,
           toVolunteerId: row.volunteerId,
           actorId: actor.id,
-          at: assignedAt ?? new Date(),
+          at,
         },
       });
+
+      await this.auditLogs.record(
+        {
+          cityId,
+          actorId: actor.id,
+          action:
+            payload.volunteerId === null
+              ? 'delivery.unassign'
+              : 'delivery.assign',
+          entity: 'delivery',
+          entityId: row.id,
+          diff: {
+            dayId,
+            fromVolunteerId: current.volunteerId,
+            toVolunteerId: row.volunteerId,
+          },
+          at,
+        },
+        tx
+      );
 
       return row;
     });
