@@ -15,12 +15,13 @@ import { configureApp } from '../configure-app';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-describe('Confirm reminders job HTTP', () => {
+describe('Jobs controller HTTP', () => {
   let app: INestApplication;
   const previousSecret = process.env.CRON_SECRET;
 
   const mockNotifications = {
     sendConfirmReminders: vi.fn(),
+    sendPickupStatusReminders: vi.fn(),
     announceDistributionDay: vi.fn(),
   };
 
@@ -60,6 +61,13 @@ describe('Confirm reminders job HTTP', () => {
     mockNotifications.sendConfirmReminders.mockResolvedValue({
       attempted: 2,
       sent: 1,
+      failed: 0,
+      skipped: 1,
+      daysProcessed: 1,
+    });
+    mockNotifications.sendPickupStatusReminders.mockResolvedValue({
+      attempted: 3,
+      sent: 2,
       failed: 0,
       skipped: 1,
       daysProcessed: 1,
@@ -108,5 +116,27 @@ describe('Confirm reminders job HTTP', () => {
       .expect(200);
 
     expect(mockNotifications.sendConfirmReminders).toHaveBeenCalledOnce();
+  });
+
+  it('runs the idempotent pickup-status-reminders job with a Bearer secret', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/jobs/pickup-status-reminders')
+      .set('Authorization', 'Bearer holon-cron-test-secret')
+      .expect(200);
+
+    expect(response.body).toEqual({
+      attempted: 3,
+      sent: 2,
+      failed: 0,
+      skipped: 1,
+      daysProcessed: 1,
+    });
+    expect(mockNotifications.sendPickupStatusReminders).toHaveBeenCalledOnce();
+  });
+
+  it('rejects pickup-status-reminders without a cron secret', async () => {
+    await request(app.getHttpServer())
+      .post('/api/jobs/pickup-status-reminders')
+      .expect(401);
   });
 });

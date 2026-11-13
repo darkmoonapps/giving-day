@@ -8,7 +8,7 @@ export const MESSAGE_TEMPLATE_PLACEHOLDERS = {
   day_invite: ['date', 'startTime', 'endTime'],
   confirm_reminder: ['date', 'startTime', 'endTime'],
   unpicked_warning: ['date', 'endTime'],
-  final_status_reminder: ['date'],
+  final_status_reminder: ['date', 'count'],
   reassigned: ['date', 'elderName'],
   change_request_reviewed: ['status'],
   membership_approved: ['cityName'],

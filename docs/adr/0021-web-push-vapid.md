@@ -28,6 +28,14 @@ native APIs). Paid vendors and credit-card accounts are out of scope
   push `confirm_reminder` to non-responders after
   `CitySettings.confirmReminderAfterHours`, also deduped by
   `NotificationLog.dedupeKey`.
+- Pickup and delivery-status reminders reuse the same provider and cron
+  secret: `POST /api/jobs/pickup-status-reminders` pushes
+  `unpicked_warning` (near window end via
+  `CitySettings.unpickedPushMinutesBeforeEnd`, one push per volunteer per
+  day) and `final_status_reminder` (after
+  `CitySettings.missingFinalStatusWaitHours` from `pickedAt`, one push per
+  volunteer per day for due picked deliveries), deduped by
+  `NotificationLog.dedupeKey`.
 - No Firebase, OneSignal, or other paid push product.
 
 ## Consequences

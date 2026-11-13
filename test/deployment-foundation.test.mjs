@@ -69,7 +69,10 @@ describe('free-tier deploy wiring', () => {
     const confirmReminders = readRepoFile(
       '.github/workflows/confirm-reminders.yml'
     );
-    const combined = `${deployApi}\n${deployWeb}\n${keepAwake}\n${confirmReminders}`;
+    const pickupStatusReminders = readRepoFile(
+      '.github/workflows/pickup-status-reminders.yml'
+    );
+    const combined = `${deployApi}\n${deployWeb}\n${keepAwake}\n${confirmReminders}\n${pickupStatusReminders}`;
 
     assert.match(deployApi, /secrets\.DATABASE_URL/);
     assert.match(deployApi, /secrets\.RENDER_DEPLOY_HOOK_URL/);
@@ -107,6 +110,13 @@ describe('free-tier deploy wiring', () => {
     assert.match(confirmReminders, /secrets\.CRON_SECRET/);
     assert.match(confirmReminders, /vars\.API_HEALTH_URL/);
     assert.match(confirmReminders, /scripts\/confirm-reminders\.mjs/);
+    assert.match(pickupStatusReminders, /cron:\s*'40 \* \* \* \*'/);
+    assert.match(pickupStatusReminders, /secrets\.CRON_SECRET/);
+    assert.match(pickupStatusReminders, /vars\.API_HEALTH_URL/);
+    assert.match(
+      pickupStatusReminders,
+      /scripts\/pickup-status-reminders\.mjs/
+    );
     assert.doesNotMatch(combined, /postgres(?:ql)?:\/\/[^\s$]/i);
     assert.doesNotMatch(combined, /sntrys_/);
     assert.doesNotMatch(combined, /eyJ[A-Za-z0-9_-]{20,}/);

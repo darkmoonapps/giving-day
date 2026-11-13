@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   announceDistributionDayResultSchema,
   confirmRemindersJobResultSchema,
+  pickupStatusRemindersJobResultSchema,
   pushSubscriptionSchema,
   upsertPushSubscriptionSchema,
   vapidPublicKeySchema,
@@ -69,6 +70,24 @@ describe('notification schemas', () => {
       failed: 1,
       skipped: 1,
       daysProcessed: 2,
+    });
+  });
+
+  it('accepts a pickup-status-reminders job result with daysProcessed', () => {
+    expect(
+      pickupStatusRemindersJobResultSchema.parse({
+        attempted: 4,
+        sent: 2,
+        failed: 0,
+        skipped: 2,
+        daysProcessed: 1,
+      })
+    ).toEqual({
+      attempted: 4,
+      sent: 2,
+      failed: 0,
+      skipped: 2,
+      daysProcessed: 1,
     });
   });
 });

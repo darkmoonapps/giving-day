@@ -70,6 +70,58 @@ const holonConfirmReminderEn = {
   placeholders: ['date', 'startTime', 'endTime'],
 };
 
+const holonUnpickedWarningHe = {
+  id: null,
+  key: 'unpicked_warning',
+  locale: 'he',
+  title: 'חבילה שלא נאספה',
+  body: 'עדיין לא סומנה חבילה כנאספה ליום {{date}}. החלון נסגר ב-{{endTime}}.',
+  defaultTitle: 'חבילה שלא נאספה',
+  defaultBody:
+    'עדיין לא סומנה חבילה כנאספה ליום {{date}}. החלון נסגר ב-{{endTime}}.',
+  isCustom: false,
+  placeholders: ['date', 'endTime'],
+};
+
+const holonUnpickedWarningEn = {
+  id: null,
+  key: 'unpicked_warning',
+  locale: 'en',
+  title: 'Unpicked package',
+  body: 'A package for {{date}} is still not marked picked. The window ends at {{endTime}}.',
+  defaultTitle: 'Unpicked package',
+  defaultBody:
+    'A package for {{date}} is still not marked picked. The window ends at {{endTime}}.',
+  isCustom: false,
+  placeholders: ['date', 'endTime'],
+};
+
+const holonFinalStatusReminderHe = {
+  id: null,
+  key: 'final_status_reminder',
+  locale: 'he',
+  title: 'סטטוס סופי חסר',
+  body: 'נאספה חבילה ב-{{date}} אך עדיין אין סטטוס נמסר או לא נמסר. אנא עדכנו.',
+  defaultTitle: 'סטטוס סופי חסר',
+  defaultBody:
+    'נאספה חבילה ב-{{date}} אך עדיין אין סטטוס נמסר או לא נמסר. אנא עדכנו.',
+  isCustom: false,
+  placeholders: ['date', 'count'],
+};
+
+const holonFinalStatusReminderEn = {
+  id: null,
+  key: 'final_status_reminder',
+  locale: 'en',
+  title: 'Missing final status',
+  body: 'A package was picked on {{date}} but still has no Delivered or Not delivered status. Please update.',
+  defaultTitle: 'Missing final status',
+  defaultBody:
+    'A package was picked on {{date}} but still has no Delivered or Not delivered status. Please update.',
+  isCustom: false,
+  placeholders: ['date', 'count'],
+};
+
 test.describe('Coordinator message templates', () => {
   test('coordinator opens Holon settings and saves a Hebrew day-invite template', async ({
     page,
@@ -365,6 +417,161 @@ test.describe('Coordinator message templates', () => {
     await expect.poll(() => puts).toHaveLength(1);
     expect(puts[0]).toMatchObject({
       title: 'תזכורת לחולון',
+    });
+  });
+
+  test('coordinator saves a Hebrew unpicked-warning template for Holon', async ({
+    page,
+  }) => {
+    const puts: Record<string, unknown>[] = [];
+    let templates = {
+      templates: [
+        holonDayInviteHe,
+        holonDayInviteEn,
+        holonConfirmReminderHe,
+        holonConfirmReminderEn,
+        holonUnpickedWarningHe,
+        holonUnpickedWarningEn,
+        holonFinalStatusReminderHe,
+        holonFinalStatusReminderEn,
+      ],
+    };
+
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+
+    await page.route('**/api/cities/*/distribution-days', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ days: [] }),
+      });
+    });
+
+    await page.route('**/api/cities/*/join-links', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          links: [
+            {
+              role: 'coordinator',
+              active: false,
+              createdAt: null,
+              usedCount: 0,
+            },
+            {
+              role: 'volunteer',
+              active: false,
+              createdAt: null,
+              usedCount: 0,
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.route('**/api/cities/*/settings', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(holonSettings),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.route('**/api/cities/*/message-templates**', async (route) => {
+      const request = route.request();
+      const url = request.url();
+
+      if (
+        request.method() === 'PUT' &&
+        url.includes('/message-templates/unpicked_warning/he')
+      ) {
+        const raw = request.postData();
+        const body =
+          raw === null || raw.length === 0
+            ? {}
+            : (JSON.parse(raw) as Record<string, unknown>);
+        puts.push(body);
+        const next = {
+          ...holonUnpickedWarningHe,
+          id: 'a2a2a2a2-a2a2-4a2a-8a2a-a2a2a2a2a2a2',
+          title: String(body.title ?? ''),
+          body: String(body.body ?? ''),
+          isCustom: true,
+        };
+        templates = {
+          templates: templates.templates.map((template) =>
+            template.key === 'unpicked_warning' && template.locale === 'he'
+              ? next
+              : template
+          ),
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(next),
+        });
+        return;
+      }
+
+      if (request.method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(templates),
+        });
+        return;
+      }
+
+      await route.fallback();
+    });
+
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await page.getByTestId('view-settings').click();
+    await expect(page).toHaveURL(`/cities/${CITY_A_ID}/settings`);
+    await expect(page.getByTestId('city-message-templates')).toBeVisible();
+    await expect(
+      page.getByTestId('message-template-unpicked_warning-he')
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('template-placeholders-unpicked_warning')
+    ).toContainText('{{date}}');
+
+    await page
+      .getByTestId('message-template-unpicked_warning-he')
+      .locator('input[name="title"]')
+      .fill('אזהרת איסוף בחולון');
+    await page.getByTestId('save-message-template-unpicked_warning').click();
+    await expect(
+      page.getByTestId('message-template-success-unpicked_warning')
+    ).toBeVisible();
+    await expect.poll(() => puts).toHaveLength(1);
+    expect(puts[0]).toMatchObject({
+      title: 'אזהרת איסוף בחולון',
     });
   });
 

@@ -52,6 +52,10 @@ export const confirmRemindersJobResultSchema =
     daysProcessed: z.number().int().min(0),
   });
 
+/** Same counters as confirmation reminders; covers unpicked + final-status. */
+export const pickupStatusRemindersJobResultSchema =
+  confirmRemindersJobResultSchema;
+
 export type TemplateKey = z.infer<typeof templateKeySchema>;
 export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
 export type NotificationStatus = z.infer<typeof notificationStatusSchema>;
@@ -68,4 +72,7 @@ export type AnnounceDistributionDayResult = z.infer<
 >;
 export type ConfirmRemindersJobResult = z.infer<
   typeof confirmRemindersJobResultSchema
+>;
+export type PickupStatusRemindersJobResult = z.infer<
+  typeof pickupStatusRemindersJobResultSchema
 >;

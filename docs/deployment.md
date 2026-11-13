@@ -154,30 +154,30 @@ Open the repository → **Settings → Secrets and variables → Actions**.
 Store **values** only in the GitHub UI. This repository contains **names**,
 never values.
 
-| Secret                   | Used by                 | Purpose                                                                                          |
-| ------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`           | `deploy-api.yml`        | Neon direct connection string for `prisma migrate deploy`                                        |
-| `RENDER_DEPLOY_HOOK_URL` | `deploy-api.yml`        | Render deploy hook that starts a new API deploy                                                  |
-| `CLOUDFLARE_API_TOKEN`   | `deploy-web.yml`        | Pages direct upload. The job fails before Wrangler if this is empty.                             |
-| `CLOUDFLARE_ACCOUNT_ID`  | `deploy-web.yml`        | Cloudflare account that owns the Pages project. The job fails before Wrangler if this is empty.  |
-| `SENTRY_AUTH_TOKEN`      | `deploy-web.yml`        | Upload web source maps to Sentry EU                                                              |
-| `VITE_SENTRY_DSN`        | `deploy-web.yml`        | Web EU DSN baked in at build time                                                                |
-| `CRON_SECRET`            | `confirm-reminders.yml` | Shared bearer secret for `POST /api/jobs/confirm-reminders`. Same value as Render `CRON_SECRET`. |
+| Secret                   | Used by                                                | Purpose                                                                                         |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | `deploy-api.yml`                                       | Neon direct connection string for `prisma migrate deploy`                                       |
+| `RENDER_DEPLOY_HOOK_URL` | `deploy-api.yml`                                       | Render deploy hook that starts a new API deploy                                                 |
+| `CLOUDFLARE_API_TOKEN`   | `deploy-web.yml`                                       | Pages direct upload. The job fails before Wrangler if this is empty.                            |
+| `CLOUDFLARE_ACCOUNT_ID`  | `deploy-web.yml`                                       | Cloudflare account that owns the Pages project. The job fails before Wrangler if this is empty. |
+| `SENTRY_AUTH_TOKEN`      | `deploy-web.yml`                                       | Upload web source maps to Sentry EU                                                             |
+| `VITE_SENTRY_DSN`        | `deploy-web.yml`                                       | Web EU DSN baked in at build time                                                               |
+| `CRON_SECRET`            | `confirm-reminders.yml`, `pickup-status-reminders.yml` | Shared bearer secret for `POST /api/jobs/*`. Same value as Render `CRON_SECRET`.                |
 
 `GITHUB_TOKEN` is provided by GitHub. Do not add it yourself.
 
 ### Repository variables
 
-| Variable                   | Used by                                   | Purpose                                                                                                                                                                                                            |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VITE_API_URL`             | `deploy-web.yml`                          | Render API origin, for example `https://giving-day-api.onrender.com` (no trailing slash). Required for production fetches; an empty value is not defaulted in CI and the web build then uses relative `/api` URLs. |
-| `CLOUDFLARE_PAGES_PROJECT` | `deploy-web.yml`                          | Cloudflare Pages project name. Optional; defaults to `giving-day`                                                                                                                                                  |
-| `SENTRY_ORG`               | `deploy-web.yml`                          | Sentry organization slug                                                                                                                                                                                           |
-| `SENTRY_PROJECT`           | `deploy-web.yml`                          | Sentry **web** project slug                                                                                                                                                                                        |
-| `SENTRY_URL`               | `deploy-web.yml`                          | Optional. Default `https://de.sentry.io`                                                                                                                                                                           |
-| `API_HEALTH_URL`           | `keep-awake.yml`, `confirm-reminders.yml` | Full health URL, for example `https://giving-day-api.onrender.com/health`. The reminders workflow derives `/api/jobs/confirm-reminders` from it.                                                                   |
-| `KEEPAWAKE_START`          | `keep-awake.yml`, `confirm-reminders.yml` | Inclusive start (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                |
-| `KEEPAWAKE_END`            | `keep-awake.yml`, `confirm-reminders.yml` | Inclusive end (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                  |
+| Variable                   | Used by                                                                  | Purpose                                                                                                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_API_URL`             | `deploy-web.yml`                                                         | Render API origin, for example `https://giving-day-api.onrender.com` (no trailing slash). Required for production fetches; an empty value is not defaulted in CI and the web build then uses relative `/api` URLs. |
+| `CLOUDFLARE_PAGES_PROJECT` | `deploy-web.yml`                                                         | Cloudflare Pages project name. Optional; defaults to `giving-day`                                                                                                                                                  |
+| `SENTRY_ORG`               | `deploy-web.yml`                                                         | Sentry organization slug                                                                                                                                                                                           |
+| `SENTRY_PROJECT`           | `deploy-web.yml`                                                         | Sentry **web** project slug                                                                                                                                                                                        |
+| `SENTRY_URL`               | `deploy-web.yml`                                                         | Optional. Default `https://de.sentry.io`                                                                                                                                                                           |
+| `API_HEALTH_URL`           | `keep-awake.yml`, `confirm-reminders.yml`, `pickup-status-reminders.yml` | Full health URL, for example `https://giving-day-api.onrender.com/health`. Reminder workflows derive `/api/jobs/*` from it.                                                                                        |
+| `KEEPAWAKE_START`          | `keep-awake.yml`, `confirm-reminders.yml`, `pickup-status-reminders.yml` | Inclusive start (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                |
+| `KEEPAWAKE_END`            | `keep-awake.yml`, `confirm-reminders.yml`, `pickup-status-reminders.yml` | Inclusive end (`YYYY-MM-DD` or ISO-8601 datetime)                                                                                                                                                                  |
 
 ### Render dashboard environment variables
 
@@ -276,6 +276,30 @@ repeated hourly runs do not re-send. City settings
 `confirmReminderAfterHours` control when a published day becomes eligible.
 Per-city `confirm_reminder` `MessageTemplate` rows (he/en) supply the push
 copy when present; otherwise the shared defaults are used.
+
+### `Pickup status reminders` (`.github/workflows/pickup-status-reminders.yml`)
+
+GitHub cron: `40 * * * *` (UTC, hourly). Same free-tier window and
+`CRON_SECRET` as confirmation reminders. The script:
+
+1. Skips unless `API_HEALTH_URL`, `KEEPAWAKE_START`, `KEEPAWAKE_END`, and
+   `CRON_SECRET` are set
+2. Skips outside the keep-awake date window and outside 08:00–21:59
+   `Asia/Jerusalem`
+3. Otherwise `POST` `/api/jobs/pickup-status-reminders` with
+   `Authorization: Bearer $CRON_SECRET`
+
+The API job is **idempotent**:
+
+- `unpicked_warning:{dayId}:{userId}` — volunteers with `assigned`
+  deliveries on today's open day, once
+  `unpickedPushMinutesBeforeEnd` before the city-local window end
+- `final_status_reminder:{dayId}:{userId}` — one push per volunteer per day
+  when they still have `picked` deliveries after
+  `missingFinalStatusWaitHours` from `pickedAt`
+
+Per-city `unpicked_warning` and `final_status_reminder` `MessageTemplate`
+rows (he/en) supply copy when present; otherwise shared defaults.
 
 Scheduled workflows run only on the default branch (`master`).
 
