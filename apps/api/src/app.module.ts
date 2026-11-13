@@ -8,6 +8,7 @@ import { DeliveriesModule } from './deliveries/deliveries.module';
 import { DistributionDaysModule } from './distribution-days/distribution-days.module';
 import { ElderChangeRequestsModule } from './elder-change-requests/elder-change-requests.module';
 import { EldersModule } from './elders/elders.module';
+import { JobsModule } from './jobs/jobs.module';
 import { MatchesModule } from './matches/matches.module';
 import { MessageTemplatesModule } from './message-templates/message-templates.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -20,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     CitiesModule,
     NotificationsModule,
+    JobsModule,
     MessageTemplatesModule,
     DistributionDaysModule,
     DeliveriesModule,

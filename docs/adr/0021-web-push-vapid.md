@@ -23,6 +23,11 @@ native APIs). Paid vendors and credit-card accounts are out of scope
   from the push service disables that row. Fan-out of `day_invite` goes to
   the city's **active volunteers** and is deduped with
   `NotificationLog.dedupeKey`.
+- Confirmation reminders reuse the same provider: a free GitHub Actions
+  cron calls `POST /api/jobs/confirm-reminders` (shared `CRON_SECRET`) to
+  push `confirm_reminder` to non-responders after
+  `CitySettings.confirmReminderAfterHours`, also deduped by
+  `NotificationLog.dedupeKey`.
 - No Firebase, OneSignal, or other paid push product.
 
 ## Consequences

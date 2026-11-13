@@ -13,6 +13,15 @@ export function createSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
     .setTitle('Giving Day API')
     .setDescription('REST API for the Giving Day volunteer management app')
     .setVersion('0.1.0')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-Cron-Secret',
+        description: 'Shared CRON_SECRET for free-tier job endpoints',
+      },
+      'cron'
+    )
     .build();
 }
 

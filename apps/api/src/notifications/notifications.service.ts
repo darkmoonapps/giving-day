@@ -1,23 +1,40 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   announceDistributionDayResultSchema,
+  confirmRemindersJobResultSchema,
+  DEFAULT_CITY_TIMEZONE,
   type AnnounceDistributionDayResult,
+  type ConfirmRemindersJobResult,
   type Locale,
   type TemplateKey,
 } from '@giving-day/shared';
 import type {
   DistributionDay,
   MessageTemplate,
+  ParticipationStatus,
   PushSubscription as PrismaPushSubscription,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatDateOnly, formatTime } from '../common/time-of-day';
+import {
+  formatDateOnly,
+  formatTime,
+  parseDateOnly,
+  todayInTimeZone,
+} from '../common/time-of-day';
 import { defaultCopyFor, renderTemplate } from './message-copy';
 import {
   NOTIFICATION_PROVIDER,
   type NotificationPayload,
   type NotificationProvider,
 } from './notification.provider';
+
+const RESPONDED_PARTICIPATION_STATUSES: readonly ParticipationStatus[] = [
+  'confirmed',
+  'declined',
+  'cancelled',
+  'no_show',
+  'attended',
+];
 
 @Injectable()
 export class NotificationsService {
@@ -84,6 +101,127 @@ export class NotificationsService {
     }
 
     return announceDistributionDayResultSchema.parse(result);
+  }
+
+  /**
+   * Push confirm_reminder to active volunteers who have not confirmed or
+   * declined an open day, once the city's confirmReminderAfterHours have
+   * elapsed since publish. Idempotent via NotificationLog.dedupeKey.
+   */
+  async sendConfirmReminders(
+    now: Date = new Date()
+  ): Promise<ConfirmRemindersJobResult> {
+    const today = todayInTimeZone(DEFAULT_CITY_TIMEZONE, now);
+    const openDays = await this.prisma.distributionDay.findMany({
+      where: {
+        status: { in: ['published', 'in_progress'] },
+        publishedAt: { not: null },
+        date: { gte: parseDateOnly(today) },
+        city: { isActive: true, archivedAt: null },
+      },
+      include: {
+        city: {
+          select: {
+            id: true,
+            settings: {
+              select: { confirmReminderAfterHours: true },
+            },
+          },
+        },
+      },
+    });
+
+    const result = {
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 0,
+    };
+
+    for (const day of openDays) {
+      if (formatDateOnly(day.date) < today) {
+        continue;
+      }
+
+      const settings = day.city.settings;
+      if (!settings || day.publishedAt === null) {
+        continue;
+      }
+
+      const dueAtMs =
+        day.publishedAt.getTime() +
+        settings.confirmReminderAfterHours * 60 * 60 * 1000;
+      if (now.getTime() < dueAtMs) {
+        continue;
+      }
+
+      result.daysProcessed += 1;
+
+      const [memberships, responded] = await Promise.all([
+        this.prisma.cityMembership.findMany({
+          where: {
+            cityId: day.cityId,
+            role: 'volunteer',
+            status: 'active',
+            user: { archivedAt: null },
+          },
+          select: {
+            userId: true,
+            user: { select: { id: true, locale: true } },
+          },
+        }),
+        this.prisma.dayParticipation.findMany({
+          where: {
+            cityId: day.cityId,
+            dayId: day.id,
+            status: { in: [...RESPONDED_PARTICIPATION_STATUSES] },
+          },
+          select: { volunteerId: true },
+        }),
+      ]);
+
+      const respondedIds = new Set(
+        responded.map((participation) => participation.volunteerId)
+      );
+
+      for (const membership of memberships) {
+        if (respondedIds.has(membership.userId)) {
+          continue;
+        }
+
+        result.attempted += 1;
+        const status = await this.notifyUser({
+          userId: membership.userId,
+          cityId: day.cityId,
+          locale: membership.user.locale,
+          templateKey: 'confirm_reminder',
+          dayId: day.id,
+          dedupeKey: `confirm_reminder:${day.id}:${membership.userId}`,
+          vars: {
+            date: formatDateOnly(day.date),
+            startTime: formatTime(day.startTime),
+            endTime: formatTime(day.endTime),
+          },
+          data: {
+            dayId: day.id,
+            cityId: day.cityId,
+            date: formatDateOnly(day.date),
+            templateKey: 'confirm_reminder',
+          },
+        });
+
+        if (status === 'skipped') {
+          result.skipped += 1;
+        } else if (status === 'sent') {
+          result.sent += 1;
+        } else {
+          result.failed += 1;
+        }
+      }
+    }
+
+    return confirmRemindersJobResultSchema.parse(result);
   }
 
   async notifyUser(input: {

@@ -863,6 +863,47 @@
         ]
       }
     },
+    "/api/jobs/confirm-reminders": {
+      "post": {
+        "description": "Free-tier friendly cron endpoint. Protect with CRON_SECRET via Authorization: Bearer or X-Cron-Secret. Safe to call repeatedly; NotificationLog.dedupeKey prevents duplicate pushes.",
+        "operationId": "runConfirmRemindersJob",
+        "parameters": [
+          {
+            "name": "X-Cron-Secret",
+            "in": "header",
+            "description": "Alternative to Authorization: Bearer <CRON_SECRET>",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmRemindersJobResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid cron secret"
+          }
+        },
+        "security": [
+          {
+            "cron": []
+          }
+        ],
+        "summary": "Send idempotent confirmation-reminder pushes to non-responding volunteers",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/api/cities/{cityId}/message-templates": {
       "get": {
         "operationId": "listCityMessageTemplates",
@@ -2451,6 +2492,14 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "cron": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Cron-Secret",
+        "description": "Shared CRON_SECRET for free-tier job endpoints"
+      }
+    },
     "schemas": {
       "DatabaseHealthDto": {
         "type": "object",
@@ -3280,6 +3329,38 @@
         },
         "required": [
           "subscriptions"
+        ]
+      },
+      "ConfirmRemindersJobResultDto": {
+        "type": "object",
+        "properties": {
+          "attempted": {
+            "type": "number",
+            "example": 3
+          },
+          "sent": {
+            "type": "number",
+            "example": 1
+          },
+          "failed": {
+            "type": "number",
+            "example": 1
+          },
+          "skipped": {
+            "type": "number",
+            "example": 1
+          },
+          "daysProcessed": {
+            "type": "number",
+            "example": 2
+          }
+        },
+        "required": [
+          "attempted",
+          "sent",
+          "failed",
+          "skipped",
+          "daysProcessed"
         ]
       },
       "MessageTemplateResponseDto": {

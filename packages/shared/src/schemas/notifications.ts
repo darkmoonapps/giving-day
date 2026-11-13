@@ -47,6 +47,11 @@ export const announceDistributionDayResultSchema = z.object({
   skipped: z.number().int().min(0),
 });
 
+export const confirmRemindersJobResultSchema =
+  announceDistributionDayResultSchema.extend({
+    daysProcessed: z.number().int().min(0),
+  });
+
 export type TemplateKey = z.infer<typeof templateKeySchema>;
 export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
 export type NotificationStatus = z.infer<typeof notificationStatusSchema>;
@@ -60,4 +65,7 @@ export type PushSubscriptionsResponse = z.infer<
 export type VapidPublicKey = z.infer<typeof vapidPublicKeySchema>;
 export type AnnounceDistributionDayResult = z.infer<
   typeof announceDistributionDayResultSchema
+>;
+export type ConfirmRemindersJobResult = z.infer<
+  typeof confirmRemindersJobResultSchema
 >;

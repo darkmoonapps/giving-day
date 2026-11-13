@@ -44,6 +44,32 @@ const holonDayInviteEn = {
   placeholders: ['date', 'startTime', 'endTime'],
 };
 
+const holonConfirmReminderHe = {
+  id: null,
+  key: 'confirm_reminder',
+  locale: 'he',
+  title: 'תזכורת לאישור',
+  body: 'עדיין לא עניתם על יום החלוקה ב-{{date}} ({{startTime}}–{{endTime}}). אנא אשרו או דחו.',
+  defaultTitle: 'תזכורת לאישור',
+  defaultBody:
+    'עדיין לא עניתם על יום החלוקה ב-{{date}} ({{startTime}}–{{endTime}}). אנא אשרו או דחו.',
+  isCustom: false,
+  placeholders: ['date', 'startTime', 'endTime'],
+};
+
+const holonConfirmReminderEn = {
+  id: null,
+  key: 'confirm_reminder',
+  locale: 'en',
+  title: 'Confirmation reminder',
+  body: 'You have not responded for {{date}} ({{startTime}}–{{endTime}}). Please confirm or decline.',
+  defaultTitle: 'Confirmation reminder',
+  defaultBody:
+    'You have not responded for {{date}} ({{startTime}}–{{endTime}}). Please confirm or decline.',
+  isCustom: false,
+  placeholders: ['date', 'startTime', 'endTime'],
+};
+
 test.describe('Coordinator message templates', () => {
   test('coordinator opens Holon settings and saves a Hebrew day-invite template', async ({
     page,
@@ -188,6 +214,157 @@ test.describe('Coordinator message templates', () => {
     await expect.poll(() => puts).toHaveLength(1);
     expect(puts[0]).toMatchObject({
       title: 'יום חלוקה בחולון',
+    });
+  });
+
+  test('coordinator saves a Hebrew confirm-reminder template for Holon', async ({
+    page,
+  }) => {
+    const puts: Record<string, unknown>[] = [];
+    let templates = {
+      templates: [
+        holonDayInviteHe,
+        holonDayInviteEn,
+        holonConfirmReminderHe,
+        holonConfirmReminderEn,
+      ],
+    };
+
+    await stubAuthenticatedSession(page, {
+      onboarded: true,
+      firstName: 'Noa',
+      lastName: 'Levi',
+      memberships: [
+        {
+          cityId: CITY_A_ID,
+          role: 'coordinator',
+          status: 'active',
+        },
+      ],
+    });
+
+    await page.route('**/api/cities/*/distribution-days', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ days: [] }),
+      });
+    });
+
+    await page.route('**/api/cities/*/join-links', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          links: [
+            {
+              role: 'coordinator',
+              active: false,
+              createdAt: null,
+              usedCount: 0,
+            },
+            {
+              role: 'volunteer',
+              active: false,
+              createdAt: null,
+              usedCount: 0,
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.route('**/api/cities/*/settings', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(holonSettings),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.route('**/api/cities/*/message-templates**', async (route) => {
+      const request = route.request();
+      const url = request.url();
+
+      if (
+        request.method() === 'PUT' &&
+        url.includes('/message-templates/confirm_reminder/he')
+      ) {
+        const raw = request.postData();
+        const body =
+          raw === null || raw.length === 0
+            ? {}
+            : (JSON.parse(raw) as Record<string, unknown>);
+        puts.push(body);
+        const next = {
+          ...holonConfirmReminderHe,
+          id: 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+          title: String(body.title ?? ''),
+          body: String(body.body ?? ''),
+          isCustom: true,
+        };
+        templates = {
+          templates: templates.templates.map((template) =>
+            template.key === 'confirm_reminder' && template.locale === 'he'
+              ? next
+              : template
+          ),
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(next),
+        });
+        return;
+      }
+
+      if (request.method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(templates),
+        });
+        return;
+      }
+
+      await route.fallback();
+    });
+
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await page.getByTestId('view-settings').click();
+    await expect(page).toHaveURL(`/cities/${CITY_A_ID}/settings`);
+    await expect(page.getByTestId('city-message-templates')).toBeVisible();
+    await expect(
+      page.getByTestId('message-template-confirm_reminder-he')
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('template-placeholders-confirm_reminder')
+    ).toContainText('{{date}}');
+
+    await page
+      .getByTestId('message-template-confirm_reminder-he')
+      .locator('input[name="title"]')
+      .fill('תזכורת לחולון');
+    await page.getByTestId('save-message-template-confirm_reminder').click();
+    await expect(
+      page.getByTestId('message-template-success-confirm_reminder')
+    ).toBeVisible();
+    await expect.poll(() => puts).toHaveLength(1);
+    expect(puts[0]).toMatchObject({
+      title: 'תזכורת לחולון',
     });
   });
 
