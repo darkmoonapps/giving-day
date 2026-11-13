@@ -1,4 +1,4 @@
-import { Anchor, Card, SimpleGrid, Stack, Table } from '@mantine/core';
+import { Anchor, SimpleGrid, Stack, Table } from '@mantine/core';
 import { getActiveCoordinatorCities } from '@giving-day/shared';
 import {
   AppAlert,
@@ -16,6 +16,7 @@ import {
   useListDayParticipations,
   type DayParticipationCoordinatorRowDto,
 } from '../api/generated/api';
+import { StatCard } from '../components/stat-card';
 import { CoordinatorDayDetailsForm } from '../distribution-days/coordinator-day-details-form';
 import {
   formatDayHours,
@@ -44,43 +45,6 @@ function byStatus(
   status: DayParticipationCoordinatorRowDto['responseStatus']
 ): DayParticipationCoordinatorRowDto[] {
   return responses.filter((row) => row.responseStatus === status);
-}
-
-function StatCard({
-  testId,
-  label,
-  value,
-  color,
-}: {
-  testId: string;
-  label: string;
-  value: number;
-  color?: string;
-}): JSX.Element {
-  return (
-    <Card
-      padding="md"
-      radius="md"
-      withBorder
-      data-testid={testId}
-      aria-label={`${label}: ${value}`}
-      style={
-        color === undefined
-          ? undefined
-          : {
-              borderInlineStartWidth: 4,
-              borderInlineStartColor: `var(--mantine-color-${color}-4)`,
-            }
-      }
-    >
-      <AppText size="sm" c="dimmed">
-        {label}
-      </AppText>
-      <AppText size="xl" fw={700} mt={4} data-testid={`${testId}-value`}>
-        {value}
-      </AppText>
-    </Card>
-  );
 }
 
 export function CoordinatorDayDashboardPage(): JSX.Element {

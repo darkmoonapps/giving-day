@@ -1,4 +1,4 @@
-import { Card, SimpleGrid, Stack, Table } from '@mantine/core';
+import { SimpleGrid, Stack, Table } from '@mantine/core';
 import {
   getActiveCoordinatorCities,
   type LanguageCode,
@@ -18,49 +18,13 @@ import {
   type PastDistributionDayStatsDto,
 } from '../api/generated/api';
 import { useSession } from '../auth/session-provider';
+import { StatCard } from '../components/stat-card';
 import {
   formatDistributionDate,
   isUuid,
 } from '../distribution-days/format-day';
 import { useLanguage } from '../i18n/use-language';
 import { AppChrome } from '../layout/app-chrome';
-
-function StatCard({
-  testId,
-  label,
-  value,
-  color,
-}: {
-  testId: string;
-  label: string;
-  value: number;
-  color?: string;
-}): JSX.Element {
-  return (
-    <Card
-      padding="md"
-      radius="md"
-      withBorder
-      data-testid={testId}
-      aria-label={`${label}: ${value}`}
-      style={
-        color === undefined
-          ? undefined
-          : {
-              borderInlineStartWidth: 4,
-              borderInlineStartColor: `var(--mantine-color-${color}-4)`,
-            }
-      }
-    >
-      <AppText size="sm" c="dimmed">
-        {label}
-      </AppText>
-      <AppText size="xl" fw={700} mt={4} data-testid={`${testId}-value`}>
-        {value}
-      </AppText>
-    </Card>
-  );
-}
 
 function DayStatsRow({
   day,
