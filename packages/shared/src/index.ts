@@ -300,6 +300,7 @@ export {
 } from './schemas/elder-change-request';
 export {
   announceDistributionDayResultSchema,
+  confirmRemindersJobResultSchema,
   notificationChannelSchema,
   notificationStatusSchema,
   pushSubscriptionSchema,
@@ -308,6 +309,7 @@ export {
   upsertPushSubscriptionSchema,
   vapidPublicKeySchema,
   type AnnounceDistributionDayResult,
+  type ConfirmRemindersJobResult,
   type NotificationChannel,
   type NotificationStatus,
   type PushSubscription,

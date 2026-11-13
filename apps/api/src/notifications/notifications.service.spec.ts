@@ -33,6 +33,8 @@ describe('NotificationsService', () => {
 
   const mockPrisma = {
     cityMembership: { findMany: vi.fn() },
+    dayParticipation: { findMany: vi.fn() },
+    distributionDay: { findMany: vi.fn() },
     notificationLog: { findUnique: vi.fn(), create: vi.fn() },
     pushSubscription: {
       findMany: vi.fn(),
@@ -173,5 +175,122 @@ describe('NotificationsService', () => {
     const updateData = mockPrisma.pushSubscription.update.mock.calls[0][0]
       .data as { disabledAt?: Date };
     expect(updateData.disabledAt).toBeInstanceOf(Date);
+  });
+
+  it('sends confirm reminders only to non-responders after the city offset', async () => {
+    const VOLUNTEER_B_ID = '99999999-9999-4999-8999-999999999999';
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        publishedAt: new Date('2026-10-28T09:00:00.000Z'),
+        city: {
+          id: CITY_A_ID,
+          settings: { confirmReminderAfterHours: 24 },
+        },
+      },
+    ]);
+    mockPrisma.cityMembership.findMany.mockResolvedValue([
+      {
+        userId: VOLUNTEER_A_ID,
+        user: { id: VOLUNTEER_A_ID, locale: 'he' },
+      },
+      {
+        userId: VOLUNTEER_B_ID,
+        user: { id: VOLUNTEER_B_ID, locale: 'en' },
+      },
+    ]);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([
+      { volunteerId: VOLUNTEER_B_ID },
+    ]);
+    mockPrisma.pushSubscription.findMany.mockResolvedValue([
+      {
+        id: 'sub-1',
+        userId: VOLUNTEER_A_ID,
+        endpoint: 'https://push.example.com/fake-subscription',
+        p256dh: 'fake-p256dh-key',
+        auth: 'fake-auth-secret',
+        userAgent: 'Mozilla/5.0 GivingDayTest',
+        lastSuccessAt: null,
+        failedCount: 0,
+        disabledAt: null,
+      },
+    ]);
+
+    const result = await service.sendConfirmReminders(
+      new Date('2026-10-29T10:00:00.000Z')
+    );
+
+    expect(result).toEqual({
+      attempted: 1,
+      sent: 1,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 1,
+    });
+    expect(provider.send).toHaveBeenCalledOnce();
+    expect(mockPrisma.notificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: VOLUNTEER_A_ID,
+        templateKey: 'confirm_reminder',
+        status: 'sent',
+        dedupeKey: `confirm_reminder:${day.id}:${VOLUNTEER_A_ID}`,
+      }),
+    });
+  });
+
+  it('skips open days until confirmReminderAfterHours have elapsed', async () => {
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        publishedAt: new Date('2026-10-28T09:00:00.000Z'),
+        city: {
+          id: CITY_A_ID,
+          settings: { confirmReminderAfterHours: 24 },
+        },
+      },
+    ]);
+
+    const result = await service.sendConfirmReminders(
+      new Date('2026-10-28T12:00:00.000Z')
+    );
+
+    expect(result).toEqual({
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      daysProcessed: 0,
+    });
+    expect(mockPrisma.cityMembership.findMany).not.toHaveBeenCalled();
+    expect(provider.send).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent when a confirm reminder was already logged', async () => {
+    mockPrisma.distributionDay.findMany.mockResolvedValue([
+      {
+        ...day,
+        publishedAt: new Date('2026-10-28T09:00:00.000Z'),
+        city: {
+          id: CITY_A_ID,
+          settings: { confirmReminderAfterHours: 24 },
+        },
+      },
+    ]);
+    mockPrisma.cityMembership.findMany.mockResolvedValue([
+      {
+        userId: VOLUNTEER_A_ID,
+        user: { id: VOLUNTEER_A_ID, locale: 'en' },
+      },
+    ]);
+    mockPrisma.dayParticipation.findMany.mockResolvedValue([]);
+    mockPrisma.notificationLog.findUnique.mockResolvedValue({ id: 'log-1' });
+
+    const result = await service.sendConfirmReminders(
+      new Date('2026-10-29T10:00:00.000Z')
+    );
+
+    expect(result.skipped).toBe(1);
+    expect(result.daysProcessed).toBe(1);
+    expect(provider.send).not.toHaveBeenCalled();
   });
 });

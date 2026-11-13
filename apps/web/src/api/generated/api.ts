@@ -386,6 +386,14 @@ export interface PushSubscriptionsResponseDto {
   subscriptions: PushSubscriptionResponseDto[];
 }
 
+export interface ConfirmRemindersJobResultDto {
+  attempted: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  daysProcessed: number;
+}
+
 export type MessageTemplateResponseDtoKey = typeof MessageTemplateResponseDtoKey[keyof typeof MessageTemplateResponseDtoKey];
 
 
@@ -3779,6 +3787,78 @@ export const useDeletePushSubscription = <TError = unknown,
       > => {
 
       const mutationOptions = getDeletePushSubscriptionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * Free-tier friendly cron endpoint. Protect with CRON_SECRET via Authorization: Bearer or X-Cron-Secret. Safe to call repeatedly; NotificationLog.dedupeKey prevents duplicate pushes.
+ * @summary Send idempotent confirmation-reminder pushes to non-responding volunteers
+ */
+export const getRunConfirmRemindersJobUrl = () => {
+
+
+  
+
+  return `/api/jobs/confirm-reminders`
+}
+
+export const runConfirmRemindersJob = async ( options?: RequestInit): Promise<ConfirmRemindersJobResultDto> => {
+  
+  return apiFetch<ConfirmRemindersJobResultDto>(getRunConfirmRemindersJobUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getRunConfirmRemindersJobMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runConfirmRemindersJob>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runConfirmRemindersJob>>, TError,void, TContext> => {
+
+const mutationKey = ['runConfirmRemindersJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runConfirmRemindersJob>>, void> = () => {
+          
+
+          return  runConfirmRemindersJob(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunConfirmRemindersJobMutationResult = NonNullable<Awaited<ReturnType<typeof runConfirmRemindersJob>>>
+    
+    export type RunConfirmRemindersJobMutationError = void
+
+    /**
+ * @summary Send idempotent confirmation-reminder pushes to non-responding volunteers
+ */
+export const useRunConfirmRemindersJob = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runConfirmRemindersJob>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof runConfirmRemindersJob>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getRunConfirmRemindersJobMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

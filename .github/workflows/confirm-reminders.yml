@@ -1,0 +1,27 @@
+name: Confirm reminders
+
+on:
+  schedule:
+    # Hourly is enough: the API job is idempotent via NotificationLog.dedupeKey.
+    - cron: '20 * * * *'
+  workflow_dispatch:
+
+jobs:
+  send-confirm-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Run confirm-reminders job when the window is open
+        env:
+          KEEPAWAKE_START: ${{ vars.KEEPAWAKE_START }}
+          KEEPAWAKE_END: ${{ vars.KEEPAWAKE_END }}
+          API_HEALTH_URL: ${{ vars.API_HEALTH_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: node scripts/confirm-reminders.mjs
